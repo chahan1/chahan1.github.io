@@ -1,15 +1,16 @@
 // 英語學習筆記本 - Service Worker（讓 App 可離線開啟）
 // 更新程式後，把版本號改掉，使用者下次開啟就會拿到新版
-const CACHE_NAME = 'eng-notebook-v1.8.5';
+const CACHE_NAME = 'eng-notebook-v1.8.6';
 const APP_FILES = [
   './',
   './index.html',
   './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/maskable-192.png',
-  './icons/maskable-512.png',
-  './icons/apple-touch-icon.png',
+  './icon-192.png',
+  './icon-512.png',
+  './maskable-192.png',
+  './maskable-512.png',
+  './apple-touch-icon.png',
+  './screenshot-1.png',
   'https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js'
 ];
 
