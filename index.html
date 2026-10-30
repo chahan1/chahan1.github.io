@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#107c41">
+    <meta name="description" content="可語音輸入、朗讀與 AI 自動查詢釋義和例句的英語單字筆記本。">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="英語筆記">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <title>英語學習筆記本 v1.8.4 - 語音與 AI 升級版</title>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        :root { --green: #107c41; --green-light: #e8f5ec; --blue: #1a73e8; --line: #eef0f2; --muted: #8a9096; --text: #2b2f33; }
+        html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans TC', Helvetica, Arial, sans-serif; 
+            max-width: 680px; margin: 0 auto; padding: 0 10px 64px 10px; 
+            background-color: #f5f7f8; color: var(--text); -webkit-tap-highlight-color: transparent;
+            font-size: 13px;
+        }
+        svg.ic { width: 16px; height: 16px; display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+        
+        /* ---- 頂部列 ---- */
+        .sticky-top-bar { position: sticky; top: 0; z-index: 100; background-color: #f5f7f8; padding-top: 8px; padding-bottom: 8px; }
+        .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .header-container h2 { margin: 0; color: var(--green); font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px; letter-spacing: 0.3px; }
+        .header-container h2 img { width: 20px; height: 20px; border-radius: 5px; }
+        .version-tag { font-size: 9px; background: var(--green-light); color: var(--green); padding: 1px 4px; border-radius: 3px; font-weight: 600; letter-spacing: 0; }
+
+        .menu-wrapper { position: relative; }
+        .three-dots-btn {
+            background: transparent; border: none; border-radius: 50%;
+            width: 30px; height: 30px; font-size: 16px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; color: #5f6368;
+        }
+        .three-dots-btn:active { background: #e8eaed; }
+        .dropdown-menu {
+            display: none; position: absolute; right: 0; top: 34px;
+            background: white; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.14);
+            width: 176px; padding: 4px 0; z-index: 200;
+        }
+        .dropdown-menu.show { display: block; }
+        .dropdown-item { padding: 9px 14px; font-size: 13px; color: #3c4043; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .dropdown-item:active, .dropdown-item:hover { background-color: var(--green-light); color: var(--green); }
+        .dropdown-divider { height: 1px; background: var(--line); margin: 4px 0; }
+        
+        .input-group { display: flex; gap: 6px; align-items: center; }
+        input[type="text"] { flex: 1; min-width: 0; height: 34px; padding: 0 12px; border: 1px solid #e0e3e6; border-radius: 17px; font-size: 13.5px; background: white; outline: none; color: var(--text); }
+        input[type="text"]::placeholder { color: #a8adb2; }
+        input[type="text"]:focus { border-color: var(--green); box-shadow: 0 0 0 2px rgba(16,124,65,0.12); }
+        .btn-primary { height: 34px; padding: 0 14px; background-color: var(--green); color: white; border: none; border-radius: 17px; cursor: pointer; font-weight: 600; font-size: 13px; flex-shrink: 0; }
+        .btn-outline { padding: 7px 14px; background: transparent; border: 1px solid #dadce0; border-radius: 8px; cursor: pointer; font-size: 13px; }
+        .btn-voice { width: 34px; height: 34px; padding: 0; background-color: white; color: #4285f4; border: 1px solid #e0e3e6; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .btn-voice svg.ic { width: 17px; height: 17px; }
+        .btn-voice.listening { background-color: #d93025; border-color: #d93025; color: white; animation: blink 1s infinite; }
+        
+        /* ---- 卡片與列 ---- */
+        .task-card { background: white; border-radius: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); margin-bottom: 8px; padding: 2px 6px 4px 2px; }
+        .task-row { display: flex; align-items: center; gap: 3px; padding: 3px 0; background: white; min-height: 30px; }
+        .main-row { padding: 5px 0; }
+        
+        .subtask-container { margin-left: 12px; border-left: 1.5px solid #dcefe2; padding-left: 1px; min-height: 2px; }
+        .grandtask-container { margin-left: 20px; border-left: 1.5px dotted #d3e9da; padding-left: 2px; min-height: 0; }
+        .subtask-item { background: white; }
+        .subtask-item + .subtask-item { border-top: 1px solid var(--line); }
+        .collapsed { display: none !important; }
+
+        .toggle-icon { cursor: pointer; font-size: 8px; color: #b0b5ba; width: 14px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .toggle-placeholder { width: 14px; flex-shrink: 0; }
+        .drag-handle { cursor: grab; font-size: 10px; color: #d5d9dd; width: 12px; text-align: center; touch-action: none; flex-shrink: 0; user-select: none; }
+        input[type="checkbox"] { width: 15px; height: 15px; margin: 0 3px 0 1px; cursor: pointer; accent-color: var(--green); flex-shrink: 0; }
+        
+        .main-task-text { font-size: 14px; font-weight: 700; color: var(--green); }
+        .sub-task-text { font-size: 13.5px; font-weight: 600; color: var(--blue); }
+        .grand-task-text { font-size: 12.5px; font-weight: 400; color: var(--text); line-height: 1.45; }
+        .task-text { flex: 1; min-width: 0; word-break: break-word; line-height: 1.35; cursor: pointer; padding: 1px 2px; }
+        .completed { text-decoration: line-through; color: #a8adb2 !important; font-weight: normal !important; }
+        
+        .definition-box { display: none; font-size: 12px; color: #555a5f; background: #f7f9f8; border-left: 2px solid var(--green); padding: 4px 8px; margin: 0 4px 5px 32px; border-radius: 0 6px 6px 0; }
+        .definition-box.show { display: block; }
+        .def-content { font-style: italic; margin-bottom: 1px; word-break: break-word; line-height: 1.4; }
+        .def-edit-btn { font-size: 10.5px; color: var(--green); background: none; border: none; padding: 1px 0; cursor: pointer; }
+
+        .cn-text { color: #868b90; font-weight: 400; }
+        .main-task-text .cn-text, .sub-task-text .cn-text { color: inherit; font-weight: inherit; }
+        body.hide-cn .cn-text { display: none !important; }
+
+        /* ---- 右側小按鈕 ---- */
+        .row-actions { display: flex; align-items: center; gap: 0; flex-shrink: 0; }
+        .icon-btn, .action-btn { background: transparent; border: none; cursor: pointer; width: 26px; height: 26px; padding: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #9aa0a6; }
+        .icon-btn:active, .action-btn:active { background: var(--green-light); color: var(--green); }
+        .icon-btn.speak { color: #4285f4; }
+        .icon-btn.def.on { color: var(--green); }
+        .btn-add-sub { color: var(--green); background: var(--green-light); width: 24px; height: 24px; margin-left: 2px; }
+        .btn-add-sub svg.ic { width: 14px; height: 14px; stroke-width: 2.2; }
+        .btn-add-sub.small { width: 22px; height: 22px; background: transparent; border: 1px solid #cfe7d7; }
+        .btn-add-sub.small svg.ic { width: 12px; height: 12px; }
+        .btn-delete { color: #e06055; }
+
+        .btn-edit, .btn-delete { display: none !important; }
+        body.edit-mode .btn-edit, body.edit-mode .btn-delete { display: flex !important; }
+        body.hide-completed .completed-card, body.hide-completed .completed-sub, body.hide-completed .completed-grand { display: none !important; }
+
+        .time-badge { display: none; font-size: 9.5px; color: var(--muted); font-weight: 400; margin-top: 1px; white-space: nowrap; }
+        body.show-time .time-badge { display: block !important; }
+
+        .empty-hint { text-align: center; color: var(--muted); font-size: 12.5px; padding: 40px 0; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.45); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 14px; border-radius: 12px; width: 92%; max-width: 500px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .modal-content h3 { margin: 0 0 4px 0; font-size: 15px; }
+        .modal-content textarea { width: 100%; height: 150px; margin: 8px 0; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-family: monospace; font-size: 11px; }
+        .ai-loading { font-size: 10.5px; color: var(--green); margin-left: 4px; font-weight: 400; animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+        
+        #voiceStatus { width: 100%; font-size: 11.5px; color: #d93025; margin-top: 4px; display: none; }
+
+        @media (min-width: 600px) {
+            body { padding: 0 16px 64px 16px; font-size: 14px; }
+            .header-container h2 { font-size: 17px; }
+            .main-task-text { font-size: 15px; } .sub-task-text { font-size: 14.5px; } .grand-task-text { font-size: 13.5px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sticky-top-bar">
+        <div class="header-container">
+            <h2><img src="icons/icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.8.4</span></h2>
+            <div class="menu-wrapper">
+                <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
+                <div class="dropdown-menu" id="dropdownMenu">
+                    <div class="dropdown-item" onclick="setGeminiApiKey()">🔑 <span>設定 Gemini 金鑰</span></div>
+                    <div class="dropdown-item" id="itemHideCn" onclick="toggleHideCn()">🙈 <span>隱藏中文</span></div>
+                    <div class="dropdown-item" id="itemTime" onclick="toggleTime()">🕒 <span>顯示時間</span></div>
+                    <div class="dropdown-item" id="itemEditMode" onclick="toggleEditMode()">⚙️ <span>開啟修改</span></div>
+                    <div class="dropdown-item" id="itemCompleted" onclick="toggleCompleted()">👁️ <span>隱藏熟記項目</span></div>
+                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-item" onclick="exportData()">💾 <span>匯出筆記包</span></div>
+                    <div class="dropdown-item" onclick="document.getElementById('importFile').click()">📂 <span>匯入筆記包</span></div>
+                </div>
+                <input type="file" id="importFile" accept=".json,text/plain" style="display: none;" onchange="importData(event)">
+            </div>
+        </div>
+        <div class="input-group">
+            <input type="text" id="mainTaskInput" placeholder="新增主題，如：職場開會" onkeydown="if(event.key==='Enter' && !event.isComposing) addMainTask()">
+            <button class="btn-voice" id="micButton" title="語音新增主題"><svg class="ic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+            <button class="btn-primary" onclick="addMainTask()">新增</button>
+        </div>
+        <div id="voiceStatus"></div>
+    </div>
+
+    <div id="taskList"></div>
+
+    <div id="exportModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>💾 筆記備份已生成</h3>
+            <textarea id="exportTextarea" readonly></textarea>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn-primary" onclick="copyExportData()">📋 複製</button>
+                <button class="btn-outline" onclick="closeExportModal()">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        // 線條圖示（比 emoji 更細緻）
+        const ICON = {
+            speak: '<svg class="ic" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>',
+            book:  '<svg class="ic" viewBox="0 0 24 24"><path d="M3 5.5C5.5 4 8.5 4 12 6c3.5-2 6.5-2 9-.5V19c-2.5-1.5-5.5-1.5-9 .5-3.5-2-6.5-2-9-.5V5.5z"/><path d="M12 6v13.5"/></svg>',
+            plus:  '<svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+            edit:  '<svg class="ic" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>',
+            trash: '<svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>'
+        };
+        const STORAGE_KEY = 'english_notebook_v1.8';
+        const API_KEY_STORAGE = 'user_gemini_api_key';
+        const LOADING_TEXT = "🤖 AI 查詢中...";
+        const MANUAL_DEF_TEXT = "(點擊下方「✏️ 編輯釋義」手動填寫)";
+
+        // 【修正】gemini-1.5-flash 已被 Google 停用（會回傳 404）。
+        // 依序嘗試以下模型，前一個不可用時自動換下一個。
+        const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite'];
+
+        const defaultData = [{
+            id: 101, text: "📁 職場開會常用語 (Business Meetings)", checked: false, collapsed: false, createdAt: Date.now(),
+            subtasks: [{
+                id: 201, text: "agenda (n.) 議程", definition: "(noun) a list of items to be discussed at a formal meeting.", checked: false, collapsed: false, showDef: false, createdAt: Date.now(),
+                grandtasks: [{ id: 301, text: "Let's stick to the agenda for today's meeting. (我們今天的會議就照議程走吧。)", checked: false, createdAt: Date.now() }]
+            }]
+        }];
+
+        // 【修正】localStorage 資料損壞時不會讓整個程式當掉
+        function safeLoad(key) {
+            try { const v = JSON.parse(localStorage.getItem(key)); return Array.isArray(v) ? v : null; }
+            catch (e) { return null; }
+        }
+
+        let tasks = safeLoad(STORAGE_KEY) || safeLoad('english_notebook_v1.7') || safeLoad('english_notebook_v1.6') || defaultData;
+
+        // 【修正】確保資料結構完整，並清除上次重新整理前卡住的「查詢中」狀態
+        function normalizeTasks(list) {
+            return list.filter(t => t && typeof t === 'object').map(t => {
+                t.subtasks = Array.isArray(t.subtasks) ? t.subtasks : [];
+                t.subtasks.forEach(s => {
+                    s.grandtasks = Array.isArray(s.grandtasks) ? s.grandtasks : [];
+                    if (s.isLoading) {
+                        s.isLoading = false;
+                        if (s.definition === LOADING_TEXT) s.definition = MANUAL_DEF_TEXT;
+                    }
+                });
+                return t;
+            });
+        }
+        tasks = normalizeTasks(tasks);
+
+        // 【修正】產生不重複的 ID（原本用 Date.now() 可能重複）
+        let lastId = 0;
+        function newId() {
+            let id = Date.now();
+            if (id <= lastId) id = lastId + 1;
+            lastId = id;
+            return id;
+        }
+
+        let sortableInstances = [];
+        let isHideCompleted = localStorage.getItem('eng_hideCompleted') === 'true';
+        let isShowTime = localStorage.getItem('eng_showTime') === 'true';
+        let isHideCn = localStorage.getItem('eng_hideCn') === 'true';
+        let isEditMode = false;
+
+        // 【修正】跳脫 HTML，避免文字中有 < > " ' 等符號時畫面壞掉
+        function escapeHtml(str) {
+            return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        function escapeAttr(str) {
+            return escapeHtml(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function findMain(id) { return tasks.find(t => t.id === id); }
+        function findSub(mainId, subId) { const m = findMain(mainId); return m ? m.subtasks.find(s => s.id === subId) : null; }
+        function findSubAnywhere(subId) {
+            for (const t of tasks) { const s = t.subtasks.find(x => x.id === subId); if (s) return s; }
+            return null;
+        }
+
+        // --- 1. 語音輸入 ---
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const micButton = document.getElementById('micButton');
+        const voiceStatus = document.getElementById('voiceStatus');
+
+        function showVoiceStatus(msg, color, hideAfter) {
+            voiceStatus.style.display = 'block';
+            voiceStatus.style.color = color || '#107c41';
+            voiceStatus.innerText = msg;
+            if (hideAfter) setTimeout(() => { voiceStatus.style.display = 'none'; }, hideAfter);
+        }
+
+        if (!SpeechRecognition) {
+            micButton.style.display = 'none';
+        } else {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'zh-TW';
+            recognition.interimResults = false;
+            recognition.continuous = false;
+            let isListening = false;
+            let gotResult = false;
+
+            micButton.addEventListener('click', () => {
+                // 【修正】再按一次可以停止，避免重複 start() 造成錯誤
+                if (isListening) { recognition.stop(); return; }
+                try {
+                    gotResult = false;
+                    recognition.start();
+                    isListening = true;
+                    micButton.classList.add('listening');
+                    showVoiceStatus("🎤 聆聽中...請說話（再按一次停止）");
+                } catch (e) {
+                    console.error("語音啟動失敗:", e);
+                    showVoiceStatus("語音啟動失敗，請稍後再試", '#d93025', 3000);
+                }
+            });
+
+            recognition.onresult = (event) => {
+                gotResult = true;
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('mainTaskInput').value = transcript;
+                showVoiceStatus(`辨識完成: ${transcript}`, '#107c41', 2000);
+                addMainTask();
+            };
+
+            recognition.onerror = (event) => {
+                gotResult = true; // 已顯示錯誤訊息，不再顯示「沒聽到」
+                const msg = event.error === 'not-allowed' ? '沒有麥克風權限（需在 https 網址下使用並允許麥克風）'
+                          : event.error === 'no-speech' ? '沒有聽到聲音，請再試一次'
+                          : event.error;
+                showVoiceStatus(`語音錯誤: ${msg}`, '#d93025', 3000);
+            };
+
+            // 【修正】原本沒說話就結束時，「聆聽中」會一直卡在畫面上
+            recognition.onend = () => {
+                isListening = false;
+                micButton.classList.remove('listening');
+                if (!gotResult) showVoiceStatus("沒有聽到內容，請再試一次", '#d93025', 2500);
+            };
+        }
+
+        // 單字用的一次性英文語音辨識，回傳 Promise
+        function listenOnceEnglish() {
+            return new Promise((resolve, reject) => {
+                const rec = new SpeechRecognition();
+                rec.lang = 'en-US';
+                rec.interimResults = false;
+                rec.continuous = false;
+                let done = false;
+                // 【修正】先綁定事件再 start；並處理「沒說話就結束」的情況，否則 Promise 永遠不會結束
+                rec.onresult = (e) => { done = true; resolve(e.results[0][0].transcript); };
+                rec.onerror = (e) => { if (!done) { done = true; reject(e.error); } };
+                rec.onend = () => { if (!done) { done = true; reject('no-speech'); } };
+                rec.start();
+            });
+        }
+
+        function setGeminiApiKey() {
+            const currentKey = localStorage.getItem(API_KEY_STORAGE) || '';
+            const key = prompt("請輸入您的 Google Gemini API Key：\n(若要清除請留空並按確定)", currentKey);
+            if (key !== null) {
+                if (key.trim() === '') {
+                    localStorage.removeItem(API_KEY_STORAGE);
+                    alert("已清除 API 金鑰。");
+                } else {
+                    localStorage.setItem(API_KEY_STORAGE, key.trim());
+                    alert("Gemini API 金鑰已儲存！");
+                }
+            }
+        }
+
+        // --- 2. Gemini API 呼叫 ---
+        async function callGemini(model, apiKey, promptText) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: promptText }] }],
+                    generationConfig: { responseMimeType: "application/json" }
+                })
+            });
+            if (!response.ok) {
+                let msg = `HTTP ${response.status}`;
+                try { const err = await response.json(); msg = err.error?.message || msg; } catch (e) {}
+                const error = new Error(msg);
+                error.status = response.status;
+                throw error;
+            }
+            return response.json();
+        }
+
+        async function fetchDefinitionAndSentence(rawInput) {
+            let apiKey = localStorage.getItem(API_KEY_STORAGE);
+            if (!apiKey) {
+                apiKey = prompt("💡【首次使用提示】\n請輸入您的 Gemini API Key 以啟用自動生成：");
+                if (apiKey && apiKey.trim() !== '') {
+                    apiKey = apiKey.trim();
+                    localStorage.setItem(API_KEY_STORAGE, apiKey);
+                } else {
+                    return null;
+                }
+            }
+
+            // 【修正】原本只取第一個單字，片語（如 "stick to"）會被截斷
+            const cleanWord = rawInput
+                .replace(/\([^)]*\)|（[^）]*）/g, ' ')
+                .replace(/[　-〿一-鿿＀-￯]/g, ' ')
+                .replace(/\s+/g, ' ').trim();
+            if (!cleanWord) return null;
+
+            const promptText = `請提供英文單字/片語 "${cleanWord}" 的簡短英文定義（需包含詞性，如 "(noun) definition..."），以及一個實用的例句。
+例句格式為：英文句子後面加上括號內的繁體中文翻譯，例如 "Let's stick to the plan. (我們照計畫進行吧。)"
+請嚴格使用以下 JSON 格式回傳，不要有任何多餘的文字或 Markdown 標籤：
+{
+  "definition": "...",
+  "sentence": "..."
+}`;
+
+            let lastError = null;
+            for (const model of GEMINI_MODELS) {
+                try {
+                    const data = await callGemini(model, apiKey, promptText);
+                    // 【修正】安全檢查：被安全機制擋下時 candidates 可能不存在
+                    const contentText = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+                    if (!contentText) throw new Error('AI 沒有回傳內容');
+                    const jsonText = contentText.replace(/```json|```/g, '').trim();
+                    const result = JSON.parse(jsonText);
+                    return {
+                        definition: result.definition || '(無法解析定義)',
+                        sentence: result.sentence ? `🤖 ${result.sentence}` : null
+                    };
+                } catch (error) {
+                    lastError = error;
+                    console.warn(`模型 ${model} 失敗:`, error.message);
+                    // 金鑰錯誤 / 權限問題 / 額度用完，換模型也沒用，直接停止
+                    if (error.status === 400 && /api key/i.test(error.message)) break;
+                    if (error.status === 401 || error.status === 403) break;
+                }
+            }
+            console.error("Gemini 查詢錯誤:", lastError);
+            alert("AI 查詢失敗：" + (lastError ? lastError.message : '未知錯誤'));
+            return null;
+        }
+
+        function toggleDropdown(e) { e.stopPropagation(); document.getElementById('dropdownMenu').classList.toggle('show'); }
+        window.addEventListener('click', function() { const menu = document.getElementById('dropdownMenu'); if (menu && menu.classList.contains('show')) menu.classList.remove('show'); });
+
+        // --- 3. 朗讀 ---
+        if ('speechSynthesis' in window) {
+            // 有些瀏覽器第一次呼叫 getVoices() 會是空的，先預載
+            window.speechSynthesis.getVoices();
+            window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+        }
+
+        function speakText(text) {
+            const englishOnly = String(text || '')
+                .replace(/🤖/g, '')
+                .replace(/\([^)]*[一-鿿][^)]*\)|（[^）]*）/g, '')   // 去掉含中文的括號
+                .replace(/\((n|v|adj|adv|prep|conj|phr|pron)\.?\)/gi, '')    // 去掉詞性標記
+                .replace(/[　-〿一-鿿＀-￯]/g, '')
+                .replace(/\s+/g, ' ').trim();
+            if (!englishOnly) return;
+            if (!('speechSynthesis' in window)) { playAudioFallback(englishOnly); return; }
+            try {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(englishOnly);
+                utterance.lang = 'en-US'; utterance.rate = 0.9;
+                const voices = window.speechSynthesis.getVoices();
+                const enVoice = voices.find(v => v.lang.replace('_', '-').includes('en-US')) || voices.find(v => v.lang.startsWith('en'));
+                if (enVoice) utterance.voice = enVoice;
+                let started = false, fellBack = false;
+                const fallback = () => { if (fellBack) return; fellBack = true; window.speechSynthesis.cancel(); playAudioFallback(englishOnly); };
+                utterance.onstart = () => { started = true; };
+                utterance.onerror = (e) => { if (e.error !== 'interrupted' && e.error !== 'canceled') fallback(); };
+                window.speechSynthesis.speak(utterance);
+                // 【修正】原本 0.5 秒檢查容易誤判，造成聲音重複播放兩次；改為確認真的沒開始才備援
+                setTimeout(() => { if (!started && !window.speechSynthesis.speaking) fallback(); }, 1500);
+            } catch(e) { playAudioFallback(englishOnly); }
+        }
+
+        function playAudioFallback(text) {
+            const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=${encodeURIComponent(text)}`;
+            new Audio(url).play().catch(err => {
+                const fallbackUrl = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(text)}&type=2`;
+                new Audio(fallbackUrl).play().catch(e => console.log("無法播放語音"));
+            });
+        }
+
+        // --- 4. 選單切換 ---
+        function toggleHideCn() { isHideCn = !isHideCn; localStorage.setItem('eng_hideCn', isHideCn); initHideCnBtn(); }
+        function initHideCnBtn() {
+            const item = document.getElementById('itemHideCn');
+            if (isHideCn) { document.body.classList.add('hide-cn'); item.innerHTML = '👁️ <span>顯示中文</span>'; }
+            else { document.body.classList.remove('hide-cn'); item.innerHTML = '🙈 <span>隱藏中文</span>'; }
+        }
+
+        function formatTime(timestamp) {
+            if (!timestamp) return ''; const d = new Date(timestamp); const pad = n => n.toString().padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+
+        function toggleTime() { isShowTime = !isShowTime; localStorage.setItem('eng_showTime', isShowTime); initTimeBtn(); }
+        function initTimeBtn() {
+            const item = document.getElementById('itemTime');
+            if (isShowTime) { document.body.classList.add('show-time'); item.innerHTML = '🕒 <span>隱藏時間</span>'; }
+            else { document.body.classList.remove('show-time'); item.innerHTML = '🕒 <span>顯示時間</span>'; }
+        }
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode; const item = document.getElementById('itemEditMode');
+            if (isEditMode) { document.body.classList.add('edit-mode'); item.innerHTML = '✅ <span>完成修改</span>'; }
+            else { document.body.classList.remove('edit-mode'); item.innerHTML = '⚙️ <span>開啟修改</span>'; }
+        }
+
+        function toggleCompleted() { isHideCompleted = !isHideCompleted; localStorage.setItem('eng_hideCompleted', isHideCompleted); initToggleBtn(); }
+        function initToggleBtn() {
+            const item = document.getElementById('itemCompleted');
+            if (isHideCompleted) { document.body.classList.add('hide-completed'); item.innerHTML = '👁️ <span>顯示熟記項目</span>'; }
+            else { document.body.classList.remove('hide-completed'); item.innerHTML = '👁️ <span>隱藏熟記項目</span>'; }
+        }
+
+        function saveData() {
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
+            catch (e) { alert("儲存失敗（瀏覽器儲存空間可能已滿）"); }
+            renderTasks();
+        }
+
+        function toggleSubtasks(id, level, parentId = null) {
+            if (level === 'main') { const t = findMain(id); if (t) t.collapsed = !t.collapsed; }
+            else if (level === 'sub') { const s = findSub(parentId, id); if (s) s.collapsed = !s.collapsed; }
+            saveData();
+        }
+
+        function toggleDefinition(subTaskId, mainTaskId) {
+            const sub = findSub(mainTaskId, subTaskId);
+            if (sub) { sub.showDef = !sub.showDef; saveData(); }
+        }
+
+        function editDefinition(subTaskId, mainTaskId) {
+            const sub = findSub(mainTaskId, subTaskId);
+            if (sub) {
+                const newDef = prompt("請修改英文定義/註釋：", sub.definition || "");
+                if (newDef !== null) { sub.definition = newDef.trim(); saveData(); }
+            }
+        }
+
+        // --- 5. 匯出 / 匯入 ---
+        function exportData() {
+            if (tasks.length === 0) return alert("沒有筆記可匯出！");
+            document.getElementById('exportTextarea').value = JSON.stringify(tasks, null, 2);
+            document.getElementById('exportModal').style.display = 'flex';
+        }
+        async function copyExportData() {
+            const ta = document.getElementById('exportTextarea');
+            try {
+                await navigator.clipboard.writeText(ta.value);
+            } catch (e) {
+                ta.select(); document.execCommand('copy');
+            }
+            alert('複製成功！');
+        }
+        function closeExportModal() { document.getElementById('exportModal').style.display = 'none'; }
+
+        function importData(event) {
+            const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (!Array.isArray(imported)) throw new Error('格式不符');
+                    // 【修正】匯入時重新編號，避免和現有筆記 ID 重複而互相干擾
+                    const fresh = normalizeTasks(imported).map(t => ({
+                        ...t, id: newId(),
+                        subtasks: t.subtasks.map(s => ({ ...s, id: newId(), grandtasks: s.grandtasks.map(g => ({ ...g, id: newId() })) }))
+                    }));
+                    if (tasks.length > 0 && confirm("保留原筆記並合併匯入嗎？\n(按『取消』會覆蓋原筆記)")) tasks = tasks.concat(fresh);
+                    else tasks = fresh;
+                    saveData(); alert("匯入成功！");
+                } catch (error) { alert("讀取失敗！請確認是本程式匯出的筆記包。"); }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        // --- 6. 拖曳後同步資料 ---
+        function syncDataFromDOM() {
+            const allSubs = new Map(), allGrands = new Map();
+            tasks.forEach(t => t.subtasks.forEach(s => { allSubs.set(s.id, s); s.grandtasks.forEach(g => allGrands.set(g.id, g)); }));
+
+            const newTasks = [];
+            document.querySelectorAll('#taskList > .task-card').forEach(card => {
+                const oldMain = findMain(parseInt(card.dataset.id));
+                if (!oldMain) return;
+                const subtasks = [];
+                // 【修正】原本「例句容器」不在單字列裡面，拖曳任何項目後所有例句都會消失
+                card.querySelectorAll(':scope > .subtask-container > .subtask-item').forEach(subItem => {
+                    const oldSub = allSubs.get(parseInt(subItem.dataset.id));
+                    if (!oldSub) return;
+                    const grandtasks = [];
+                    subItem.querySelectorAll(':scope > .grandtask-container > .grandtask-row').forEach(gRow => {
+                        const g = allGrands.get(parseInt(gRow.dataset.id));
+                        if (g) grandtasks.push(g);
+                    });
+                    oldSub.grandtasks = grandtasks;
+                    subtasks.push(oldSub);
+                });
+                oldMain.subtasks = subtasks;
+                newTasks.push(oldMain);
+            });
+            tasks = newTasks;
+            // 等 Sortable 完成收尾再重新繪製
+            setTimeout(saveData, 0);
+        }
+
+        // --- 7. 新增 / 編輯 / 刪除 ---
+        function addMainTask() {
+            const input = document.getElementById('mainTaskInput');
+            const text = input.value.trim(); if (!text) return;
+            const now = Date.now();
+            tasks.unshift({ id: newId(), text: text, checked: false, collapsed: false, createdAt: now, subtasks: [] });
+            input.value = ''; saveData();
+        }
+
+        async function addSubTask(mainTaskId) {
+            const task = findMain(mainTaskId);
+            if (!task) return;
+
+            let text = "";
+            if (SpeechRecognition && confirm("要使用語音輸入單字嗎？\n(按『取消』改用鍵盤輸入)")) {
+                showVoiceStatus("🎤 請說出英文單字...");
+                try {
+                    text = await listenOnceEnglish();
+                    voiceStatus.style.display = 'none';
+                    // 讓使用者確認/修改辨識結果
+                    text = prompt("辨識結果如下，可修改後按確定：", text);
+                } catch(e) {
+                    voiceStatus.style.display = 'none';
+                    text = prompt("語音失敗，請手動輸入【單字 / 短語】：");
+                }
+            } else {
+                text = prompt("請輸入【單字 / 短語】：");
+            }
+
+            if (!text || !text.trim()) return;
+            text = text.trim();
+
+            const subId = newId();
+            task.subtasks.unshift({ id: subId, text: text, definition: LOADING_TEXT, checked: false, collapsed: false, showDef: false, isLoading: true, createdAt: Date.now(), grandtasks: [] });
+            task.collapsed = false; saveData();
+
+            const result = await fetchDefinitionAndSentence(text);
+
+            // 【修正】查詢期間使用者可能拖曳或刪除，因此重新用 ID 找到該單字再寫入
+            const sub = findSubAnywhere(subId);
+            if (!sub) return;
+            if (result) {
+                sub.definition = result.definition;
+                sub.showDef = true;
+                if (result.sentence) sub.grandtasks.unshift({ id: newId(), text: result.sentence, checked: false, createdAt: Date.now() });
+            } else {
+                sub.definition = MANUAL_DEF_TEXT;
+            }
+            sub.isLoading = false; saveData();
+        }
+
+        function addGrandTask(mainTaskId, subTaskId) {
+            const text = prompt("請輸入【例句 / 用法】："); if (!text || !text.trim()) return;
+            const sub = findSub(mainTaskId, subTaskId);
+            if (sub) {
+                sub.grandtasks.unshift({ id: newId(), text: text.trim(), checked: false, createdAt: Date.now() });
+                sub.collapsed = false; saveData();
+            }
+        }
+
+        function getTarget(id, level, parentId, grandParentId) {
+            if (level === 'main') return findMain(id);
+            if (level === 'sub') return findSub(parentId, id);
+            if (level === 'grand') { const p = findSub(grandParentId, parentId); return p ? p.grandtasks.find(g => g.id === id) : null; }
+            return null;
+        }
+
+        function editTask(id, level, parentId = null, grandParentId = null) {
+            const target = getTarget(id, level, parentId, grandParentId);
+            if (target) { const nt = prompt("請修改內容：", target.text); if (nt && nt.trim()) { target.text = nt.trim(); saveData(); } }
+        }
+
+        function toggleCheck(id, level, parentId = null, grandParentId = null) {
+            const target = getTarget(id, level, parentId, grandParentId);
+            if (target) { target.checked = !target.checked; target.completedAt = target.checked ? Date.now() : null; saveData(); }
+        }
+
+        function deleteTask(id, level, parentId = null, grandParentId = null) {
+            if (!confirm('確定刪除？')) return;
+            if (level === 'main') tasks = tasks.filter(t => t.id !== id);
+            else if (level === 'sub') { const p = findMain(parentId); if (p) p.subtasks = p.subtasks.filter(s => s.id !== id); }
+            else if (level === 'grand') { const p = findSub(grandParentId, parentId); if (p) p.grandtasks = p.grandtasks.filter(g => g.id !== id); }
+            saveData();
+        }
+
+        // --- 8. 畫面繪製 ---
+        function getTimeBadgeHtml(obj) {
+            const createStr = formatTime(obj.createdAt), completeStr = formatTime(obj.completedAt);
+            return `<span class="time-badge">建立: ${createStr}${completeStr ? ` | 熟記: ${completeStr}` : ''}</span>`;
+        }
+
+        // 把中文部分包進 <span class="cn-text">，讓「隱藏中文」可以運作
+        function formatTextWithCn(rawText) {
+            const safe = escapeHtml(rawText);
+            if (!/[一-鿿]/.test(safe)) return safe;
+            return safe.replace(/(\([^()]*[一-鿿][^()]*\)|（[^（）]*）|[一-鿿][^\n]*)/g, '<span class="cn-text">$1</span>');
+        }
+
+        function renderTasks() {
+            sortableInstances.forEach(instance => { try { instance.destroy(); } catch (e) {} });
+            sortableInstances = [];
+            const container = document.getElementById('taskList'); container.innerHTML = '';
+
+            if (tasks.length === 0) {
+                container.innerHTML = '<div class="empty-hint">還沒有筆記，先在上方新增一個主題吧！</div>';
+            }
+
+            tasks.forEach(task => {
+                const card = document.createElement('div');
+                card.className = 'task-card' + (task.checked ? ' completed-card' : '');
+                card.dataset.id = task.id;
+                
+                const toggleBtnHtml = task.subtasks.length > 0 ? `<div class="toggle-icon" onclick="toggleSubtasks(${task.id}, 'main')">${task.collapsed ? '▶' : '▼'}</div>` : `<div class="toggle-placeholder"></div>`;
+                let html = `
+                    <div class="task-row main-row">
+                        <div class="drag-handle main-handle">☰</div>
+                        ${toggleBtnHtml}
+                        <input type="checkbox" ${task.checked ? 'checked' : ''} onchange="toggleCheck(${task.id}, 'main')">
+                        <div class="task-text main-task-text ${task.checked ? 'completed' : ''}" onclick="editTask(${task.id}, 'main')">
+                            ${formatTextWithCn(task.text)} ${getTimeBadgeHtml(task)}
+                        </div>
+                        <div class="row-actions">
+                            <button class="action-btn btn-edit" onclick="editTask(${task.id}, 'main')">${ICON.edit}</button>
+                            <button class="action-btn btn-delete" onclick="deleteTask(${task.id}, 'main')">${ICON.trash}</button>
+                            <button class="action-btn btn-add-sub" title="新增單字" onclick="addSubTask(${task.id})">${ICON.plus}</button>
+                        </div>
+                    </div>
+                    <div class="subtask-container ${task.collapsed ? 'collapsed' : ''}">
+                `;
+                
+                task.subtasks.forEach(sub => {
+                    const subToggleHtml = sub.grandtasks.length > 0 ? `<div class="toggle-icon" onclick="toggleSubtasks(${sub.id}, 'sub', ${task.id})">${sub.collapsed ? '▶' : '▼'}</div>` : `<div class="toggle-placeholder"></div>`;
+                    const loadingTag = sub.isLoading ? `<span class="ai-loading">🤖 查詢中...</span>` : '';
+                    html += `
+                        <div class="subtask-item ${sub.checked ? 'completed-sub' : ''}" data-id="${sub.id}">
+                        <div class="task-row subtask-row">
+                            <div class="drag-handle sub-handle">☰</div>
+                            ${subToggleHtml}
+                            <input type="checkbox" ${sub.checked ? 'checked' : ''} onchange="toggleCheck(${sub.id}, 'sub', ${task.id})">
+                            <div class="task-text sub-task-text ${sub.checked ? 'completed' : ''}" onclick="editTask(${sub.id}, 'sub', ${task.id})">
+                                ${formatTextWithCn(sub.text)} ${loadingTag} ${getTimeBadgeHtml(sub)}
+                            </div>
+                            <div class="row-actions">
+                                <button class="icon-btn speak" title="朗讀" data-speak="${escapeAttr(sub.text)}" onclick="speakText(this.dataset.speak)">${ICON.speak}</button>
+                                <button class="icon-btn def ${sub.showDef ? 'on' : ''}" title="釋義" onclick="toggleDefinition(${sub.id}, ${task.id})">${ICON.book}</button>
+                                <button class="action-btn btn-edit" onclick="editTask(${sub.id}, 'sub', ${task.id})">${ICON.edit}</button>
+                                <button class="action-btn btn-delete" onclick="deleteTask(${sub.id}, 'sub', ${task.id})">${ICON.trash}</button>
+                                <button class="action-btn btn-add-sub small" title="新增例句" onclick="addGrandTask(${task.id}, ${sub.id})">${ICON.plus}</button>
+                            </div>
+                        </div>
+                    `;
+                    if (sub.definition) html += `<div class="definition-box ${sub.showDef ? 'show' : ''}"><div class="def-content">${escapeHtml(sub.definition)}</div><button class="def-edit-btn" onclick="editDefinition(${sub.id}, ${task.id})">編輯釋義 ›</button></div>`;
+                    
+                    html += `<div class="grandtask-container ${sub.collapsed ? 'collapsed' : ''}">`;
+                    sub.grandtasks.forEach(grand => {
+                        html += `
+                            <div class="task-row grandtask-row ${grand.checked ? 'completed-grand' : ''}" data-id="${grand.id}">
+                                <div class="drag-handle grand-handle">☰</div>
+                                <input type="checkbox" ${grand.checked ? 'checked' : ''} onchange="toggleCheck(${grand.id}, 'grand', ${sub.id}, ${task.id})">
+                                <div class="task-text grand-task-text ${grand.checked ? 'completed' : ''}" onclick="editTask(${grand.id}, 'grand', ${sub.id}, ${task.id})">
+                                    ${formatTextWithCn(grand.text)} ${getTimeBadgeHtml(grand)}
+                                </div>
+                                <div class="row-actions">
+                                    <button class="icon-btn speak" title="朗讀" data-speak="${escapeAttr(grand.text)}" onclick="speakText(this.dataset.speak)">${ICON.speak}</button>
+                                    <button class="action-btn btn-edit" onclick="editTask(${grand.id}, 'grand', ${sub.id}, ${task.id})">${ICON.edit}</button>
+                                    <button class="action-btn btn-delete" onclick="deleteTask(${grand.id}, 'grand', ${sub.id}, ${task.id})">${ICON.trash}</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += `</div></div>`; // 關閉 grandtask-container 與 subtask-item
+                });
+                
+                html += `</div>`; card.innerHTML = html; container.appendChild(card);
+            });
+            initSortable();
+        }
+
+        function initSortable() {
+            if (typeof Sortable === 'undefined') return;
+            try {
+                const mainList = document.getElementById('taskList');
+                sortableInstances.push(new Sortable(mainList, { animation: 150, handle: '.main-handle', draggable: '.task-card', onEnd: syncDataFromDOM }));
+                document.querySelectorAll('.subtask-container').forEach(c => sortableInstances.push(new Sortable(c, {
+                    group: 'shared-subtasks', animation: 150, handle: '.sub-handle', draggable: '.subtask-item',
+                    fallbackOnBody: true, swapThreshold: 0.65, onEnd: syncDataFromDOM
+                })));
+                document.querySelectorAll('.grandtask-container').forEach(c => sortableInstances.push(new Sortable(c, {
+                    group: 'shared-grandtasks', animation: 150, handle: '.grand-handle', draggable: '.grandtask-row',
+                    fallbackOnBody: true, swapThreshold: 0.65, onEnd: syncDataFromDOM
+                })));
+            } catch (e) { console.error("拖曳功能初始化失敗:", e); }
+        }
+
+        initHideCnBtn(); initTimeBtn(); initToggleBtn(); renderTasks();
+
+        // --- 9. 註冊 Service Worker（PWA 離線開啟） ---
+        if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => console.warn('Service Worker 註冊失敗:', err));
+            });
+        }
+    </script>
+</body>
+</html>
