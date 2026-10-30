@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v1.8.6 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v1.8.9 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -89,6 +89,8 @@
         .cn-text { color: #868b90; font-weight: 400; }
         .main-task-text .cn-text, .sub-task-text .cn-text { color: inherit; font-weight: inherit; }
         body.hide-cn .cn-text { display: none !important; }
+        /* 例句中文：由選單開關統一顯示 / 隱藏 */
+        body.hide-ex-cn .grandtask-row .cn-text { display: none !important; }
 
         /* ---- 右側小按鈕 ---- */
         .row-actions { display: flex; align-items: center; gap: 0; flex-shrink: 0; }
@@ -114,6 +116,7 @@
         .backup-banner span { flex: 1; min-width: 0; }
         .bb-btn { border: none; background: transparent; color: #7a5b00; font-size: 12px; padding: 5px 8px; border-radius: 12px; cursor: pointer; flex-shrink: 0; }
         .bb-btn.primary { background: var(--green); color: white; font-weight: 600; }
+        .pending-tag { display: inline-block; font-size: 9.5px; font-weight: 500; color: #b06000; background: #fff4e0; border: 1px solid #fde3b5; padding: 0 5px; border-radius: 8px; margin-left: 4px; vertical-align: 2px; }
         .toast { position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%); background: rgba(32,33,36,0.92); color: white; font-size: 12.5px; padding: 8px 14px; border-radius: 18px; z-index: 2000; opacity: 0; transition: opacity 0.25s; pointer-events: none; max-width: 90%; text-align: center; white-space: pre-line; }
         .toast.show { opacity: 1; }
         .empty-hint { text-align: center; color: var(--muted); font-size: 12.5px; padding: 40px 0; }
@@ -138,14 +141,16 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.8.6</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.8.9</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
                     <div class="dropdown-item" onclick="setGeminiApiKey()">🔑 <span>設定 Gemini 金鑰</span></div>
-                    <div class="dropdown-item" id="itemHideCn" onclick="toggleHideCn()">🙈 <span>隱藏中文</span></div>
+                    <div class="dropdown-item" id="itemHideExCn" onclick="toggleHideExCn()">💬 <span>顯示例句中文</span></div>
+                    <div class="dropdown-item" id="itemHideCn" onclick="toggleHideCn()">🙈 <span>隱藏全部中文</span></div>
                     <div class="dropdown-item" id="itemTime" onclick="toggleTime()">🕒 <span>顯示時間</span></div>
                     <div class="dropdown-item" id="itemEditMode" onclick="toggleEditMode()">⚙️ <span>開啟修改</span></div>
+                    <div class="dropdown-item" onclick="processPendingAI({ manual: true })">🤖 <span>立即補齊 AI 釋義</span></div>
                     <div class="dropdown-item" id="itemCompleted" onclick="toggleCompleted()">👁️ <span>隱藏熟記項目</span></div>
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-item" onclick="downloadBackup()">📥 <span>下載備份檔</span></div>
@@ -195,7 +200,8 @@
         const STORAGE_KEY = 'english_notebook_v1.8';
         const API_KEY_STORAGE = 'user_gemini_api_key';
         const LOADING_TEXT = "🤖 AI 查詢中...";
-        const MANUAL_DEF_TEXT = "(點擊下方「✏️ 編輯釋義」手動填寫)";
+        const MANUAL_DEF_TEXT = "(點擊下方「編輯釋義」手動填寫)";
+        const PENDING_DEF_TEXT = "⏳ 目前離線，連上網路後 AI 會自動補上釋義與例句";
 
         // 【修正】gemini-1.5-flash 已被 Google 停用（會回傳 404）。
         // 依序嘗試以下模型，前一個不可用時自動換下一個。
@@ -224,8 +230,10 @@
                 t.subtasks.forEach(s => {
                     s.grandtasks = Array.isArray(s.grandtasks) ? s.grandtasks : [];
                     if (s.isLoading) {
+                        // 上次查詢到一半被中斷：改為「待補齊」，上線後自動重查
                         s.isLoading = false;
-                        if (s.definition === LOADING_TEXT) s.definition = MANUAL_DEF_TEXT;
+                        s.pendingAI = true;
+                        if (s.definition === LOADING_TEXT) s.definition = PENDING_DEF_TEXT;
                     }
                 });
                 return t;
@@ -246,6 +254,8 @@
         let isHideCompleted = localStorage.getItem('eng_hideCompleted') === 'true';
         let isShowTime = localStorage.getItem('eng_showTime') === 'true';
         let isHideCn = localStorage.getItem('eng_hideCn') === 'true';
+        // 例句中文預設隱藏（除非使用者曾選擇顯示）
+        let isHideExCn = localStorage.getItem('eng_hideExCn') !== 'false';
         let isEditMode = false;
 
         // 【修正】跳脫 HTML，避免文字中有 < > " ' 等符號時畫面壞掉
@@ -375,8 +385,18 @@
             return response.json();
         }
 
-        async function fetchDefinitionAndSentence(rawInput) {
+        // AI 查詢錯誤的分類，方便決定「稍後重試」或「停止」
+        function classifyError(err) {
+            if (!navigator.onLine || err instanceof TypeError) return 'offline';     // 沒網路 / 連不上
+            if (err && (err.status === 401 || err.status === 403 || (err.status === 400 && /api key/i.test(err.message)))) return 'key';
+            if (err && err.status === 429) return 'quota';
+            return 'other';
+        }
+
+        // silent = true：背景自動補齊用，不跳出任何視窗，失敗時丟出錯誤
+        async function fetchDefinitionAndSentence(rawInput, { silent = false } = {}) {
             let apiKey = localStorage.getItem(API_KEY_STORAGE);
+            if (!apiKey && silent) { const e = new Error('尚未設定 API 金鑰'); e.status = 401; throw e; }
             if (!apiKey) {
                 apiKey = prompt("💡【首次使用提示】\n請輸入您的 Gemini API Key 以啟用自動生成：");
                 if (apiKey && apiKey.trim() !== '') {
@@ -392,7 +412,7 @@
                 .replace(/\([^)]*\)|（[^）]*）/g, ' ')
                 .replace(/[　-〿一-鿿＀-￯]/g, ' ')
                 .replace(/\s+/g, ' ').trim();
-            if (!cleanWord) return null;
+            if (!cleanWord) { if (silent) throw new Error('沒有可查詢的英文'); return null; }
 
             const promptText = `請提供英文單字/片語 "${cleanWord}" 的簡短英文定義（需包含詞性，如 "(noun) definition..."），以及一個實用的例句。
 例句格式為：英文句子後面加上括號內的繁體中文翻譯，例如 "Let's stick to the plan. (我們照計畫進行吧。)"
@@ -419,13 +439,15 @@
                     lastError = error;
                     console.warn(`模型 ${model} 失敗:`, error.message);
                     // 金鑰錯誤 / 權限問題 / 額度用完，換模型也沒用，直接停止
-                    if (error.status === 400 && /api key/i.test(error.message)) break;
-                    if (error.status === 401 || error.status === 403) break;
+                    const kind = classifyError(error);
+                    if (kind === 'key' || kind === 'offline' || kind === 'quota') break;
                 }
             }
             console.error("Gemini 查詢錯誤:", lastError);
-            alert("AI 查詢失敗：" + (lastError ? lastError.message : '未知錯誤'));
-            return null;
+            if (silent) throw lastError || new Error('未知錯誤');
+            if (classifyError(lastError) !== 'offline') alert("AI 查詢失敗：" + (lastError ? lastError.message : '未知錯誤'));
+            const e = lastError || new Error('未知錯誤'); e.kind = classifyError(e);
+            throw e;
         }
 
         function toggleDropdown(e) { e.stopPropagation(); document.getElementById('dropdownMenu').classList.toggle('show'); }
@@ -476,9 +498,21 @@
         function toggleHideCn() { isHideCn = !isHideCn; localStorage.setItem('eng_hideCn', isHideCn); initHideCnBtn(); }
         function initHideCnBtn() {
             const item = document.getElementById('itemHideCn');
-            if (isHideCn) { document.body.classList.add('hide-cn'); item.innerHTML = '👁️ <span>顯示中文</span>'; }
-            else { document.body.classList.remove('hide-cn'); item.innerHTML = '🙈 <span>隱藏中文</span>'; }
+            if (isHideCn) { document.body.classList.add('hide-cn'); item.innerHTML = '👁️ <span>顯示全部中文</span>'; }
+            else { document.body.classList.remove('hide-cn'); item.innerHTML = '🙈 <span>隱藏全部中文</span>'; }
         }
+
+        function toggleHideExCn() {
+            isHideExCn = !isHideExCn; localStorage.setItem('eng_hideExCn', isHideExCn);
+            initHideExCnBtn();
+            showToast(isHideExCn ? '🙈 已隱藏例句中文' : '💬 已顯示例句中文', 1500);
+        }
+        function initHideExCnBtn() {
+            const item = document.getElementById('itemHideExCn');
+            document.body.classList.toggle('hide-ex-cn', isHideExCn);
+            item.innerHTML = isHideExCn ? '💬 <span>顯示例句中文</span>' : '💬 <span>隱藏例句中文</span>';
+        }
+
 
         function formatTime(timestamp) {
             if (!timestamp) return ''; const d = new Date(timestamp); const pad = n => n.toString().padStart(2, '0');
@@ -671,7 +705,8 @@
             if (!task) return;
 
             let text = "";
-            if (SpeechRecognition && confirm("要使用語音輸入單字嗎？\n(按『取消』改用鍵盤輸入)")) {
+            // 離線時語音辨識無法使用，直接改用鍵盤
+            if (SpeechRecognition && navigator.onLine && confirm("要使用語音輸入單字嗎？\n(按『取消』改用鍵盤輸入)")) {
                 showVoiceStatus("🎤 請說出英文單字...");
                 try {
                     text = await listenOnceEnglish();
@@ -690,23 +725,102 @@
             text = text.trim();
 
             const subId = newId();
+
+            // 離線：先存起來，標記為「待補齊」，上線後自動查詢
+            if (!navigator.onLine) {
+                task.subtasks.unshift({ id: subId, text: text, definition: PENDING_DEF_TEXT, checked: false, collapsed: false, showDef: false, pendingAI: true, createdAt: Date.now(), grandtasks: [] });
+                task.collapsed = false; saveData();
+                showToast("📴 目前離線，已先存下單字\n上線後會自動補上釋義與例句");
+                return;
+            }
+
             task.subtasks.unshift({ id: subId, text: text, definition: LOADING_TEXT, checked: false, collapsed: false, showDef: false, isLoading: true, createdAt: Date.now(), grandtasks: [] });
             task.collapsed = false; saveData();
 
-            const result = await fetchDefinitionAndSentence(text);
+            let result = null, failKind = null;
+            try { result = await fetchDefinitionAndSentence(text); }
+            catch (e) { failKind = e.kind || classifyError(e); }
 
-            // 【修正】查詢期間使用者可能拖曳或刪除，因此重新用 ID 找到該單字再寫入
+            // 查詢期間使用者可能拖曳或刪除，因此重新用 ID 找到該單字再寫入
             const sub = findSubAnywhere(subId);
             if (!sub) return;
+            sub.isLoading = false;
             if (result) {
-                sub.definition = result.definition;
-                sub.showDef = true;
-                if (result.sentence) sub.grandtasks.unshift({ id: newId(), text: result.sentence, checked: false, createdAt: Date.now() });
+                applyAIResult(sub, result);
+            } else if (failKind === 'offline' || failKind === 'quota') {
+                // 網路中斷或額度暫時用完：排入待補齊，之後自動重試
+                sub.pendingAI = true;
+                sub.definition = PENDING_DEF_TEXT;
+                showToast("⏳ 暫時無法連線 AI，已排入待補齊\n稍後會自動重試");
             } else {
                 sub.definition = MANUAL_DEF_TEXT;
             }
-            sub.isLoading = false; saveData();
+            saveData();
         }
+
+        // 把 AI 結果寫進單字（使用者若已手動填寫釋義，就不覆蓋）
+        function applyAIResult(sub, result) {
+            const placeholders = [LOADING_TEXT, PENDING_DEF_TEXT, MANUAL_DEF_TEXT, ''];
+            if (!sub.definition || placeholders.includes(sub.definition)) sub.definition = result.definition;
+            sub.showDef = true;
+            if (result.sentence) sub.grandtasks.unshift({ id: newId(), text: result.sentence, checked: false, createdAt: Date.now() });
+            delete sub.pendingAI;
+        }
+
+        // --- 上線後自動補齊離線時新增的單字 ---
+        let isFillingPending = false;
+        function countPending() { let n = 0; tasks.forEach(t => t.subtasks.forEach(s => { if (s.pendingAI) n++; })); return n; }
+
+        async function processPendingAI({ manual = false } = {}) {
+            if (isFillingPending) return;
+            if (!navigator.onLine) { if (manual) showToast("📴 目前離線，連上網路後會自動補齊"); return; }
+            const total = countPending();
+            if (total === 0) { if (manual) showToast("沒有需要補齊的單字 👍"); return; }
+            if (!localStorage.getItem(API_KEY_STORAGE)) {
+                if (manual) setGeminiApiKey(); else showToast(`有 ${total} 個單字待補齊\n請先在選單設定 Gemini 金鑰`, 4000);
+                if (!localStorage.getItem(API_KEY_STORAGE)) return;
+            }
+            isFillingPending = true;
+            showToast(`🤖 已連上網路，正在補齊 ${total} 個單字...`, 3000);
+            let done = 0, stopReason = null;
+            try {
+                while (true) {
+                    let target = null;
+                    for (const t of tasks) { target = t.subtasks.find(s => s.pendingAI && !s.isLoading); if (target) break; }
+                    if (!target) break;
+                    const id = target.id;
+                    target.isLoading = true; target.definition = target.definition === PENDING_DEF_TEXT ? LOADING_TEXT : target.definition;
+                    saveData();
+                    try {
+                        const result = await fetchDefinitionAndSentence(target.text, { silent: true });
+                        const sub = findSubAnywhere(id);
+                        if (sub) { sub.isLoading = false; applyAIResult(sub, result); saveData(); }
+                        done++;
+                    } catch (e) {
+                        const sub = findSubAnywhere(id);
+                        const kind = classifyError(e);
+                        if (sub) {
+                            sub.isLoading = false;
+                            if (kind === 'other') { delete sub.pendingAI; if (sub.definition === LOADING_TEXT) sub.definition = MANUAL_DEF_TEXT; }
+                            else if (sub.definition === LOADING_TEXT) sub.definition = PENDING_DEF_TEXT;
+                            saveData();
+                        }
+                        if (kind !== 'other') { stopReason = kind; break; }   // 沒網路/金鑰錯/額度滿：先停，之後再試
+                    }
+                    await new Promise(r => setTimeout(r, 800));                // 間隔一下，避免太快被限制
+                }
+            } finally { isFillingPending = false; }
+
+            const left = countPending();
+            if (stopReason === 'key') showToast(`⚠️ Gemini 金鑰有問題，還有 ${left} 個單字待補齊\n請到選單檢查金鑰`, 4500);
+            else if (stopReason === 'quota') showToast(`⚠️ AI 額度暫時用完，已補齊 ${done} 個\n剩下 ${left} 個稍後自動重試`, 4500);
+            else if (stopReason === 'offline') showToast(`📴 網路又斷了，已補齊 ${done} 個，剩下 ${left} 個`, 4000);
+            else if (done > 0) showToast(`✅ 已自動補齊 ${done} 個單字的釋義與例句`, 3500);
+        }
+
+        window.addEventListener('online', () => setTimeout(() => processPendingAI(), 1500));
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') processPendingAI(); });
+        setInterval(() => { if (countPending() > 0) processPendingAI(); }, 5 * 60 * 1000); // 每 5 分鐘再試一次
 
         function addGrandTask(mainTaskId, subTaskId) {
             const text = prompt("請輸入【例句 / 用法】："); if (!text || !text.trim()) return;
@@ -789,7 +903,8 @@
                 
                 task.subtasks.forEach(sub => {
                     const subToggleHtml = sub.grandtasks.length > 0 ? `<div class="toggle-icon" onclick="toggleSubtasks(${sub.id}, 'sub', ${task.id})">${sub.collapsed ? '▶' : '▼'}</div>` : `<div class="toggle-placeholder"></div>`;
-                    const loadingTag = sub.isLoading ? `<span class="ai-loading">🤖 查詢中...</span>` : '';
+                    const loadingTag = sub.isLoading ? `<span class="ai-loading">🤖 查詢中...</span>`
+                                     : sub.pendingAI ? `<span class="pending-tag" title="上線後自動補齊">待補齊</span>` : '';
                     html += `
                         <div class="subtask-item ${sub.checked ? 'completed-sub' : ''}" data-id="${sub.id}">
                         <div class="task-row subtask-row">
@@ -851,7 +966,8 @@
             } catch (e) { console.error("拖曳功能初始化失敗:", e); }
         }
 
-        initHideCnBtn(); initTimeBtn(); initToggleBtn(); renderTasks(); checkBackupReminder();
+        initHideCnBtn(); initHideExCnBtn(); initTimeBtn(); initToggleBtn(); renderTasks(); checkBackupReminder();
+        setTimeout(() => processPendingAI(), 2000);   // 開啟 App 時若有網路，自動補齊
 
         // --- 9. 註冊 Service Worker（PWA 離線開啟） ---
         if ('serviceWorker' in navigator && location.protocol !== 'file:') {
