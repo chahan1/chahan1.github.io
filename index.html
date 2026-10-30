@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-    <title>英語學習筆記本 v1.8.4 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v1.8.5 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -109,6 +109,13 @@
         .time-badge { display: none; font-size: 9.5px; color: var(--muted); font-weight: 400; margin-top: 1px; white-space: nowrap; }
         body.show-time .time-badge { display: block !important; }
 
+        .backup-banner { display: none; align-items: center; gap: 6px; margin-top: 8px; padding: 6px 8px 6px 12px; background: #fff8e1; border: 1px solid #fde7a9; border-radius: 10px; font-size: 12px; color: #7a5b00; }
+        .backup-banner.show { display: flex; }
+        .backup-banner span { flex: 1; min-width: 0; }
+        .bb-btn { border: none; background: transparent; color: #7a5b00; font-size: 12px; padding: 5px 8px; border-radius: 12px; cursor: pointer; flex-shrink: 0; }
+        .bb-btn.primary { background: var(--green); color: white; font-weight: 600; }
+        .toast { position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%); background: rgba(32,33,36,0.92); color: white; font-size: 12.5px; padding: 8px 14px; border-radius: 18px; z-index: 2000; opacity: 0; transition: opacity 0.25s; pointer-events: none; max-width: 90%; text-align: center; white-space: pre-line; }
+        .toast.show { opacity: 1; }
         .empty-hint { text-align: center; color: var(--muted); font-size: 12.5px; padding: 40px 0; }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.45); z-index: 1000; justify-content: center; align-items: center; }
@@ -131,7 +138,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icons/icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.8.4</span></h2>
+            <h2><img src="icons/icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.8.5</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -141,10 +148,11 @@
                     <div class="dropdown-item" id="itemEditMode" onclick="toggleEditMode()">⚙️ <span>開啟修改</span></div>
                     <div class="dropdown-item" id="itemCompleted" onclick="toggleCompleted()">👁️ <span>隱藏熟記項目</span></div>
                     <div class="dropdown-divider"></div>
-                    <div class="dropdown-item" onclick="exportData()">💾 <span>匯出筆記包</span></div>
-                    <div class="dropdown-item" onclick="document.getElementById('importFile').click()">📂 <span>匯入筆記包</span></div>
+                    <div class="dropdown-item" onclick="downloadBackup()">📥 <span>下載備份檔</span></div>
+                    <div class="dropdown-item" onclick="document.getElementById('importFile').click()">📂 <span>從備份檔還原</span></div>
+                    <div class="dropdown-item" onclick="exportData()">📋 <span>複製筆記文字</span></div>
                 </div>
-                <input type="file" id="importFile" accept=".json,text/plain" style="display: none;" onchange="importData(event)">
+                <input type="file" id="importFile" accept=".json,application/json,text/plain,*/*" style="display: none;" onchange="importData(event)">
             </div>
         </div>
         <div class="input-group">
@@ -153,13 +161,19 @@
             <button class="btn-primary" onclick="addMainTask()">新增</button>
         </div>
         <div id="voiceStatus"></div>
+        <div id="backupBanner" class="backup-banner">
+            <span id="backupBannerText">好一陣子沒備份了</span>
+            <button class="bb-btn primary" onclick="downloadBackup()">立即備份</button>
+            <button class="bb-btn" onclick="snoozeBackup()">稍後</button>
+        </div>
     </div>
 
     <div id="taskList"></div>
 
     <div id="exportModal" class="modal-overlay">
         <div class="modal-content">
-            <h3>💾 筆記備份已生成</h3>
+            <h3>📋 筆記文字</h3>
+            <div style="font-size:12px;color:#80868b;">建議改用選單中的「📥 下載備份檔」，更方便也不易出錯。</div>
             <textarea id="exportTextarea" readonly></textarea>
             <div style="display: flex; gap: 10px; justify-content: flex-end;">
                 <button class="btn-primary" onclick="copyExportData()">📋 複製</button>
@@ -516,7 +530,64 @@
             }
         }
 
-        // --- 5. 匯出 / 匯入 ---
+        // --- 5. 備份 / 還原 ---
+        const LAST_BACKUP_KEY = 'eng_lastBackupAt';
+        const FIRST_USE_KEY = 'eng_firstUseAt';
+        const SNOOZE_KEY = 'eng_backupSnoozeUntil';
+        const BACKUP_REMIND_DAYS = 7;
+
+        function showToast(msg, ms = 2500) {
+            let t = document.getElementById('toast');
+            if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; document.body.appendChild(t); }
+            t.textContent = msg; t.classList.add('show');
+            clearTimeout(t._timer); t._timer = setTimeout(() => t.classList.remove('show'), ms);
+        }
+
+        function countWords() {
+            let subs = 0, grands = 0;
+            tasks.forEach(t => { subs += t.subtasks.length; t.subtasks.forEach(s => grands += s.grandtasks.length); });
+            return { mains: tasks.length, subs, grands };
+        }
+
+        // 一鍵下載備份檔（存到手機的「下載」資料夾）
+        function downloadBackup() {
+            if (tasks.length === 0) return alert("沒有筆記可備份！");
+            const d = new Date(), pad = n => String(n).padStart(2, '0');
+            const fileName = `english-notes-backup_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.json`;
+            const blob = new Blob([JSON.stringify(tasks, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = fileName; a.style.display = 'none';
+            document.body.appendChild(a); a.click();
+            setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 3000);
+
+            localStorage.setItem(LAST_BACKUP_KEY, Date.now());
+            localStorage.removeItem(SNOOZE_KEY);
+            checkBackupReminder();
+            const c = countWords();
+            showToast(`✅ 已備份 ${c.mains} 個主題、${c.subs} 個單字、${c.grands} 個例句\n檔案在手機的「下載」資料夾`, 3500);
+        }
+
+        function snoozeBackup() {
+            localStorage.setItem(SNOOZE_KEY, Date.now() + 24 * 3600 * 1000); // 一天後再提醒
+            checkBackupReminder();
+        }
+
+        // 超過 7 天沒備份就在上方顯示提醒
+        function checkBackupReminder() {
+            const banner = document.getElementById('backupBanner');
+            if (!localStorage.getItem(FIRST_USE_KEY)) localStorage.setItem(FIRST_USE_KEY, Date.now());
+            const now = Date.now();
+            const last = Number(localStorage.getItem(LAST_BACKUP_KEY)) || 0;
+            const since = last || Number(localStorage.getItem(FIRST_USE_KEY));
+            const snoozeUntil = Number(localStorage.getItem(SNOOZE_KEY)) || 0;
+            const days = Math.floor((now - since) / 86400000);
+            const show = tasks.length > 0 && days >= BACKUP_REMIND_DAYS && now > snoozeUntil;
+            banner.classList.toggle('show', show);
+            if (show) document.getElementById('backupBannerText').textContent = last ? `已經 ${days} 天沒有備份筆記了` : '還沒備份過筆記，建議備份一份';
+        }
+
+        // （保留）以文字方式匯出
         function exportData() {
             if (tasks.length === 0) return alert("沒有筆記可匯出！");
             document.getElementById('exportTextarea').value = JSON.stringify(tasks, null, 2);
@@ -547,7 +618,9 @@
                     }));
                     if (tasks.length > 0 && confirm("保留原筆記並合併匯入嗎？\n(按『取消』會覆蓋原筆記)")) tasks = tasks.concat(fresh);
                     else tasks = fresh;
-                    saveData(); alert("匯入成功！");
+                    saveData();
+                    const c = countWords();
+                    alert(`還原成功！目前共有 ${c.mains} 個主題、${c.subs} 個單字、${c.grands} 個例句。`);
                 } catch (error) { alert("讀取失敗！請確認是本程式匯出的筆記包。"); }
                 event.target.value = '';
             };
@@ -778,7 +851,7 @@
             } catch (e) { console.error("拖曳功能初始化失敗:", e); }
         }
 
-        initHideCnBtn(); initTimeBtn(); initToggleBtn(); renderTasks();
+        initHideCnBtn(); initTimeBtn(); initToggleBtn(); renderTasks(); checkBackupReminder();
 
         // --- 9. 註冊 Service Worker（PWA 離線開啟） ---
         if ('serviceWorker' in navigator && location.protocol !== 'file:') {
