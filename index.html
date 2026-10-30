@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v1.8.9 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v1.9.0 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -88,7 +88,6 @@
 
         .cn-text { color: #868b90; font-weight: 400; }
         .main-task-text .cn-text, .sub-task-text .cn-text { color: inherit; font-weight: inherit; }
-        body.hide-cn .cn-text { display: none !important; }
         /* 例句中文：由選單開關統一顯示 / 隱藏 */
         body.hide-ex-cn .grandtask-row .cn-text { display: none !important; }
 
@@ -141,13 +140,12 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.8.9</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.9.0</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
                     <div class="dropdown-item" onclick="setGeminiApiKey()">🔑 <span>設定 Gemini 金鑰</span></div>
                     <div class="dropdown-item" id="itemHideExCn" onclick="toggleHideExCn()">💬 <span>顯示例句中文</span></div>
-                    <div class="dropdown-item" id="itemHideCn" onclick="toggleHideCn()">🙈 <span>隱藏全部中文</span></div>
                     <div class="dropdown-item" id="itemTime" onclick="toggleTime()">🕒 <span>顯示時間</span></div>
                     <div class="dropdown-item" id="itemEditMode" onclick="toggleEditMode()">⚙️ <span>開啟修改</span></div>
                     <div class="dropdown-item" onclick="processPendingAI({ manual: true })">🤖 <span>立即補齊 AI 釋義</span></div>
@@ -253,7 +251,7 @@
         let sortableInstances = [];
         let isHideCompleted = localStorage.getItem('eng_hideCompleted') === 'true';
         let isShowTime = localStorage.getItem('eng_showTime') === 'true';
-        let isHideCn = localStorage.getItem('eng_hideCn') === 'true';
+        localStorage.removeItem('eng_hideCn');   // 舊版「隱藏全部中文」設定已移除
         // 例句中文預設隱藏（除非使用者曾選擇顯示）
         let isHideExCn = localStorage.getItem('eng_hideExCn') !== 'false';
         let isEditMode = false;
@@ -495,12 +493,6 @@
         }
 
         // --- 4. 選單切換 ---
-        function toggleHideCn() { isHideCn = !isHideCn; localStorage.setItem('eng_hideCn', isHideCn); initHideCnBtn(); }
-        function initHideCnBtn() {
-            const item = document.getElementById('itemHideCn');
-            if (isHideCn) { document.body.classList.add('hide-cn'); item.innerHTML = '👁️ <span>顯示全部中文</span>'; }
-            else { document.body.classList.remove('hide-cn'); item.innerHTML = '🙈 <span>隱藏全部中文</span>'; }
-        }
 
         function toggleHideExCn() {
             isHideExCn = !isHideExCn; localStorage.setItem('eng_hideExCn', isHideExCn);
@@ -966,7 +958,7 @@
             } catch (e) { console.error("拖曳功能初始化失敗:", e); }
         }
 
-        initHideCnBtn(); initHideExCnBtn(); initTimeBtn(); initToggleBtn(); renderTasks(); checkBackupReminder();
+        initHideExCnBtn(); initTimeBtn(); initToggleBtn(); renderTasks(); checkBackupReminder();
         setTimeout(() => processPendingAI(), 2000);   // 開啟 App 時若有網路，自動補齊
 
         // --- 9. 註冊 Service Worker（PWA 離線開啟） ---
