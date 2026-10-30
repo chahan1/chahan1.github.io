@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v1.9.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v1.9.1 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -65,7 +65,8 @@
         .main-row { padding: 5px 0; }
         
         .subtask-container { margin-left: 12px; border-left: 1.5px solid #dcefe2; padding-left: 1px; min-height: 2px; }
-        .grandtask-container { margin-left: 20px; border-left: 1.5px dotted #d3e9da; padding-left: 2px; min-height: 0; }
+        .grandtask-container { margin-left: 14px; border-left: 1.5px dotted #d3e9da; padding-left: 0; min-height: 0; }
+        body.hide-ex .grandtask-container { display: none !important; }
         .subtask-item { background: white; }
         .subtask-item + .subtask-item { border-top: 1px solid var(--line); }
         .collapsed { display: none !important; }
@@ -81,8 +82,9 @@
         .task-text { flex: 1; min-width: 0; word-break: break-word; line-height: 1.35; cursor: pointer; padding: 1px 2px; }
         .completed { text-decoration: line-through; color: #a8adb2 !important; font-weight: normal !important; }
         
-        .definition-box { display: none; font-size: 12px; color: #555a5f; background: #f7f9f8; border-left: 2px solid var(--green); padding: 4px 8px; margin: 0 4px 5px 32px; border-radius: 0 6px 6px 0; }
-        .definition-box.show { display: block; }
+        .definition-box { display: block; font-size: 12px; color: #555a5f; background: #f7f9f8; border-left: 2px solid var(--green); padding: 4px 8px; margin: 0 4px 5px 30px; border-radius: 0 6px 6px 0; cursor: pointer; }
+        .definition-box:active { background: var(--green-light); }
+        body.hide-def .definition-box { display: none !important; }
         .def-content { font-style: italic; margin-bottom: 1px; word-break: break-word; line-height: 1.4; }
         .def-edit-btn { font-size: 10.5px; color: var(--green); background: none; border: none; padding: 1px 0; cursor: pointer; }
 
@@ -140,11 +142,13 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.9.0</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.9.1</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
                     <div class="dropdown-item" onclick="setGeminiApiKey()">🔑 <span>設定 Gemini 金鑰</span></div>
+                    <div class="dropdown-item" id="itemHideDef" onclick="toggleHideDef()">📖 <span>隱藏釋義</span></div>
+                    <div class="dropdown-item" id="itemHideEx" onclick="toggleHideEx()">📝 <span>隱藏例句</span></div>
                     <div class="dropdown-item" id="itemHideExCn" onclick="toggleHideExCn()">💬 <span>顯示例句中文</span></div>
                     <div class="dropdown-item" id="itemTime" onclick="toggleTime()">🕒 <span>顯示時間</span></div>
                     <div class="dropdown-item" id="itemEditMode" onclick="toggleEditMode()">⚙️ <span>開啟修改</span></div>
@@ -198,7 +202,7 @@
         const STORAGE_KEY = 'english_notebook_v1.8';
         const API_KEY_STORAGE = 'user_gemini_api_key';
         const LOADING_TEXT = "🤖 AI 查詢中...";
-        const MANUAL_DEF_TEXT = "(點擊下方「編輯釋義」手動填寫)";
+        const MANUAL_DEF_TEXT = "(點這裡手動填寫釋義)";
         const PENDING_DEF_TEXT = "⏳ 目前離線，連上網路後 AI 會自動補上釋義與例句";
 
         // 【修正】gemini-1.5-flash 已被 Google 停用（會回傳 404）。
@@ -254,6 +258,8 @@
         localStorage.removeItem('eng_hideCn');   // 舊版「隱藏全部中文」設定已移除
         // 例句中文預設隱藏（除非使用者曾選擇顯示）
         let isHideExCn = localStorage.getItem('eng_hideExCn') !== 'false';
+        let isHideDef = localStorage.getItem('eng_hideDef') === 'true';   // 釋義：預設顯示
+        let isHideEx = localStorage.getItem('eng_hideEx') === 'true';     // 例句：預設顯示
         let isEditMode = false;
 
         // 【修正】跳脫 HTML，避免文字中有 < > " ' 等符號時畫面壞掉
@@ -498,6 +504,20 @@
             isHideExCn = !isHideExCn; localStorage.setItem('eng_hideExCn', isHideExCn);
             initHideExCnBtn();
             showToast(isHideExCn ? '🙈 已隱藏例句中文' : '💬 已顯示例句中文', 1500);
+        }
+        function toggleHideDef() {
+            isHideDef = !isHideDef; localStorage.setItem('eng_hideDef', isHideDef); initViewToggles();
+            showToast(isHideDef ? '📖 已隱藏全部釋義' : '📖 已顯示全部釋義', 1500);
+        }
+        function toggleHideEx() {
+            isHideEx = !isHideEx; localStorage.setItem('eng_hideEx', isHideEx); initViewToggles();
+            showToast(isHideEx ? '📝 已隱藏全部例句' : '📝 已顯示全部例句', 1500);
+        }
+        function initViewToggles() {
+            document.body.classList.toggle('hide-def', isHideDef);
+            document.body.classList.toggle('hide-ex', isHideEx);
+            document.getElementById('itemHideDef').innerHTML = isHideDef ? '📖 <span>顯示釋義</span>' : '📖 <span>隱藏釋義</span>';
+            document.getElementById('itemHideEx').innerHTML = isHideEx ? '📝 <span>顯示例句</span>' : '📝 <span>隱藏例句</span>';
         }
         function initHideExCnBtn() {
             const item = document.getElementById('itemHideExCn');
@@ -819,7 +839,8 @@
             const sub = findSub(mainTaskId, subTaskId);
             if (sub) {
                 sub.grandtasks.unshift({ id: newId(), text: text.trim(), checked: false, createdAt: Date.now() });
-                sub.collapsed = false; saveData();
+                saveData();
+                if (isHideEx) showToast('已新增例句（目前例句為隱藏狀態，可在選單開啟）', 2500);
             }
         }
 
@@ -894,30 +915,27 @@
                 `;
                 
                 task.subtasks.forEach(sub => {
-                    const subToggleHtml = sub.grandtasks.length > 0 ? `<div class="toggle-icon" onclick="toggleSubtasks(${sub.id}, 'sub', ${task.id})">${sub.collapsed ? '▶' : '▼'}</div>` : `<div class="toggle-placeholder"></div>`;
                     const loadingTag = sub.isLoading ? `<span class="ai-loading">🤖 查詢中...</span>`
                                      : sub.pendingAI ? `<span class="pending-tag" title="上線後自動補齊">待補齊</span>` : '';
                     html += `
                         <div class="subtask-item ${sub.checked ? 'completed-sub' : ''}" data-id="${sub.id}">
                         <div class="task-row subtask-row">
                             <div class="drag-handle sub-handle">☰</div>
-                            ${subToggleHtml}
                             <input type="checkbox" ${sub.checked ? 'checked' : ''} onchange="toggleCheck(${sub.id}, 'sub', ${task.id})">
                             <div class="task-text sub-task-text ${sub.checked ? 'completed' : ''}" onclick="editTask(${sub.id}, 'sub', ${task.id})">
                                 ${formatTextWithCn(sub.text)} ${loadingTag} ${getTimeBadgeHtml(sub)}
                             </div>
                             <div class="row-actions">
                                 <button class="icon-btn speak" title="朗讀" data-speak="${escapeAttr(sub.text)}" onclick="speakText(this.dataset.speak)">${ICON.speak}</button>
-                                <button class="icon-btn def ${sub.showDef ? 'on' : ''}" title="釋義" onclick="toggleDefinition(${sub.id}, ${task.id})">${ICON.book}</button>
                                 <button class="action-btn btn-edit" onclick="editTask(${sub.id}, 'sub', ${task.id})">${ICON.edit}</button>
                                 <button class="action-btn btn-delete" onclick="deleteTask(${sub.id}, 'sub', ${task.id})">${ICON.trash}</button>
                                 <button class="action-btn btn-add-sub small" title="新增例句" onclick="addGrandTask(${task.id}, ${sub.id})">${ICON.plus}</button>
                             </div>
                         </div>
                     `;
-                    if (sub.definition) html += `<div class="definition-box ${sub.showDef ? 'show' : ''}"><div class="def-content">${escapeHtml(sub.definition)}</div><button class="def-edit-btn" onclick="editDefinition(${sub.id}, ${task.id})">編輯釋義 ›</button></div>`;
+                    if (sub.definition) html += `<div class="definition-box" title="點一下可修改釋義" onclick="editDefinition(${sub.id}, ${task.id})"><div class="def-content">${escapeHtml(sub.definition)}</div></div>`;
                     
-                    html += `<div class="grandtask-container ${sub.collapsed ? 'collapsed' : ''}">`;
+                    html += `<div class="grandtask-container">`;
                     sub.grandtasks.forEach(grand => {
                         html += `
                             <div class="task-row grandtask-row ${grand.checked ? 'completed-grand' : ''}" data-id="${grand.id}">
@@ -958,7 +976,7 @@
             } catch (e) { console.error("拖曳功能初始化失敗:", e); }
         }
 
-        initHideExCnBtn(); initTimeBtn(); initToggleBtn(); renderTasks(); checkBackupReminder();
+        initViewToggles(); initHideExCnBtn(); initTimeBtn(); initToggleBtn(); renderTasks(); checkBackupReminder();
         setTimeout(() => processPendingAI(), 2000);   // 開啟 App 時若有網路，自動補齊
 
         // --- 9. 註冊 Service Worker（PWA 離線開啟） ---
