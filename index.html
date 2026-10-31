@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v1.9.2 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v1.9.3 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -119,14 +119,15 @@
         .bb-btn.primary { background: var(--green); color: white; font-weight: 600; }
         .pending-tag { display: inline-block; font-size: 9.5px; font-weight: 500; color: #b06000; background: #fff4e0; border: 1px solid #fde3b5; padding: 0 5px; border-radius: 8px; margin-left: 4px; vertical-align: 2px; }
         /* ---- 例句播放器 ---- */
-        .play-modal .modal-content { max-width: 360px; }
-        .pm-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .play-modal .modal-content { max-width: 360px; max-height: 88vh; overflow-y: auto; }
+        .pm-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
         .pm-title h3 { margin: 0; font-size: 15px; color: var(--green); }
         .pm-close { background: none; border: none; font-size: 20px; color: #9aa0a6; cursor: pointer; width: 30px; height: 30px; }
         .pm-label { font-size: 12px; color: var(--muted); margin: 12px 0 6px; }
         .seg { display: flex; background: #f1f3f4; border-radius: 10px; padding: 3px; gap: 3px; }
-        .seg button { flex: 1; border: none; background: transparent; padding: 8px 4px; border-radius: 8px; font-size: 13px; color: #5f6368; cursor: pointer; }
+        .seg button { flex: 1; border: none; background: transparent; padding: 8px 2px; border-radius: 8px; font-size: 12.5px; color: #5f6368; cursor: pointer; }
         .seg button.on { background: white; color: var(--green); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+        .pm-select { width: 100%; margin-top: 6px; height: 36px; border: 1px solid #dadce0; border-radius: 8px; padding: 0 8px; font-size: 13px; background: white; color: var(--text); }
         .stepper { display: flex; align-items: center; gap: 10px; }
         .stepper button { width: 34px; height: 34px; border-radius: 50%; border: 1px solid #dadce0; background: white; font-size: 18px; color: var(--green); cursor: pointer; }
         .stepper .num { min-width: 64px; text-align: center; font-size: 15px; font-weight: 600; color: var(--text); }
@@ -134,20 +135,39 @@
         .pm-start { width: 100%; margin-top: 8px; height: 40px; border-radius: 20px; }
         .pm-start:disabled { background: #c4c7c5; }
 
-        .player-bar { display: none; position: fixed; left: 50%; transform: translateX(-50%); bottom: 12px; width: calc(100% - 20px); max-width: 660px; background: white; border-radius: 14px; box-shadow: 0 4px 18px rgba(0,0,0,0.18); padding: 8px 10px 8px 14px; z-index: 900; align-items: center; gap: 8px; }
-        body.playing .player-bar { display: flex; }
-        body.playing { padding-bottom: 110px; }
-        .pb-info { flex: 1; min-width: 0; }
-        .pb-meta { font-size: 10.5px; color: var(--green); font-weight: 600; }
-        .pb-text { font-size: 12.5px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
-        .pb-btn { width: 32px; height: 32px; border-radius: 50%; border: none; background: transparent; color: #5f6368; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+        /* 左下角的小播放鍵 */
+        .play-fab { position: fixed; left: max(14px, calc(50% - 326px)); bottom: 16px; width: 44px; height: 44px; border-radius: 50%; border: none; background: var(--green); color: white; box-shadow: 0 3px 10px rgba(16,124,65,0.35); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 800; }
+        .play-fab svg { width: 18px; height: 18px; fill: currentColor; margin-left: 2px; }
+        .play-fab:active { transform: scale(0.94); }
+        body.player-open .play-fab { display: none; }
+
+        /* 播放視窗（下方彈出） */
+        .player-sheet { display: none; position: fixed; left: 50%; transform: translateX(-50%); bottom: 0; width: 100%; max-width: 680px; background: white; border-radius: 16px 16px 0 0; box-shadow: 0 -4px 20px rgba(0,0,0,0.15); padding: 8px 14px 14px; z-index: 900; }
+        body.player-open .player-sheet { display: block; animation: sheetUp 0.22s ease-out; }
+        @keyframes sheetUp { from { transform: translate(-50%, 100%); } to { transform: translate(-50%, 0); } }
+        body.player-open { padding-bottom: 250px; }
+        .ps-head { display: flex; align-items: center; gap: 6px; }
+        .ps-head .ps-title { flex: 1; font-size: 12px; font-weight: 600; color: var(--green); }
+        .ps-icon-btn { width: 30px; height: 30px; border: none; background: transparent; border-radius: 50%; color: #80868b; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; }
+        .ps-icon-btn:active { background: #f1f3f4; }
+        .ps-icon-btn svg.ic { width: 17px; height: 17px; }
+        .ps-word { font-size: 11.5px; color: var(--blue); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ps-text { font-size: 17px; line-height: 1.45; color: var(--text); font-weight: 500; margin-top: 4px; min-height: 50px; max-height: 100px; overflow-y: auto; }
+        .ps-cn { font-size: 13px; color: #868b90; margin-top: 4px; line-height: 1.4; }
+        body.hide-ex-cn .ps-cn { display: none; }
+        .ps-progress { height: 3px; background: #eef0f2; border-radius: 2px; margin: 12px 0 4px; overflow: hidden; }
+        .ps-progress div { height: 100%; width: 0; background: var(--green); transition: width 0.3s; }
+        .ps-meta { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--muted); }
+        .ps-controls { display: flex; align-items: center; justify-content: center; gap: 22px; margin-top: 6px; }
+        .pb-btn { width: 36px; height: 36px; border-radius: 50%; border: none; background: transparent; color: #5f6368; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
         .pb-btn:active { background: var(--green-light); }
-        .pb-btn.main { background: var(--green); color: white; width: 36px; height: 36px; }
-        .pb-btn svg.ic { width: 16px; height: 16px; }
-        .pb-btn svg.fill { fill: currentColor; stroke: none; }
+        .pb-btn.main { background: var(--green); color: white; width: 48px; height: 48px; box-shadow: 0 2px 8px rgba(16,124,65,0.3); }
+        .pb-btn svg { width: 18px; height: 18px; fill: currentColor; }
+        .pb-btn.main svg { width: 20px; height: 20px; }
+        .ps-done { color: var(--green); font-weight: 600; }
         .grandtask-row.playing { background: #fff8e1; border-radius: 6px; }
         .grandtask-row.playing .grand-task-text { color: #7a4f00; }
-        body.playing .toast { bottom: 84px; }
+        body.player-open .toast { bottom: 260px; }
 
         .toast { position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%); background: rgba(32,33,36,0.92); color: white; font-size: 12.5px; padding: 8px 14px; border-radius: 18px; z-index: 2000; opacity: 0; transition: opacity 0.25s; pointer-events: none; max-width: 90%; text-align: center; white-space: pre-line; }
         .toast.show { opacity: 1; }
@@ -173,7 +193,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.9.2</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.9.3</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -210,6 +230,9 @@
 
     <div id="taskList"></div>
 
+    <!-- 左下角小播放鍵 -->
+    <button class="play-fab" title="播放例句" onclick="openPlayModal()"><svg viewBox="0 0 24 24"><path d="M7 5v14l12-7z"/></svg></button>
+
     <!-- 例句播放設定 -->
     <div id="playModal" class="modal-overlay play-modal" onclick="if(event.target===this) closePlayModal()">
         <div class="modal-content">
@@ -220,6 +243,14 @@
                 <button data-v="done" onclick="setPlayOpt('scope','done')">只播已熟記</button>
                 <button data-v="todo" onclick="setPlayOpt('scope','todo')">只播未熟記</button>
             </div>
+            <div class="pm-label">日期</div>
+            <div class="seg" id="pmDate">
+                <button data-v="all" onclick="setPlayOpt('dateMode','all')">全部日期</button>
+                <button data-v="today" onclick="setPlayOpt('dateMode','today')">今天</button>
+                <button data-v="7d" onclick="setPlayOpt('dateMode','7d')">最近7天</button>
+                <button data-v="day" onclick="setPlayOpt('dateMode','day')">指定日期</button>
+            </div>
+            <select class="pm-select" id="pmDay" onchange="setPlayOpt('day', this.value)" style="display:none"></select>
             <div class="pm-label">每句念幾次</div>
             <div class="stepper">
                 <button onclick="setPlayOpt('repeat', playSettings.repeat - 1)">−</button>
@@ -237,16 +268,25 @@
         </div>
     </div>
 
-    <!-- 播放中的控制列 -->
-    <div class="player-bar" id="playerBar">
-        <div class="pb-info">
-            <div class="pb-meta" id="pbMeta">1 / 10 · 第 1/2 次</div>
-            <div class="pb-text" id="pbText"></div>
+    <!-- 播放視窗 -->
+    <div class="player-sheet" id="playerSheet">
+        <div class="ps-head">
+            <div class="ps-title" id="psTitle">▶️ 例句播放</div>
+            <button class="ps-icon-btn" title="播放設定" onclick="openPlayModal()"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+            <button class="ps-icon-btn" title="關閉" onclick="closePlayer()">×</button>
         </div>
-        <button class="pb-btn" title="上一句" onclick="playerJump(-1)"><svg class="ic fill" viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
-        <button class="pb-btn main" id="pbPlayPause" title="暫停" onclick="playerTogglePause()"></button>
-        <button class="pb-btn" title="下一句" onclick="playerJump(1)"><svg class="ic fill" viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
-        <button class="pb-btn" title="停止" onclick="stopPlayer()"><svg class="ic fill" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+        <div class="ps-word" id="psWord"></div>
+        <div class="ps-text" id="psText"></div>
+        <div class="ps-cn" id="psCn"></div>
+        <div class="ps-progress"><div id="psBar"></div></div>
+        <div class="ps-meta"><span id="psMeta"></span><span id="psRep"></span></div>
+        <div class="ps-controls">
+            <button class="pb-btn" title="從頭開始" onclick="playerRestart()"><svg viewBox="0 0 24 24"><path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg></button>
+            <button class="pb-btn" title="上一句" onclick="playerJump(-1)"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+            <button class="pb-btn main" id="psPlay" title="播放" onclick="playerTogglePlay()"></button>
+            <button class="pb-btn" title="下一句" onclick="playerJump(1)"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+            <button class="pb-btn" title="停止" onclick="playerStop()"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+        </div>
     </div>
 
     <div id="exportModal" class="modal-overlay">
@@ -552,7 +592,7 @@
         }
 
         function speakText(text) {
-            if (player.active) stopPlayer();      // 手動點朗讀時，先停止連續播放
+            if (player.playing) playerPause();   // 手動點朗讀時，先暫停連續播放
             const englishOnly = cleanForSpeech(text);
             if (!englishOnly) return;
             if (!('speechSynthesis' in window)) { playAudioFallback(englishOnly); return; }
@@ -583,22 +623,61 @@
 
         // --- 例句連續播放 ---
         const PLAY_KEY = 'eng_playSettings';
-        let playSettings = { scope: 'all', repeat: 2, rate: 0.9 };
+        let playSettings = { scope: 'all', repeat: 2, rate: 0.9, dateMode: 'all', day: '' };
         try { Object.assign(playSettings, JSON.parse(localStorage.getItem(PLAY_KEY)) || {}); } catch (e) {}
-        const player = { active: false, paused: false, list: [], idx: 0, rep: 0, token: 0, wakeLock: null };
-        const ICON_PAUSE = '<svg class="ic fill" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
-        const ICON_PLAY = '<svg class="ic fill" viewBox="0 0 24 24"><path d="M7 5v14l12-7z"/></svg>';
+        const player = { open: false, playing: false, finished: false, list: [], idx: 0, rep: 0, token: 0 };
+        const ICON_PAUSE = '<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
+        const ICON_PLAY = '<svg viewBox="0 0 24 24" style="margin-left:2px"><path d="M7 5v14l12-7z"/></svg>';
         const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-        function getPlaylist(scope) {
+        function dayKey(ts) {
+            const d = new Date(ts || 0), pad = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        }
+        function dayLabel(key) {
+            const [y, m, d] = key.split('-').map(Number);
+            const w = '日一二三四五六'[new Date(y, m - 1, d).getDay()];
+            return `${y}/${m}/${d}（${w}）`;
+        }
+        function extractCn(text) {
+            const m = String(text).match(/[（(][^()（）]*[一-鿿][^()（）]*[)）]/);
+            if (m) return m[0].slice(1, -1);
+            const t = String(text).replace(/🤖/g, '').match(/[一-鿿][^\n]*/);
+            return t ? t[0] : '';
+        }
+
+        // 依「範圍＋日期」挑出要播放的例句（日期以例句加入的日期為準）
+        function getPlaylist(opts = playSettings, ignoreDate = false) {
+            const today = dayKey(Date.now());
+            const weekAgo = new Date(); weekAgo.setHours(0, 0, 0, 0); weekAgo.setDate(weekAgo.getDate() - 6);
             const list = [];
             tasks.forEach(t => t.subtasks.forEach(s => s.grandtasks.forEach(g => {
-                if (scope === 'done' && !g.checked) return;
-                if (scope === 'todo' && g.checked) return;
+                if (opts.scope === 'done' && !g.checked) return;
+                if (opts.scope === 'todo' && g.checked) return;
+                if (!ignoreDate) {
+                    const k = dayKey(g.createdAt);
+                    if (opts.dateMode === 'today' && k !== today) return;
+                    if (opts.dateMode === '7d' && (g.createdAt || 0) < weekAgo.getTime()) return;
+                    if (opts.dateMode === 'day' && k !== opts.day) return;
+                }
                 const en = cleanForSpeech(g.text);
-                if (en) list.push({ id: g.id, en });
+                if (en) list.push({ id: g.id, en, cn: extractCn(g.text), word: s.text, day: dayKey(g.createdAt) });
             })));
             return list;
+        }
+
+        // 指定日期的下拉選單：只列出有例句的日期
+        function refreshDayOptions() {
+            const counts = {};
+            getPlaylist(playSettings, true).forEach(it => { counts[it.day] = (counts[it.day] || 0) + 1; });
+            const days = Object.keys(counts).sort().reverse();
+            const sel = document.getElementById('pmDay');
+            if (playSettings.dateMode === 'day' && days.length && !days.includes(playSettings.day)) {
+                playSettings.day = days[0]; localStorage.setItem(PLAY_KEY, JSON.stringify(playSettings));
+            }
+            sel.innerHTML = days.length ? days.map(k => `<option value="${k}" ${k === playSettings.day ? 'selected' : ''}>${dayLabel(k)}　${counts[k]} 句</option>`).join('')
+                                        : '<option value="">（沒有例句）</option>';
+            sel.style.display = playSettings.dateMode === 'day' ? 'block' : 'none';
         }
 
         function openPlayModal() { refreshPlayModal(); document.getElementById('playModal').style.display = 'flex'; }
@@ -612,12 +691,66 @@
         }
 
         function refreshPlayModal() {
+            refreshDayOptions();
             document.querySelectorAll('#pmScope button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.scope));
+            document.querySelectorAll('#pmDate button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.dateMode));
             document.querySelectorAll('#pmRate button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === Number(playSettings.rate)));
             document.getElementById('pmRepeat').textContent = `${playSettings.repeat} 次`;
-            const n = getPlaylist(playSettings.scope).length;
+            const n = getPlaylist().length;
             document.getElementById('pmCount').textContent = n ? `共 ${n} 句，每句念 ${playSettings.repeat} 次` : '這個範圍沒有可播放的例句';
             document.getElementById('pmStart').disabled = n === 0;
+            document.getElementById('pmStart').textContent = player.open ? '套用並從頭播放' : '開始播放';
+        }
+
+        // ---- 背景播放：用一段幾乎無聲的音軌讓 Android 把 App 當成「正在播放音樂」，關螢幕也不暫停 ----
+        let keepAliveAudio = null;
+        function makeQuietWav(seconds = 10, rate = 8000) {
+            const n = seconds * rate, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+            const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+            w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+            v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+            v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+            w(36, 'data'); v.setUint32(40, n * 2, true);
+            for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, (i % 2 ? 1 : -1), true);   // 極小的訊號，人耳聽不到
+            return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+        }
+        function keepAliveStart() {
+            try {
+                if (!keepAliveAudio) {
+                    keepAliveAudio = new Audio(makeQuietWav());
+                    keepAliveAudio.loop = true;
+                    keepAliveAudio.addEventListener('pause', () => {   // 被系統暫停時，若仍在播放就再接上
+                        if (player.playing) setTimeout(() => keepAliveAudio.play().catch(() => {}), 300);
+                    });
+                }
+                keepAliveAudio.play().catch(() => {});
+            } catch (e) {}
+        }
+        function keepAliveStop() { try { if (keepAliveAudio) keepAliveAudio.pause(); } catch (e) {} }
+
+        // 鎖定畫面 / 通知列的播放控制
+        function setupMediaSession() {
+            if (!('mediaSession' in navigator)) return;
+            const ms = navigator.mediaSession;
+            const set = (a, fn) => { try { ms.setActionHandler(a, fn); } catch (e) {} };
+            set('play', () => playerPlay());
+            set('pause', () => playerPause());
+            set('previoustrack', () => playerJump(-1));
+            set('nexttrack', () => playerJump(1));
+            set('stop', () => playerStop());
+        }
+        function updateMediaSession() {
+            if (!('mediaSession' in navigator)) return;
+            const item = player.list[player.idx];
+            try {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: item ? item.en : '例句播放完畢',
+                    artist: item ? `${player.idx + 1} / ${player.list.length}　${cleanForSpeech(item.word)}` : '英語學習筆記本',
+                    album: '英語學習筆記本',
+                    artwork: [{ src: 'icon-512.png', sizes: '512x512', type: 'image/png' }]
+                });
+                navigator.mediaSession.playbackState = player.playing ? 'playing' : 'paused';
+            } catch (e) {}
         }
 
         // 念一次，念完才回傳
@@ -642,26 +775,50 @@
             });
         }
 
-        async function startPlayer() {
-            const list = getPlaylist(playSettings.scope);
+        // 從設定視窗按「開始播放」
+        function startPlayer() {
+            const list = getPlaylist();
             if (!list.length) return;
             closePlayModal();
+            playerPause();
+            Object.assign(player, { open: true, finished: false, list, idx: 0, rep: 0 });
+            document.body.classList.add('player-open');
+            setupMediaSession();
+            playerPlay();
+        }
+
+        function playerPlay() {
+            if (!player.open || !player.list.length) return;
+            if (player.finished || player.idx >= player.list.length) {   // 播完後再按播放 → 從頭開始
+                player.idx = 0; player.rep = 0; player.finished = false;
+            }
             if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-            Object.assign(player, { active: true, paused: false, list, idx: 0, rep: 0 });
-            document.body.classList.add('playing');
-            try { if ('wakeLock' in navigator) player.wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}  // 播放時螢幕不自動關閉
+            player.playing = true;
+            keepAliveStart();
             runPlayer(++player.token);
         }
 
+        function playerPause() {
+            player.playing = false; player.token++;
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            keepAliveStop();
+            updatePlayerView();
+        }
+
+        function playerTogglePlay() { player.playing ? playerPause() : playerPlay(); }
+
         async function runPlayer(token) {
-            const alive = () => player.active && !player.paused && token === player.token;
+            const alive = () => player.playing && token === player.token;
             while (alive()) {
-                if (player.idx >= player.list.length) { stopPlayer(); showToast('✅ 例句播放完畢'); return; }
-                const item = player.list[player.idx];
+                if (player.idx >= player.list.length) {   // 播放完畢：視窗保留，按 ▶ 可從頭再播
+                    player.playing = false; player.finished = true; player.token++;
+                    keepAliveStop(); highlightPlaying(false); updatePlayerView();
+                    return;
+                }
                 highlightPlaying(true);
                 for (; player.rep < playSettings.repeat; player.rep++) {
-                    updatePlayerBar();
-                    await speakOnce(item.en, Number(playSettings.rate));
+                    updatePlayerView();
+                    await speakOnce(player.list[player.idx].en, Number(playSettings.rate));
                     if (!alive()) return;
                     await sleep(player.rep < playSettings.repeat - 1 ? 700 : 1200);   // 同句之間短停頓，換句時長一點
                     if (!alive()) return;
@@ -670,46 +827,72 @@
             }
         }
 
-        function updatePlayerBar() {
-            const item = player.list[player.idx]; if (!item) return;
-            document.getElementById('pbMeta').textContent = `${player.idx + 1} / ${player.list.length} · 第 ${Math.min(player.rep + 1, playSettings.repeat)}/${playSettings.repeat} 次${player.paused ? ' · 已暫停' : ''}`;
-            document.getElementById('pbText').textContent = item.en;
-            document.getElementById('pbPlayPause').innerHTML = player.paused ? ICON_PLAY : ICON_PAUSE;
+        function updatePlayerView() {
+            if (!player.open) return;
+            const total = player.list.length;
+            const item = player.list[Math.min(player.idx, total - 1)];
+            const $ = id => document.getElementById(id);
+            $('psPlay').innerHTML = player.playing ? ICON_PAUSE : ICON_PLAY;
+            $('psPlay').title = player.playing ? '暫停' : (player.finished ? '從頭播放' : '播放');
+            if (player.finished) {
+                $('psTitle').innerHTML = '<span class="ps-done">✅ 播放完畢</span>';
+                $('psWord').textContent = '';
+                $('psText').textContent = `${total} 句例句都播完了，按 ▶ 可以從頭再播一次。`;
+                $('psCn').textContent = '';
+                $('psBar').style.width = '100%';
+                $('psMeta').textContent = `${total} / ${total}`; $('psRep').textContent = '';
+            } else if (item) {
+                $('psTitle').textContent = player.playing ? '▶️ 播放中' : '⏸ 已暫停';
+                $('psWord').textContent = item.word;
+                $('psText').textContent = item.en;
+                $('psCn').textContent = item.cn;
+                $('psBar').style.width = `${(player.idx / total) * 100}%`;
+                $('psMeta').textContent = `第 ${player.idx + 1} / ${total} 句　${dayLabel(item.day)}`;
+                $('psRep').textContent = `第 ${Math.min(player.rep + 1, playSettings.repeat)} / ${playSettings.repeat} 次`;
+            }
+            updateMediaSession();
         }
 
         function highlightPlaying(scroll) {
             document.querySelectorAll('.grandtask-row.playing').forEach(r => r.classList.remove('playing'));
-            if (!player.active) return;
+            if (!player.open || player.finished) return;
             const item = player.list[player.idx]; if (!item) return;
             const row = document.querySelector(`.grandtask-row[data-id="${item.id}"]`);
-            if (row) { row.classList.add('playing'); if (scroll && row.offsetParent) row.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-        }
-
-        function playerTogglePause() {
-            if (!player.active) return;
-            player.paused = !player.paused;
-            player.token++;
-            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-            updatePlayerBar();
-            if (!player.paused) runPlayer(player.token);   // 從目前這一句、目前這一次繼續
+            if (row) { row.classList.add('playing'); if (scroll && row.offsetParent && document.visibilityState === 'visible') row.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
         }
 
         function playerJump(delta) {
-            if (!player.active) return;
+            if (!player.open || !player.list.length) return;
+            const wasPlaying = player.playing || player.finished;
+            if (player.finished) { player.finished = false; player.idx = player.list.length; }
             player.token++;
             if ('speechSynthesis' in window) window.speechSynthesis.cancel();
             player.idx = Math.max(0, Math.min(player.list.length - 1, player.idx + delta));
             player.rep = 0;
-            highlightPlaying(true); updatePlayerBar();
-            if (!player.paused) runPlayer(player.token);
+            highlightPlaying(true); updatePlayerView();
+            if (wasPlaying && player.playing) runPlayer(player.token);
         }
 
-        function stopPlayer() {
-            player.active = false; player.paused = false; player.token++;
-            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-            document.body.classList.remove('playing');
+        function playerRestart() {
+            if (!player.open) return;
+            player.idx = 0; player.rep = 0; player.finished = false;
+            playerPlay();
+        }
+
+        // ⏹ 停止：回到第一句，視窗保留
+        function playerStop() {
+            playerPause();
+            player.idx = 0; player.rep = 0; player.finished = false;
+            highlightPlaying(false); updatePlayerView();
+        }
+
+        // × 關閉播放視窗
+        function closePlayer() {
+            playerPause();
+            player.open = false;
+            document.body.classList.remove('player-open');
             highlightPlaying(false);
-            if (player.wakeLock) { player.wakeLock.release().catch(() => {}); player.wakeLock = null; }
+            if ('mediaSession' in navigator) { try { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; } catch (e) {} }
         }
 
         // --- 4. 選單切換 ---
@@ -1172,7 +1355,7 @@
                 html += `</div>`; card.innerHTML = html; container.appendChild(card);
             });
             initSortable();
-            if (player.active) highlightPlaying(false);
+            if (player.open) highlightPlaying(false);
         }
 
         function initSortable() {
