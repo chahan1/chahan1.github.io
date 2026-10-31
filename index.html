@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v1.9.3 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v1.9.4 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -153,6 +153,13 @@
         .ps-icon-btn svg.ic { width: 17px; height: 17px; }
         .ps-word { font-size: 11.5px; color: var(--blue); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .ps-text { font-size: 17px; line-height: 1.45; color: var(--text); font-weight: 500; margin-top: 4px; min-height: 50px; max-height: 100px; overflow-y: auto; }
+        .ps-text { white-space: pre-line; }
+        .pm-hint { font-size: 11.5px; color: var(--muted); margin-top: 6px; line-height: 1.45; }
+        .pm-voice-row { display: flex; gap: 6px; margin-top: 8px; }
+        .pm-voice-row .pm-select { margin-top: 0; flex: 1; }
+        .pm-preview { flex-shrink: 0; border: 1px solid #cfe7d7; background: var(--green-light); color: var(--green); border-radius: 8px; padding: 0 10px; font-size: 12.5px; cursor: pointer; }
+        .pm-preview:disabled { opacity: 0.6; }
+        #pmCacheInfo { color: #b06000; margin-top: 4px; }
         .ps-cn { font-size: 13px; color: #868b90; margin-top: 4px; line-height: 1.4; }
         body.hide-ex-cn .ps-cn { display: none; }
         .ps-progress { height: 3px; background: #eef0f2; border-radius: 2px; margin: 12px 0 4px; overflow: hidden; }
@@ -193,7 +200,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.9.3</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.9.4</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -237,6 +244,18 @@
     <div id="playModal" class="modal-overlay play-modal" onclick="if(event.target===this) closePlayModal()">
         <div class="modal-content">
             <div class="pm-title"><h3>▶️ 播放例句</h3><button class="pm-close" onclick="closePlayModal()">×</button></div>
+            <div class="pm-label">語音</div>
+            <div class="seg" id="pmEngine">
+                <button data-v="ai" onclick="setPlayOpt('engine','ai')">AI 真人語音</button>
+                <button data-v="phone" onclick="setPlayOpt('engine','phone')">手機語音</button>
+            </div>
+            <div id="pmVoiceBox">
+                <div class="pm-voice-row">
+                    <select class="pm-select" id="pmVoice" onchange="setPlayOpt('voice', this.value)"></select>
+                    <button class="pm-preview" id="pmPreview" onclick="previewVoice()">🔊 試聽</button>
+                </div>
+            </div>
+            <div class="pm-hint" id="pmEngineHint"></div>
             <div class="pm-label">播放範圍</div>
             <div class="seg" id="pmScope">
                 <button data-v="all" onclick="setPlayOpt('scope','all')">全部例句</button>
@@ -264,6 +283,7 @@
                 <button data-v="1.1" onclick="setPlayOpt('rate',1.1)">快</button>
             </div>
             <div class="pm-count" id="pmCount">共 0 句</div>
+            <div class="pm-hint" id="pmCacheInfo" style="text-align:center"></div>
             <button class="btn-primary pm-start" id="pmStart" onclick="startPlayer()">開始播放</button>
         </div>
     </div>
@@ -595,6 +615,14 @@
             if (player.playing) playerPause();   // 手動點朗讀時，先暫停連續播放
             const englishOnly = cleanForSpeech(text);
             if (!englishOnly) return;
+            if (playSettings.engine === 'ai' && localStorage.getItem(API_KEY_STORAGE)) {
+                speakSingleAI(englishOnly).then(ok => { if (!ok) speakWithPhone(englishOnly); });
+                return;
+            }
+            speakWithPhone(englishOnly);
+        }
+
+        function speakWithPhone(englishOnly) {
             if (!('speechSynthesis' in window)) { playAudioFallback(englishOnly); return; }
             try {
                 window.speechSynthesis.cancel();
@@ -623,9 +651,9 @@
 
         // --- 例句連續播放 ---
         const PLAY_KEY = 'eng_playSettings';
-        let playSettings = { scope: 'all', repeat: 2, rate: 0.9, dateMode: 'all', day: '' };
+        let playSettings = { engine: 'ai', voice: 'Kore', scope: 'all', repeat: 2, rate: 0.9, dateMode: 'all', day: '' };
         try { Object.assign(playSettings, JSON.parse(localStorage.getItem(PLAY_KEY)) || {}); } catch (e) {}
-        const player = { open: false, playing: false, finished: false, list: [], idx: 0, rep: 0, token: 0 };
+        const player = { open: false, playing: false, finished: false, list: [], idx: 0, rep: 0, token: 0, mode: 'phone', segments: null, aiUrl: null };
         const ICON_PAUSE = '<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
         const ICON_PLAY = '<svg viewBox="0 0 24 24" style="margin-left:2px"><path d="M7 5v14l12-7z"/></svg>';
         const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -692,6 +720,15 @@
 
         function refreshPlayModal() {
             refreshDayOptions();
+            document.querySelectorAll('#pmEngine button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.engine));
+            const vs = document.getElementById('pmVoice');
+            if (!vs.options.length) vs.innerHTML = AI_VOICES.map(([v, d]) => `<option value="${v}">${v}（${d}）</option>`).join('');
+            vs.value = playSettings.voice || 'Kore';
+            document.getElementById('pmVoiceBox').style.display = playSettings.engine === 'ai' ? 'block' : 'none';
+            document.getElementById('pmEngineHint').textContent = playSettings.engine === 'ai'
+                ? '聲音自然，可關閉螢幕繼續播放。第一次播放某句時需上網產生語音（使用你的 Gemini 金鑰），之後存在手機裡，離線也能播。'
+                : '免費、離線可用，但聲音較機械，且關閉螢幕後會暫停。';
+            refreshAICacheInfo();
             document.querySelectorAll('#pmScope button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.scope));
             document.querySelectorAll('#pmDate button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.dateMode));
             document.querySelectorAll('#pmRate button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === Number(playSettings.rate)));
@@ -781,14 +818,22 @@
             if (!list.length) return;
             closePlayModal();
             playerPause();
-            Object.assign(player, { open: true, finished: false, list, idx: 0, rep: 0 });
+            aiReleaseAudio();
+            Object.assign(player, { open: true, finished: false, list, idx: 0, rep: 0, mode: playSettings.engine === 'ai' ? 'ai' : 'phone' });
             document.body.classList.add('player-open');
             setupMediaSession();
-            playerPlay();
+            if (player.mode === 'ai') aiPrepareAndPlay();
+            else playerPlay();
         }
 
         function playerPlay() {
             if (!player.open || !player.list.length) return;
+            if (player.mode === 'ai') {
+                if (!aiAudio || !player.segments) return;
+                if (player.finished || aiAudio.ended) { aiAudio.currentTime = 0; player.idx = 0; player.rep = 0; player.finished = false; }
+                aiAudio.play().catch(() => {});
+                return;
+            }
             if (player.finished || player.idx >= player.list.length) {   // 播完後再按播放 → 從頭開始
                 player.idx = 0; player.rep = 0; player.finished = false;
             }
@@ -799,6 +844,7 @@
         }
 
         function playerPause() {
+            if (player.mode === 'ai' && aiAudio) { aiAudio.pause(); player.playing = false; updatePlayerView(); return; }
             player.playing = false; player.token++;
             if ('speechSynthesis' in window) window.speechSynthesis.cancel();
             keepAliveStop();
@@ -863,6 +909,12 @@
 
         function playerJump(delta) {
             if (!player.open || !player.list.length) return;
+            if (player.mode === 'ai') {
+                if (!player.segments) return;
+                const base = player.finished ? player.list.length : player.idx;
+                aiSeekTo(Math.max(0, Math.min(player.list.length - 1, base + delta)));
+                return;
+            }
             const wasPlaying = player.playing || player.finished;
             if (player.finished) { player.finished = false; player.idx = player.list.length; }
             player.token++;
@@ -875,12 +927,14 @@
 
         function playerRestart() {
             if (!player.open) return;
+            if (player.mode === 'ai') { if (!aiAudio || !player.segments) return; aiSeekTo(0); aiAudio.play().catch(() => {}); return; }
             player.idx = 0; player.rep = 0; player.finished = false;
             playerPlay();
         }
 
         // ⏹ 停止：回到第一句，視窗保留
         function playerStop() {
+            if (player.mode === 'ai') { if (aiAudio) { aiAudio.pause(); if (player.segments) aiSeekTo(0); } player.playing = false; highlightPlaying(false); updatePlayerView(); return; }
             playerPause();
             player.idx = 0; player.rep = 0; player.finished = false;
             highlightPlaying(false); updatePlayerView();
@@ -888,11 +942,297 @@
 
         // × 關閉播放視窗
         function closePlayer() {
+            player.token++;
+            if (player.mode === 'ai') { aiReleaseAudio(); player.playing = false; }
             playerPause();
             player.open = false;
             document.body.classList.remove('player-open');
             highlightPlaying(false);
             if ('mediaSession' in navigator) { try { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; } catch (e) {} }
+        }
+
+        // ================= AI 真人語音（Gemini TTS）=================
+        // 產生的語音存在手機（IndexedDB），每句只產生一次，之後離線也能播放。
+        // 播放時把所有例句串成「一整段音檔」，用播放器播放 → 關閉螢幕也能繼續。
+        const TTS_IX_MODELS = ['gemini-3.8-flash-lite-tts', 'gemini-3.8-flash-tts', 'gemini-3.1-flash-tts-preview'];
+        const TTS_GC_MODELS = ['gemini-3.1-flash-tts-preview', 'gemini-2.5-flash-preview-tts'];
+        const AI_VOICES = [
+            ['Kore', '沉穩'], ['Aoede', '輕快'], ['Leda', '年輕'], ['Sulafat', '溫暖'],
+            ['Charon', '清晰知性'], ['Puck', '活潑'], ['Achird', '親切'], ['Iapetus', '清楚']
+        ];
+        const AI_RATE = { 0.7: 0.8, 0.9: 1.0, 1.1: 1.2 };   // AI 語音本身速度自然，對應的播放倍速
+
+        let ttsDbPromise = null;
+        function ttsDB() {
+            if (!ttsDbPromise) ttsDbPromise = new Promise((res, rej) => {
+                const r = indexedDB.open('eng_tts', 1);
+                r.onupgradeneeded = () => r.result.createObjectStore('clips');
+                r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+            });
+            return ttsDbPromise;
+        }
+        async function ttsGet(key) {
+            try { const db = await ttsDB(); return await new Promise(res => { const q = db.transaction('clips').objectStore('clips').get(key); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }); }
+            catch (e) { return null; }
+        }
+        async function ttsPut(key, val) {
+            try { const db = await ttsDB(); await new Promise(res => { const tx = db.transaction('clips', 'readwrite'); tx.objectStore('clips').put(val, key); tx.oncomplete = res; tx.onerror = res; }); } catch (e) {}
+        }
+        const clipKey = (voice, text) => `${voice}|${text}`;
+
+        function b64ToBytes(b64) {
+            const bin = atob(b64), out = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+            return out;
+        }
+        // 解析 WAV 或原始 PCM，統一成 { rate, pcm: 16-bit 單聲道 ArrayBuffer }
+        function parseAudio(bytes, mime) {
+            const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+            const tag = (o) => String.fromCharCode(bytes[o], bytes[o + 1], bytes[o + 2], bytes[o + 3]);
+            if (bytes.length > 12 && tag(0) === 'RIFF' && tag(8) === 'WAVE') {
+                let rate = 24000, ch = 1, o = 12, dataStart = -1, dataLen = 0;
+                while (o + 8 <= bytes.length) {
+                    const id = tag(o), size = dv.getUint32(o + 4, true);
+                    if (id === 'fmt ') { ch = dv.getUint16(o + 10, true); rate = dv.getUint32(o + 12, true); }
+                    if (id === 'data') { dataStart = o + 8; dataLen = Math.min(size, bytes.length - dataStart); break; }
+                    o += 8 + size + (size % 2);
+                }
+                if (dataStart < 0) throw new Error('語音格式無法解析');
+                let pcm = bytes.slice(dataStart, dataStart + dataLen - (dataLen % 2)).buffer;
+                if (ch === 2) { const s = new Int16Array(pcm), m = new Int16Array(s.length / 2); for (let i = 0; i < m.length; i++) m[i] = s[i * 2]; pcm = m.buffer; }
+                return { rate, pcm };
+            }
+            const m = /rate=(\d+)/.exec(mime || '');
+            return { rate: m ? Number(m[1]) : 24000, pcm: bytes.slice(0, bytes.length - (bytes.length % 2)).buffer };
+        }
+
+        async function postJSON(url, apiKey, body) {
+            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }, body: JSON.stringify(body) });
+            if (!res.ok) {
+                let msg = `HTTP ${res.status}`;
+                try { const j = await res.json(); msg = j.error?.message || msg; } catch (e) {}
+                const err = new Error(msg); err.status = res.status; throw err;
+            }
+            return res.json();
+        }
+        async function ttsInteraction(model, text, voice, apiKey) {
+            const j = await postJSON('https://generativelanguage.googleapis.com/v1beta/interactions', apiKey, {
+                model,
+                input: [{ type: 'user_input', content: [{ type: 'text', text }] }],
+                response_format: { type: 'audio', mime_type: 'audio/wav', sample_rate: 24000 },
+                generation_config: { speech_config: [{ voice }] }
+            });
+            let data = null, mime = 'audio/wav';
+            (j.steps || []).forEach(s => (s.content || []).forEach(c => { if (c.type === 'audio' && c.data) { data = c.data; mime = c.mime_type || mime; } }));
+            if (!data && j.output_audio && j.output_audio.data) data = j.output_audio.data;
+            if (!data) throw new Error('AI 沒有回傳語音');
+            return parseAudio(b64ToBytes(data), mime);
+        }
+        async function ttsGenerate(model, text, voice, apiKey) {
+            const j = await postJSON(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, apiKey, {
+                contents: [{ parts: [{ text }] }],
+                generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } }
+            });
+            const part = (j?.candidates?.[0]?.content?.parts || []).find(p => p.inlineData);
+            if (!part) throw new Error('AI 沒有回傳語音');
+            return parseAudio(b64ToBytes(part.inlineData.data), part.inlineData.mimeType || '');
+        }
+        // 依序嘗試可用的語音模型，成功的會記住，下次優先使用
+        async function fetchTTS(text, voice) {
+            const apiKey = localStorage.getItem(API_KEY_STORAGE);
+            if (!apiKey) { const e = new Error('尚未設定 Gemini 金鑰'); e.status = 401; throw e; }
+            if (!navigator.onLine) throw new TypeError('offline');
+            const tries = [...TTS_IX_MODELS.map(m => 'ix:' + m), ...TTS_GC_MODELS.map(m => 'gc:' + m)];
+            const pref = localStorage.getItem('eng_ttsModel');
+            if (pref && tries.includes(pref)) { tries.splice(tries.indexOf(pref), 1); tries.unshift(pref); }
+            let lastErr = null;
+            for (const t of tries) {
+                const [kind, model] = [t.slice(0, 2), t.slice(3)];
+                try {
+                    const clip = kind === 'ix' ? await ttsInteraction(model, text, voice, apiKey) : await ttsGenerate(model, text, voice, apiKey);
+                    if (!clip.pcm.byteLength) throw new Error('語音是空的');
+                    localStorage.setItem('eng_ttsModel', t);
+                    return clip;
+                } catch (e) {
+                    lastErr = e;
+                    const k = classifyError(e);
+                    if (k === 'key' || k === 'offline') break;
+                }
+            }
+            throw lastErr || new Error('AI 語音產生失敗');
+        }
+        async function getClip(text, voice) {
+            const key = clipKey(voice, text);
+            const cached = await ttsGet(key);
+            if (cached) return cached;
+            const clip = await fetchTTS(text, voice);
+            await ttsPut(key, clip);
+            return clip;
+        }
+
+        // 把 PCM 片段組成 WAV Blob
+        function wavHeader(rate, dataBytes) {
+            const b = new ArrayBuffer(44), v = new DataView(b);
+            const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+            w(0, 'RIFF'); v.setUint32(4, 36 + dataBytes, true); w(8, 'WAVE'); w(12, 'fmt ');
+            v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+            v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+            w(36, 'data'); v.setUint32(40, dataBytes, true);
+            return b;
+        }
+        function resamplePCM(pcm, from, to) {
+            if (from === to) return pcm;
+            const src = new Int16Array(pcm), n = Math.round(src.length * to / from), out = new Int16Array(n);
+            for (let i = 0; i < n; i++) { const x = i * from / to, i0 = Math.floor(x), f = x - i0; out[i] = (src[i0] || 0) * (1 - f) + (src[i0 + 1] || src[i0] || 0) * f; }
+            return out.buffer;
+        }
+        // 串成一整段：每句念 N 次，同句之間停 0.7 秒，換句停 1.2 秒
+        function buildPlaylistAudio(list, clips, repeat) {
+            const rate = clips[list[0].id].rate;
+            const parts = [], segments = [];
+            let samples = 0;
+            const add = (buf) => { parts.push(buf); samples += buf.byteLength / 2; };
+            const gap = (sec) => add(new Int16Array(Math.round(sec * rate)).buffer);
+            gap(0.3);
+            list.forEach((item, idx) => {
+                const pcm = resamplePCM(clips[item.id].pcm, clips[item.id].rate, rate);
+                for (let r = 0; r < repeat; r++) {
+                    const start = samples / rate;
+                    add(pcm);
+                    segments.push({ idx, rep: r, start, end: samples / rate });
+                    gap(r < repeat - 1 ? 0.7 : 1.2);
+                }
+            });
+            const blob = new Blob([wavHeader(rate, samples * 2), ...parts], { type: 'audio/wav' });
+            return { url: URL.createObjectURL(blob), segments, duration: samples / rate };
+        }
+
+        // ---- AI 模式的播放控制 ----
+        let aiAudio = null;
+        function aiEnsureAudio() {
+            if (aiAudio) return aiAudio;
+            aiAudio = new Audio();
+            aiAudio.preload = 'auto';
+            aiAudio.addEventListener('timeupdate', aiOnTime);
+            aiAudio.addEventListener('ended', () => {
+                player.playing = false; player.finished = true;
+                highlightPlaying(false); updatePlayerView();
+            });
+            aiAudio.addEventListener('play', () => { player.playing = true; player.finished = false; updatePlayerView(); });
+            aiAudio.addEventListener('pause', () => { if (!aiAudio.ended) { player.playing = false; updatePlayerView(); } });
+            return aiAudio;
+        }
+        function aiOnTime() {
+            const t = aiAudio.currentTime, segs = player.segments || [];
+            let seg = segs[0];
+            for (const s of segs) { if (s.start <= t + 0.05) seg = s; else break; }
+            if (!seg) return;
+            if (seg.idx !== player.idx || seg.rep !== player.rep) {
+                const changed = seg.idx !== player.idx;
+                player.idx = seg.idx; player.rep = seg.rep;
+                if (changed) highlightPlaying(true);
+                updatePlayerView();
+            }
+        }
+        function aiSeekTo(idx) {
+            const seg = (player.segments || []).find(s => s.idx === idx);
+            if (!seg || !aiAudio) return;
+            aiAudio.currentTime = seg.start;
+            player.idx = idx; player.rep = 0; player.finished = false;
+            highlightPlaying(true); updatePlayerView();
+        }
+        function aiReleaseAudio() {
+            if (aiAudio) { aiAudio.pause(); }
+            if (player.aiUrl) { URL.revokeObjectURL(player.aiUrl); player.aiUrl = null; }
+            player.segments = null;
+        }
+
+        // 準備語音（缺的才產生）→ 串起來 → 播放
+        async function aiPrepareAndPlay() {
+            const token = ++player.token;
+            const voice = playSettings.voice || 'Kore';
+            const list = player.list, clips = {}, failed = [];
+            let reason = null, done = 0;
+            const $ = id => document.getElementById(id);
+            const showProgress = () => {
+                $('psTitle').textContent = '🎧 正在準備 AI 語音…';
+                $('psWord').textContent = '';
+                $('psText').textContent = `第一次播放的句子需要先產生語音（之後就會存在手機裡）\n${done} / ${list.length}`;
+                $('psCn').textContent = '';
+                $('psBar').style.width = `${(done / list.length) * 100}%`;
+                $('psMeta').textContent = ''; $('psRep').textContent = '';
+                $('psPlay').innerHTML = ICON_PAUSE;
+            };
+            showProgress();
+            let next = 0;
+            const worker = async () => {
+                while (next < list.length && !reason) {
+                    const item = list[next++];
+                    try { clips[item.id] = await getClip(item.en, voice); }
+                    catch (e) { failed.push(item); const k = classifyError(e); if (k === 'key' || k === 'offline') reason = k === 'key' ? '金鑰有問題：' + e.message : '目前沒有網路'; else if (!reason && failed.length >= 3 && !Object.keys(clips).length) reason = e.message; }
+                    done++;
+                    if (token !== player.token || !player.open) return;
+                    showProgress();
+                }
+            };
+            await Promise.all([worker(), worker()]);
+            if (token !== player.token || !player.open) return;
+
+            const ready = list.filter(it => clips[it.id]);
+            if (!ready.length) {
+                const msg = `AI 語音無法產生（${reason || '未知原因'}）。\n\n要改用「手機語音」播放嗎？\n（手機語音關閉螢幕會暫停）`;
+                if (confirm(msg)) { player.mode = 'phone'; player.idx = 0; player.rep = 0; playerPlay(); }
+                else closePlayer();
+                return;
+            }
+            if (ready.length < list.length) showToast(`有 ${list.length - ready.length} 句暫時無法產生 AI 語音，已先略過\n${reason || ''}`, 4000);
+
+            aiReleaseAudio();
+            player.list = ready;
+            const built = buildPlaylistAudio(ready, clips, playSettings.repeat);
+            player.aiUrl = built.url; player.segments = built.segments;
+            const a = aiEnsureAudio();
+            a.src = built.url;
+            a.playbackRate = a.defaultPlaybackRate = AI_RATE[playSettings.rate] || 1.0;
+            try { a.preservesPitch = true; } catch (e) {}
+            player.idx = 0; player.rep = 0; player.finished = false;
+            highlightPlaying(true); updatePlayerView();
+            try { await a.play(); }
+            catch (e) { player.playing = false; updatePlayerView(); showToast('請按 ▶ 開始播放'); }
+        }
+
+        // 單句 🔊：AI 模式下優先用 AI 語音（已存過的直接播，不花費）
+        let singleAudio = null;
+        async function speakSingleAI(text) {
+            const en = cleanForSpeech(text);
+            if (!en) return false;
+            try {
+                const clip = await getClip(en, playSettings.voice || 'Kore');
+                if (singleAudio) { singleAudio.pause(); URL.revokeObjectURL(singleAudio.src); }
+                singleAudio = new Audio(URL.createObjectURL(new Blob([wavHeader(clip.rate, clip.pcm.byteLength), clip.pcm], { type: 'audio/wav' })));
+                singleAudio.playbackRate = AI_RATE[playSettings.rate] || 1.0;
+                await singleAudio.play();
+                return true;
+            } catch (e) { return false; }
+        }
+
+        // 設定視窗：試聽目前選的聲音
+        async function previewVoice() {
+            const btn = document.getElementById('pmPreview');
+            btn.disabled = true; btn.textContent = '產生中…';
+            const ok = await speakSingleAI('Hello! This is how I sound. Let\'s practice English together.');
+            btn.disabled = false; btn.textContent = '🔊 試聽';
+            if (!ok) showToast('無法產生 AI 語音\n請確認網路與 Gemini 金鑰', 3500);
+        }
+
+        // 設定視窗：顯示有幾句還沒產生過語音
+        async function refreshAICacheInfo() {
+            const el = document.getElementById('pmCacheInfo');
+            if (playSettings.engine !== 'ai') { el.textContent = ''; return; }
+            const list = getPlaylist(), voice = playSettings.voice || 'Kore';
+            let missing = 0;
+            for (const it of list) if (!(await ttsGet(clipKey(voice, it.en)))) missing++;
+            el.textContent = !list.length ? '' : missing ? `其中 ${missing} 句需要先上網產生語音（只需一次）` : '✅ 語音都已存在手機裡，可離線播放';
         }
 
         // --- 4. 選單切換 ---
