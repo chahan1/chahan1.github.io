@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v1.9.4 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v1.9.5 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -154,6 +154,14 @@
         .ps-word { font-size: 11.5px; color: var(--blue); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .ps-text { font-size: 17px; line-height: 1.45; color: var(--text); font-weight: 500; margin-top: 4px; min-height: 50px; max-height: 100px; overflow-y: auto; }
         .ps-text { white-space: pre-line; }
+        .add-ex { max-width: 340px; }
+        .ae-word { font-size: 15px; font-weight: 600; color: var(--blue); margin-top: 2px; word-break: break-word; }
+        .ae-count { font-size: 11.5px; color: var(--muted); margin: 2px 0 10px; }
+        .ae-opt { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; background: #f7f9f8; border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-top: 8px; cursor: pointer; color: var(--text); }
+        .ae-opt:active { background: var(--green-light); border-color: #cfe7d7; }
+        .ae-opt .ae-ic { font-size: 20px; }
+        .ae-opt b { display: block; font-size: 14px; }
+        .ae-opt small { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
         .pm-hint { font-size: 11.5px; color: var(--muted); margin-top: 6px; line-height: 1.45; }
         .pm-voice-row { display: flex; gap: 6px; margin-top: 8px; }
         .pm-voice-row .pm-select { margin-top: 0; flex: 1; }
@@ -200,7 +208,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.9.4</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.9.5</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -270,6 +278,17 @@
                 <button data-v="day" onclick="setPlayOpt('dateMode','day')">指定日期</button>
             </div>
             <select class="pm-select" id="pmDay" onchange="setPlayOpt('day', this.value)" style="display:none"></select>
+            <div class="pm-label">播放順序</div>
+            <div class="seg" id="pmOrder">
+                <button data-v="seq" onclick="setPlayOpt('order','seq')">依序播放</button>
+                <button data-v="random" onclick="setPlayOpt('order','random')">🔀 隨機播放</button>
+            </div>
+            <div class="seg" id="pmLimit" style="margin-top:6px">
+                <button data-v="10" onclick="setPlayOpt('limit',10)">10 句</button>
+                <button data-v="20" onclick="setPlayOpt('limit',20)">20 句</button>
+                <button data-v="30" onclick="setPlayOpt('limit',30)">30 句</button>
+                <button data-v="0" onclick="setPlayOpt('limit',0)">全部</button>
+            </div>
             <div class="pm-label">每句念幾次</div>
             <div class="stepper">
                 <button onclick="setPlayOpt('repeat', playSettings.repeat - 1)">−</button>
@@ -285,6 +304,17 @@
             <div class="pm-count" id="pmCount">共 0 句</div>
             <div class="pm-hint" id="pmCacheInfo" style="text-align:center"></div>
             <button class="btn-primary pm-start" id="pmStart" onclick="startPlayer()">開始播放</button>
+        </div>
+    </div>
+
+    <!-- 新增例句：AI 或手動 -->
+    <div id="addExModal" class="modal-overlay" onclick="if(event.target===this) closeAddEx()">
+        <div class="modal-content add-ex">
+            <div class="pm-title"><h3>＋ 新增例句</h3><button class="pm-close" onclick="closeAddEx()">×</button></div>
+            <div class="ae-word" id="aeWord"></div>
+            <div class="ae-count" id="aeCount"></div>
+            <button class="ae-opt" onclick="aeAI()"><span class="ae-ic">🤖</span><span><b>AI 再產生一句例句</b><small>自動產生和現有例句不同的新句子（含中文翻譯）</small></span></button>
+            <button class="ae-opt" onclick="aeManual()"><span class="ae-ic">✏️</span><span><b>自己輸入例句</b><small>手動輸入，可在後面加上中文翻譯</small></span></button>
         </div>
     </div>
 
@@ -651,7 +681,7 @@
 
         // --- 例句連續播放 ---
         const PLAY_KEY = 'eng_playSettings';
-        let playSettings = { engine: 'ai', voice: 'Kore', scope: 'all', repeat: 2, rate: 0.9, dateMode: 'all', day: '' };
+        let playSettings = { engine: 'ai', voice: 'Kore', scope: 'all', repeat: 2, rate: 0.9, dateMode: 'all', day: '', order: 'seq', limit: 20 };
         try { Object.assign(playSettings, JSON.parse(localStorage.getItem(PLAY_KEY)) || {}); } catch (e) {}
         const player = { open: false, playing: false, finished: false, list: [], idx: 0, rep: 0, token: 0, mode: 'phone', segments: null, aiUrl: null };
         const ICON_PAUSE = '<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
@@ -694,6 +724,15 @@
             return list;
         }
 
+        // 依「播放順序」整理：隨機時打亂並取前 N 句
+        function buildPlayList() {
+            const list = getPlaylist();
+            if (playSettings.order !== 'random') return list;
+            for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
+            const lim = Number(playSettings.limit) || 0;
+            return lim ? list.slice(0, lim) : list;
+        }
+
         // 指定日期的下拉選單：只列出有例句的日期
         function refreshDayOptions() {
             const counts = {};
@@ -733,8 +772,15 @@
             document.querySelectorAll('#pmDate button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.dateMode));
             document.querySelectorAll('#pmRate button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === Number(playSettings.rate)));
             document.getElementById('pmRepeat').textContent = `${playSettings.repeat} 次`;
+            document.querySelectorAll('#pmOrder button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.order));
+            document.querySelectorAll('#pmLimit button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === Number(playSettings.limit)));
+            document.getElementById('pmLimit').style.display = playSettings.order === 'random' ? 'flex' : 'none';
             const n = getPlaylist().length;
-            document.getElementById('pmCount').textContent = n ? `共 ${n} 句，每句念 ${playSettings.repeat} 次` : '這個範圍沒有可播放的例句';
+            const lim = Number(playSettings.limit) || 0;
+            const pick = playSettings.order === 'random' ? (lim ? Math.min(lim, n) : n) : n;
+            document.getElementById('pmCount').textContent = !n ? '這個範圍沒有可播放的例句'
+                : playSettings.order === 'random' ? `從 ${n} 句中隨機播放 ${pick} 句，每句念 ${playSettings.repeat} 次`
+                : `共 ${n} 句，每句念 ${playSettings.repeat} 次`;
             document.getElementById('pmStart').disabled = n === 0;
             document.getElementById('pmStart').textContent = player.open ? '套用並從頭播放' : '開始播放';
         }
@@ -814,7 +860,7 @@
 
         // 從設定視窗按「開始播放」
         function startPlayer() {
-            const list = getPlaylist();
+            const list = buildPlayList();
             if (!list.length) return;
             closePlayModal();
             playerPause();
@@ -828,6 +874,8 @@
 
         function playerPlay() {
             if (!player.open || !player.list.length) return;
+            // 隨機播放：播完再按 ▶ → 重新隨機挑一組
+            if (player.finished && playSettings.order === 'random') { startPlayer(); return; }
             if (player.mode === 'ai') {
                 if (!aiAudio || !player.segments) return;
                 if (player.finished || aiAudio.ended) { aiAudio.currentTime = 0; player.idx = 0; player.rep = 0; player.finished = false; }
@@ -883,12 +931,14 @@
             if (player.finished) {
                 $('psTitle').innerHTML = '<span class="ps-done">✅ 播放完畢</span>';
                 $('psWord').textContent = '';
-                $('psText').textContent = `${total} 句例句都播完了，按 ▶ 可以從頭再播一次。`;
+                $('psText').textContent = playSettings.order === 'random'
+                    ? `${total} 句例句都播完了，按 ▶ 會重新隨機挑一組。`
+                    : `${total} 句例句都播完了，按 ▶ 可以從頭再播一次。`;
                 $('psCn').textContent = '';
                 $('psBar').style.width = '100%';
                 $('psMeta').textContent = `${total} / ${total}`; $('psRep').textContent = '';
             } else if (item) {
-                $('psTitle').textContent = player.playing ? '▶️ 播放中' : '⏸ 已暫停';
+                $('psTitle').textContent = (player.playing ? '▶️ 播放中' : '⏸ 已暫停') + (playSettings.order === 'random' ? '　🔀 隨機' : '');
                 $('psWord').textContent = item.word;
                 $('psText').textContent = item.en;
                 $('psCn').textContent = item.cn;
@@ -1571,8 +1621,71 @@
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') processPendingAI(); });
         setInterval(() => { if (countPending() > 0) processPendingAI(); }, 5 * 60 * 1000); // 每 5 分鐘再試一次
 
+        // ＋：選擇「AI 再產生一句」或「自己輸入」
+        let addExTarget = null;
         function addGrandTask(mainTaskId, subTaskId) {
-            const text = prompt("請輸入【例句 / 用法】："); if (!text || !text.trim()) return;
+            const sub = findSub(mainTaskId, subTaskId); if (!sub) return;
+            addExTarget = { mainTaskId, subTaskId };
+            document.getElementById('aeWord').textContent = sub.text;
+            document.getElementById('aeCount').textContent = sub.grandtasks.length ? `目前有 ${sub.grandtasks.length} 句例句` : '目前還沒有例句';
+            document.getElementById('addExModal').style.display = 'flex';
+        }
+        function closeAddEx() { document.getElementById('addExModal').style.display = 'none'; }
+        function aeManual() {
+            closeAddEx();
+            if (addExTarget) addGrandTaskManual(addExTarget.mainTaskId, addExTarget.subTaskId);
+        }
+        async function aeAI() {
+            closeAddEx();
+            if (!addExTarget) return;
+            const { mainTaskId, subTaskId } = addExTarget;
+            const sub = findSub(mainTaskId, subTaskId); if (!sub) return;
+            if (!navigator.onLine) { showToast('📴 目前離線，無法使用 AI\n可以改用「自己輸入」'); return; }
+            if (!localStorage.getItem(API_KEY_STORAGE)) { setGeminiApiKey(); if (!localStorage.getItem(API_KEY_STORAGE)) return; }
+            sub.genEx = true; renderTasks();
+            try {
+                const sentence = await fetchExtraSentence(sub.text, sub.grandtasks.map(g => cleanForSpeech(g.text)));
+                const s2 = findSubAnywhere(subTaskId);
+                if (s2) {
+                    s2.grandtasks.unshift({ id: newId(), text: `🤖 ${sentence}`, checked: false, createdAt: Date.now() });
+                    showToast(isHideEx ? '✅ 已新增一句例句\n（目前例句為隱藏狀態，可在選單開啟）' : '✅ 已新增一句 AI 例句', 2500);
+                }
+            } catch (e) {
+                showToast('AI 產生例句失敗：' + (e.message || '未知錯誤'), 3500);
+            } finally {
+                const s3 = findSubAnywhere(subTaskId); if (s3) delete s3.genEx;
+                saveData();
+            }
+        }
+
+        // 請 AI 為單字再產生一句「和現有不同」的例句
+        async function fetchExtraSentence(word, existing) {
+            const apiKey = localStorage.getItem(API_KEY_STORAGE);
+            const cleanWord = String(word).replace(/\([^)]*\)|（[^）]*）/g, ' ').replace(/[\u3000-\u303f\u4e00-\u9fff\uff00-\uffef]/g, ' ').replace(/\s+/g, ' ').trim() || word;
+            const promptText = `請為英文單字/片語 "${cleanWord}" 寫一個新的實用例句，情境要和下面這些現有例句不同，也不要重複它們：
+${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（目前沒有例句）'}
+例句格式為：英文句子後面加上括號內的繁體中文翻譯，例如 "Let's stick to the plan. (我們照計畫進行吧。)"
+請嚴格使用以下 JSON 格式回傳，不要有任何多餘的文字或 Markdown 標籤：
+{ "sentence": "..." }`;
+            let lastError = null;
+            for (const model of GEMINI_MODELS) {
+                try {
+                    const data = await callGemini(model, apiKey, promptText);
+                    const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+                    const result = JSON.parse(text.replace(/```json|```/g, '').trim());
+                    if (!result.sentence) throw new Error('AI 沒有回傳例句');
+                    return result.sentence.trim();
+                } catch (e) {
+                    lastError = e;
+                    const k = classifyError(e);
+                    if (k === 'key' || k === 'offline' || k === 'quota') break;
+                }
+            }
+            throw lastError || new Error('未知錯誤');
+        }
+
+        function addGrandTaskManual(mainTaskId, subTaskId) {
+            const text = prompt("請輸入【例句 / 用法】：\n（可在後面加上中文翻譯，例如：I like it. (我喜歡它。)）"); if (!text || !text.trim()) return;
             const sub = findSub(mainTaskId, subTaskId);
             if (sub) {
                 sub.grandtasks.unshift({ id: newId(), text: text.trim(), checked: false, createdAt: Date.now() });
@@ -1653,6 +1766,7 @@
                 
                 task.subtasks.forEach(sub => {
                     const loadingTag = sub.isLoading ? `<span class="ai-loading">🤖 查詢中...</span>`
+                                     : sub.genEx ? `<span class="ai-loading">🤖 產生例句中...</span>`
                                      : sub.pendingAI ? `<span class="pending-tag" title="上線後自動補齊">待補齊</span>` : '';
                     html += `
                         <div class="subtask-item ${sub.checked ? 'completed-sub' : ''}" data-id="${sub.id}">

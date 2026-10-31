@@ -1,6 +1,6 @@
 // 英語學習筆記本 - Service Worker（讓 App 可離線開啟）
 // 更新程式後，把版本號改掉，使用者下次開啟就會拿到新版
-const CACHE_NAME = 'eng-notebook-v1.9.4';
+const CACHE_NAME = 'eng-notebook-v1.9.5';
 const APP_FILES = [
   './',
   './index.html',
