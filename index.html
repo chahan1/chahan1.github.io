@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v1.9.7 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v1.9.8 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -189,6 +189,16 @@
         .cz-wrong b { color: var(--green); }
         .cz-wrong small { display: block; color: #b3261e; font-size: 11.5px; margin-top: 2px; }
         .play-fab.cz-fab { bottom: 70px; width: 38px; height: 38px; left: max(17px, calc(50% - 323px)); background: white; color: var(--green); border: 1px solid #cfe7d7; box-shadow: 0 2px 8px rgba(0,0,0,0.12); font-size: 16px; }
+        .ks-row { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-top: 10px; }
+        .ks-head { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+        .ks-tag { font-size: 10.5px; color: var(--green); background: var(--green-light); padding: 1px 6px; border-radius: 8px; }
+        .ks-head a { margin-left: auto; font-size: 12px; color: var(--blue); text-decoration: none; }
+        .ks-input { display: flex; gap: 6px; margin-top: 8px; }
+        .ks-input input { flex: 1; min-width: 0; height: 34px; border: 1px solid #dadce0; border-radius: 8px; padding: 0 10px; font-size: 13px; font-family: monospace; }
+        .ks-eye { width: 34px; border: 1px solid #dadce0; background: white; border-radius: 8px; cursor: pointer; }
+        .ks-test { border: 1px solid #cfe7d7; background: var(--green-light); color: var(--green); border-radius: 8px; padding: 0 10px; font-size: 12.5px; cursor: pointer; }
+        .ks-st { font-size: 11.5px; color: var(--muted); margin-top: 6px; white-space: pre-line; line-height: 1.5; }
+        .ks-st.ok { color: #137333; } .ks-st.bad { color: #b3261e; }
         .add-ex { max-width: 340px; }
         .ae-word { font-size: 15px; font-weight: 600; color: var(--blue); margin-top: 2px; word-break: break-word; }
         .ae-count { font-size: 11.5px; color: var(--muted); margin: 2px 0 10px; }
@@ -243,11 +253,11 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.9.7</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.9.8</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
-                    <div class="dropdown-item" onclick="setGeminiApiKey()">🔑 <span>設定 Gemini 金鑰</span></div>
+                    <div class="dropdown-item" onclick="openKeyModal()">🔑 <span>AI 金鑰設定</span></div>
                     <div class="dropdown-item" onclick="openPlayModal()">▶️ <span>播放例句</span></div>
                     <div class="dropdown-item" onclick="openClozeSetup()">✍️ <span>克漏字練習</span></div>
                     <div class="dropdown-divider"></div>
@@ -291,12 +301,13 @@
             <div class="pm-title"><h3>▶️ 播放例句</h3><button class="pm-close" onclick="closePlayModal()">×</button></div>
             <div class="pm-label">語音</div>
             <div class="seg" id="pmEngine">
-                <button data-v="ai" onclick="setPlayOpt('engine','ai')">AI 真人語音</button>
+                <button data-v="freeai" onclick="setPlayOpt('engine','freeai')">免費 AI 語音</button>
+                <button data-v="ai" onclick="setPlayOpt('engine','ai')">Gemini 語音</button>
                 <button data-v="phone" onclick="setPlayOpt('engine','phone')">手機語音</button>
             </div>
             <div id="pmVoiceBox">
                 <div class="pm-voice-row">
-                    <select class="pm-select" id="pmVoice" onchange="setPlayOpt('voice', this.value)"></select>
+                    <select class="pm-select" id="pmVoice" onchange="setVoiceOpt(this.value)"></select>
                     <button class="pm-preview" id="pmPreview" onclick="previewVoice()">🔊 試聽</button>
                 </div>
             </div>
@@ -415,6 +426,37 @@
             <button class="btn-outline cz-btn" onclick="clozeAgain()">再隨機練一次</button>
             <button class="btn-outline cz-btn" onclick="document.body.classList.remove('cloze-open')">完成</button>
             <div id="czWrongList"></div>
+        </div>
+    </div>
+
+    <!-- AI 金鑰設定 -->
+    <div id="keyModal" class="modal-overlay play-modal" onclick="if(event.target===this) closeKeyModal()">
+        <div class="modal-content">
+            <div class="pm-title"><h3>🔑 AI 金鑰設定</h3><button class="pm-close" onclick="closeKeyModal()">×</button></div>
+            <div class="pm-hint">至少填一組即可。查單字、產生例句會依序使用 <b>Groq → Free.ai → Gemini</b>，一家不能用就自動換下一家。金鑰只存在這支手機。</div>
+
+            <div class="ks-row">
+                <div class="ks-head"><b>Groq</b><span class="ks-tag">免費・查單字首選</span><a href="https://console.groq.com/keys" target="_blank" rel="noopener">申請 ›</a></div>
+                <div class="ks-input"><input type="password" id="ks_groq" placeholder="gsk_…" autocomplete="off" spellcheck="false" oninput="saveKey('groq')">
+                    <button class="ks-eye" onclick="toggleKeyVisible('groq')">👁</button><button class="ks-test" onclick="testProvider('groq')">測試</button></div>
+                <div class="ks-st" id="ks_groq_st"></div>
+            </div>
+
+            <div class="ks-row">
+                <div class="ks-head"><b>Free.ai</b><span class="ks-tag">免費・AI 語音＋查單字</span><a href="https://free.ai" target="_blank" rel="noopener">申請 ›</a></div>
+                <div class="ks-input"><input type="password" id="ks_freeai" placeholder="sk-free-…" autocomplete="off" spellcheck="false" oninput="saveKey('freeai')">
+                    <button class="ks-eye" onclick="toggleKeyVisible('freeai')">👁</button><button class="ks-test" onclick="testProvider('freeai')">測試</button></div>
+                <div class="ks-st" id="ks_freeai_st"></div>
+            </div>
+
+            <div class="ks-row">
+                <div class="ks-head"><b>Gemini</b><span class="ks-tag">Google・可能收費</span><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">申請 ›</a></div>
+                <div class="ks-input"><input type="password" id="ks_gemini" placeholder="AIza…" autocomplete="off" spellcheck="false" oninput="saveKey('gemini')">
+                    <button class="ks-eye" onclick="toggleKeyVisible('gemini')">👁</button><button class="ks-test" onclick="testProvider('gemini')">測試</button></div>
+                <div class="ks-st" id="ks_gemini_st"></div>
+            </div>
+
+            <button class="btn-primary pm-start" onclick="closeKeyModal()">完成</button>
         </div>
     </div>
 
@@ -672,22 +714,15 @@
 
         // silent = true：背景自動補齊用，不跳出任何視窗，失敗時丟出錯誤
         async function fetchDefinitionAndSentence(rawInput, { silent = false } = {}) {
-            let apiKey = localStorage.getItem(API_KEY_STORAGE);
-            if (!apiKey && silent) { const e = new Error('尚未設定 API 金鑰'); e.status = 401; throw e; }
-            if (!apiKey) {
-                apiKey = prompt("💡【首次使用提示】\n請輸入您的 Gemini API Key 以啟用自動生成：");
-                if (apiKey && apiKey.trim() !== '') {
-                    apiKey = apiKey.trim();
-                    localStorage.setItem(API_KEY_STORAGE, apiKey);
-                } else {
-                    return null;
-                }
+            if (!hasTextKey()) {
+                if (silent) { const e = new Error('尚未設定 AI 金鑰'); e.status = 401; throw e; }
+                openKeyModal();
+                return null;
             }
-
-            // 【修正】原本只取第一個單字，片語（如 "stick to"）會被截斷
+            // 片語（如 "stick to"）要完整查詢
             const cleanWord = rawInput
                 .replace(/\([^)]*\)|（[^）]*）/g, ' ')
-                .replace(/[　-〿一-鿿＀-￯]/g, ' ')
+                .replace(/[\u3000-\u303f\u4e00-\u9fff\uff00-\uffef]/g, ' ')
                 .replace(/\s+/g, ' ').trim();
             if (!cleanWord) { if (silent) throw new Error('沒有可查詢的英文'); return null; }
 
@@ -698,33 +733,18 @@
   "definition": "...",
   "sentence": "..."
 }`;
-
-            let lastError = null;
-            for (const model of GEMINI_MODELS) {
-                try {
-                    const data = await callGemini(model, apiKey, promptText);
-                    // 【修正】安全檢查：被安全機制擋下時 candidates 可能不存在
-                    const contentText = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
-                    if (!contentText) throw new Error('AI 沒有回傳內容');
-                    const jsonText = contentText.replace(/```json|```/g, '').trim();
-                    const result = JSON.parse(jsonText);
-                    return {
-                        definition: result.definition || '(無法解析定義)',
-                        sentence: result.sentence ? `🤖 ${result.sentence}` : null
-                    };
-                } catch (error) {
-                    lastError = error;
-                    console.warn(`模型 ${model} 失敗:`, error.message);
-                    // 金鑰錯誤 / 權限問題 / 額度用完，換模型也沒用，直接停止
-                    const kind = classifyError(error);
-                    if (kind === 'key' || kind === 'offline' || kind === 'quota') break;
-                }
+            try {
+                const result = await aiJSON(promptText);
+                return {
+                    definition: result.definition || '(無法解析定義)',
+                    sentence: result.sentence ? `🤖 ${result.sentence}` : null
+                };
+            } catch (e) {
+                console.error('AI 查詢錯誤:', e);
+                if (silent) throw e;
+                if (e.kind !== 'offline') alert('AI 查詢失敗：' + e.message);
+                throw e;
             }
-            console.error("Gemini 查詢錯誤:", lastError);
-            if (silent) throw lastError || new Error('未知錯誤');
-            if (classifyError(lastError) !== 'offline') alert("AI 查詢失敗：" + (lastError ? lastError.message : '未知錯誤'));
-            const e = lastError || new Error('未知錯誤'); e.kind = classifyError(e);
-            throw e;
         }
 
         function toggleDropdown(e) { e.stopPropagation(); document.getElementById('dropdownMenu').classList.toggle('show'); }
@@ -756,7 +776,7 @@
             if (player.playing) playerPause();   // 手動點朗讀時，先暫停連續播放
             const englishOnly = cleanForSpeech(text);
             if (!englishOnly) return;
-            if (playSettings.engine === 'ai' && localStorage.getItem(API_KEY_STORAGE)) {
+            if (playSettings.engine !== 'phone' && getKey(voiceSpec().provider)) {
                 speakSingleAI(englishOnly).then(ok => { if (!ok) speakWithPhone(englishOnly); });
                 return;
             }
@@ -792,7 +812,7 @@
 
         // --- 例句連續播放 ---
         const PLAY_KEY = 'eng_playSettings';
-        let playSettings = { engine: 'ai', voice: 'Kore', scope: 'all', repeat: 2, rate: 0.9, gap: 1.2, dateMode: 'all', day: '', order: 'seq', limit: 20 };
+        let playSettings = { engine: 'ai', voice: 'Kore', fvoice: 'af_heart', scope: 'all', repeat: 2, rate: 0.9, gap: 1.2, dateMode: 'all', day: '', order: 'seq', limit: 20 };
         try { Object.assign(playSettings, JSON.parse(localStorage.getItem(PLAY_KEY)) || {}); } catch (e) {}
         const player = { open: false, playing: false, finished: false, list: [], idx: 0, rep: 0, token: 0, mode: 'phone', segments: null, aiUrl: null };
         const ICON_PAUSE = '<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
@@ -872,13 +892,17 @@
         function refreshPlayModal() {
             refreshDayOptions();
             document.querySelectorAll('#pmEngine button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.engine));
-            const vs = document.getElementById('pmVoice');
-            if (!vs.options.length) vs.innerHTML = AI_VOICES.map(([v, d]) => `<option value="${v}">${v}（${d}）</option>`).join('');
-            vs.value = playSettings.voice || 'Kore';
-            document.getElementById('pmVoiceBox').style.display = playSettings.engine === 'ai' ? 'block' : 'none';
-            document.getElementById('pmEngineHint').textContent = playSettings.engine === 'ai'
-                ? '聲音自然，可關閉螢幕繼續播放。第一次播放某句時需上網產生語音（使用你的 Gemini 金鑰），之後存在手機裡，離線也能播。'
-                : '免費、離線可用，但聲音較機械，且關閉螢幕後會暫停。';
+            const vs = document.getElementById('pmVoice'), isFree = playSettings.engine === 'freeai';
+            const vlist = isFree ? FREE_VOICES : AI_VOICES;
+            vs.innerHTML = vlist.map(([v, d]) => `<option value="${v}">${isFree ? d : `${v}（${d}）`}</option>`).join('');
+            vs.value = isFree ? (playSettings.fvoice || 'af_heart') : (playSettings.voice || 'Kore');
+            document.getElementById('pmVoiceBox').style.display = playSettings.engine !== 'phone' ? 'block' : 'none';
+            const needKey = playSettings.engine !== 'phone' && !getKey(voiceSpec().provider);
+            document.getElementById('pmEngineHint').innerHTML = (
+                isFree ? '用 Free.ai 免費產生自然的語音，可關閉螢幕繼續播放。每句第一次播放時需上網產生，之後存在手機裡，離線也能播。'
+                : playSettings.engine === 'ai' ? '用 Gemini 產生語音（可能產生少量費用），可關閉螢幕繼續播放。每句只產生一次，之後離線也能播。'
+                : '免費、離線可用，但聲音較機械，且關閉螢幕後會暫停。')
+                + (needKey ? `<br><span style="color:#b3261e">⚠️ 尚未設定 ${PROVIDER_NAME[voiceSpec().provider]} 金鑰，請到選單「AI 金鑰設定」填入。</span>` : '');
             refreshAICacheInfo();
             document.querySelectorAll('#pmScope button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.scope));
             document.querySelectorAll('#pmDate button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.dateMode));
@@ -978,7 +1002,7 @@
             closePlayModal();
             playerPause();
             aiReleaseAudio();
-            Object.assign(player, { open: true, finished: false, list, idx: 0, rep: 0, mode: playSettings.engine === 'ai' ? 'ai' : 'phone' });
+            Object.assign(player, { open: true, finished: false, list, idx: 0, rep: 0, mode: playSettings.engine === 'phone' ? 'phone' : 'ai' });
             document.body.classList.add('player-open');
             setupMediaSession();
             if (player.mode === 'ai') aiPrepareAndPlay();
@@ -1224,11 +1248,11 @@
             }
             throw lastErr || new Error('AI 語音產生失敗');
         }
-        async function getClip(text, voice) {
-            const key = clipKey(voice, text);
+        async function getClip(text, spec) {
+            const key = specKey(spec, text);
             const cached = await ttsGet(key);
             if (cached) return cached;
-            const clip = await fetchTTS(text, voice);
+            const clip = spec.provider === 'freeai' ? await fetchFreeTTS(text, spec.voice) : await fetchTTS(text, spec.voice);
             await ttsPut(key, clip);
             return clip;
         }
@@ -1313,7 +1337,7 @@
         // 準備語音（缺的才產生）→ 串起來 → 播放
         async function aiPrepareAndPlay() {
             const token = ++player.token;
-            const voice = playSettings.voice || 'Kore';
+            const spec = voiceSpec();
             const list = player.list, clips = {}, failed = [];
             let reason = null, done = 0;
             const $ = id => document.getElementById(id);
@@ -1331,7 +1355,7 @@
             const worker = async () => {
                 while (next < list.length && !reason) {
                     const item = list[next++];
-                    try { clips[item.id] = await getClip(item.en, voice); }
+                    try { clips[item.id] = await getClip(item.en, spec); }
                     catch (e) { failed.push(item); const k = classifyError(e); if (k === 'key' || k === 'offline') reason = k === 'key' ? '金鑰有問題：' + e.message : '目前沒有網路'; else if (!reason && failed.length >= 3 && !Object.keys(clips).length) reason = e.message; }
                     done++;
                     if (token !== player.token || !player.open) return;
@@ -1343,7 +1367,7 @@
 
             const ready = list.filter(it => clips[it.id]);
             if (!ready.length) {
-                const msg = `AI 語音無法產生（${reason || '未知原因'}）。\n\n要改用「手機語音」播放嗎？\n（手機語音關閉螢幕會暫停）`;
+                const msg = `${PROVIDER_NAME[spec.provider]} 語音無法產生（${reason || '未知原因'}）。\n\n要改用「手機語音」播放嗎？\n（手機語音關閉螢幕會暫停）`;
                 if (confirm(msg)) { player.mode = 'phone'; player.idx = 0; player.rep = 0; playerPlay(); }
                 else closePlayer();
                 return;
@@ -1370,7 +1394,7 @@
             const en = cleanForSpeech(text);
             if (!en) return false;
             try {
-                const clip = await getClip(en, playSettings.voice || 'Kore');
+                const clip = await getClip(en, voiceSpec());
                 if (singleAudio) { singleAudio.pause(); URL.revokeObjectURL(singleAudio.src); }
                 singleAudio = new Audio(URL.createObjectURL(new Blob([wavHeader(clip.rate, clip.pcm.byteLength), clip.pcm], { type: 'audio/wav' })));
                 singleAudio.playbackRate = AI_RATE[playSettings.rate] || 1.0;
@@ -1385,16 +1409,16 @@
             btn.disabled = true; btn.textContent = '產生中…';
             const ok = await speakSingleAI('Hello! This is how I sound. Let\'s practice English together.');
             btn.disabled = false; btn.textContent = '🔊 試聽';
-            if (!ok) showToast('無法產生 AI 語音\n請確認網路與 Gemini 金鑰', 3500);
+            if (!ok) showToast(`無法產生 AI 語音\n請確認網路與 ${PROVIDER_NAME[voiceSpec().provider]} 金鑰`, 3500);
         }
 
         // 設定視窗：顯示有幾句還沒產生過語音
         async function refreshAICacheInfo() {
             const el = document.getElementById('pmCacheInfo');
-            if (playSettings.engine !== 'ai') { el.textContent = ''; return; }
-            const list = getPlaylist(), voice = playSettings.voice || 'Kore';
+            if (playSettings.engine === 'phone') { el.textContent = ''; return; }
+            const list = getPlaylist(), spec = voiceSpec();
             let missing = 0;
-            for (const it of list) if (!(await ttsGet(clipKey(voice, it.en)))) missing++;
+            for (const it of list) if (!(await ttsGet(specKey(spec, it.en)))) missing++;
             el.textContent = !list.length ? '' : missing ? `其中 ${missing} 句需要先上網產生語音（只需一次）` : '✅ 語音都已存在手機裡，可離線播放';
         }
 
@@ -1585,6 +1609,189 @@
         function closeCloze() {
             if (cz.results.length && document.getElementById('czQuiz').style.display !== 'none' && cz.i < cz.list.length - 1 && !confirm('確定要結束這次練習嗎？')) return;
             document.body.classList.remove('cloze-open');
+        }
+
+        // ================= 多家 AI 服務（Groq / Free.ai / Gemini）=================
+        const KEY_STORE = { gemini: API_KEY_STORAGE, groq: 'user_groq_api_key', freeai: 'user_freeai_api_key' };
+        const PROVIDER_NAME = { groq: 'Groq', freeai: 'Free.ai', gemini: 'Gemini' };
+        const TEXT_ORDER = ['groq', 'freeai', 'gemini'];            // 查單字、例句的使用順序
+        const getKey = p => (localStorage.getItem(KEY_STORE[p]) || '').trim();
+        const hasTextKey = () => TEXT_ORDER.some(p => getKey(p));
+        const GROQ_MODELS = ['openai/gpt-oss-120b', 'llama-3.3-70b-versatile'];
+        const FREEAI_BASE = 'https://api.free.ai';
+        const FREEAI_CHAT_MODELS = ['qwen7b'];
+        const FREE_VOICES = [
+            ['af_heart', '美式女聲・溫暖'], ['af_bella', '美式女聲・活潑'], ['af_nicole', '美式女聲・輕柔'],
+            ['am_michael', '美式男聲・清楚'], ['am_adam', '美式男聲・低沉'],
+            ['bf_emma', '英式女聲'], ['bm_george', '英式男聲']
+        ];
+        const SYS_PROMPT = 'You are a helpful English teacher for Traditional Chinese speakers. Reply with JSON only, no extra text.';
+
+        function extractJSON(text) {
+            const t = String(text || '').replace(/```json|```/g, '');
+            const i = t.indexOf('{'), j = t.lastIndexOf('}');
+            if (i < 0 || j < i) throw new Error('AI 回傳的格式不正確');
+            return JSON.parse(t.slice(i, j + 1));
+        }
+        async function postBearer(url, key, body) {
+            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key }, body: JSON.stringify(body) });
+            if (!res.ok) {
+                let msg = `HTTP ${res.status}`;
+                try { const j = await res.json(); msg = j.error?.message || j.detail || j.message || msg; if (typeof msg !== 'string') msg = JSON.stringify(msg); } catch (e) {}
+                const err = new Error(msg); err.status = res.status; throw err;
+            }
+            return res;
+        }
+        const chatText = j => j?.choices?.[0]?.message?.content ?? j?.choices?.[0]?.text ?? j?.message?.content ?? j?.content ?? j?.response ?? j?.output ?? j?.result ?? '';
+
+        async function chatGroq(prompt) {
+            const key = getKey('groq'); let last = null;
+            for (const model of GROQ_MODELS) {
+                try {
+                    const res = await postBearer('https://api.groq.com/openai/v1/chat/completions', key, {
+                        model, temperature: 0.7, messages: [{ role: 'system', content: SYS_PROMPT }, { role: 'user', content: prompt }]
+                    });
+                    return extractJSON(chatText(await res.json()));
+                } catch (e) { last = e; const k = classifyError(e); if (k === 'key' || k === 'offline') break; }
+            }
+            throw last;
+        }
+        async function chatFreeAI(prompt) {
+            const key = getKey('freeai'); let last = null;
+            for (const path of ['/v1/chat/completions', '/v1/chat/']) {
+                for (const model of FREEAI_CHAT_MODELS) {
+                    try {
+                        const res = await postBearer(FREEAI_BASE + path, key, {
+                            model, temperature: 0.7, messages: [{ role: 'system', content: SYS_PROMPT }, { role: 'user', content: prompt }]
+                        });
+                        const ct = res.headers.get('content-type') || '';
+                        const text = ct.includes('json') ? chatText(await res.json()) : await res.text();
+                        return extractJSON(text);
+                    } catch (e) { last = e; const k = classifyError(e); if (k === 'key' || k === 'offline') return Promise.reject(e); }
+                }
+            }
+            throw last;
+        }
+        async function chatGemini(prompt) {
+            const key = getKey('gemini'); let last = null;
+            for (const model of GEMINI_MODELS) {
+                try {
+                    const data = await callGemini(model, key, prompt);
+                    return extractJSON(data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '');
+                } catch (e) { last = e; const k = classifyError(e); if (k === 'key' || k === 'offline' || k === 'quota') break; }
+            }
+            throw last;
+        }
+
+        // 依序嘗試有填金鑰的服務；一家失敗就換下一家
+        async function aiJSON(prompt) {
+            const order = TEXT_ORDER.filter(p => getKey(p));
+            if (!order.length) { const e = new Error('尚未設定任何 AI 金鑰'); e.status = 401; e.kind = 'key'; throw e; }
+            if (!navigator.onLine) { const e = new TypeError('目前沒有網路'); e.kind = 'offline'; throw e; }
+            const errs = [];
+            for (const p of order) {
+                try { return await ({ groq: chatGroq, freeai: chatFreeAI, gemini: chatGemini })[p](prompt); }
+                catch (e) {
+                    if (e instanceof TypeError && navigator.onLine) e.message = '無法連線（網路不穩，或此服務不允許網頁直接連線）';
+                    e.provider = p; errs.push(e);
+                    if (!navigator.onLine) break;
+                }
+            }
+            const kinds = errs.map(classifyError);
+            const kind = kinds.includes('offline') ? 'offline' : kinds.includes('quota') ? 'quota' : kinds.every(k => k === 'key') ? 'key' : 'other';
+            const e = new Error(errs.map(x => `${PROVIDER_NAME[x.provider]}：${x.message}`).join('；'));
+            e.kind = kind; e.status = kind === 'key' ? 401 : kind === 'quota' ? 429 : 0;
+            if (kind === 'offline') { const t = new TypeError(e.message); t.kind = 'offline'; throw t; }
+            throw e;
+        }
+
+        // ---- Free.ai 語音（Kokoro）----
+        function freeAudioFrom(j) {
+            const u = j?.audio_url || j?.url || j?.result?.audio_url || j?.output?.audio_url || j?.data?.audio_url || (typeof j?.output === 'string' && /^https?:|^\//.test(j.output) ? j.output : null);
+            if (u) return { url: u };
+            const b = j?.audio || j?.audio_base64 || j?.result?.audio || j?.data?.audio;
+            if (typeof b === 'string' && b.length > 100) return { b64: b.replace(/^data:audio\/[\w.+-]+;base64,/, '') };
+            return null;
+        }
+        let decodeCtx = null;
+        async function decodeToClip(buf) {
+            const bytes = new Uint8Array(buf);
+            if (bytes.length > 12 && String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3]) === 'RIFF') { try { return parseAudio(bytes, 'audio/wav'); } catch (e) {} }
+            decodeCtx = decodeCtx || new (window.AudioContext || window.webkitAudioContext)();
+            const ab = await decodeCtx.decodeAudioData(buf.slice(0));
+            const ch = ab.getChannelData(0), out = new Int16Array(ch.length);
+            for (let i = 0; i < ch.length; i++) { const v = Math.max(-1, Math.min(1, ch[i])); out[i] = v < 0 ? v * 32768 : v * 32767; }
+            return { rate: ab.sampleRate, pcm: out.buffer };
+        }
+        async function fetchFreeTTS(text, voice) {
+            const key = getKey('freeai');
+            if (!key) { const e = new Error('尚未設定 Free.ai 金鑰'); e.status = 401; throw e; }
+            if (!navigator.onLine) throw new TypeError('offline');
+            const res = await postBearer(FREEAI_BASE + '/v1/tts/', key, { text, model: 'kokoro', voice });
+            const ct = res.headers.get('content-type') || '';
+            let buf;
+            if (ct.startsWith('audio/') || ct.includes('octet-stream')) buf = await res.arrayBuffer();
+            else {
+                let j = await res.json();
+                for (let t = 0; !freeAudioFrom(j) && (j.job_id || j.id) && t < 40; t++) {   // 需要排隊產生時，等待完成
+                    await sleep(1000);
+                    j = await (await fetch(`${FREEAI_BASE}/v1/status/${j.job_id || j.id}/`, { headers: { Authorization: 'Bearer ' + key } })).json();
+                }
+                const a = freeAudioFrom(j);
+                if (!a) throw new Error('Free.ai 沒有回傳語音');
+                if (a.b64) buf = b64ToBytes(a.b64).buffer;
+                else {
+                    const r2 = await fetch(new URL(a.url, FREEAI_BASE).href);
+                    if (!r2.ok) { const e = new Error(`語音檔下載失敗 HTTP ${r2.status}`); e.status = r2.status; throw e; }
+                    buf = await r2.arrayBuffer();
+                }
+            }
+            return await decodeToClip(buf);
+        }
+
+        // 目前選用的 AI 語音
+        function voiceSpec() {
+            return playSettings.engine === 'freeai'
+                ? { provider: 'freeai', voice: playSettings.fvoice || 'af_heart' }
+                : { provider: 'gemini', voice: playSettings.voice || 'Kore' };
+        }
+        const specKey = (spec, text) => spec.provider === 'gemini' ? `${spec.voice}|${text}` : `F:${spec.voice}|${text}`;
+        function setVoiceOpt(v) { setPlayOpt(playSettings.engine === 'freeai' ? 'fvoice' : 'voice', v); }
+
+        // ---- 金鑰設定視窗 ----
+        function openKeyModal() {
+            ['groq', 'freeai', 'gemini'].forEach(p => {
+                document.getElementById('ks_' + p).value = getKey(p);
+                document.getElementById('ks_' + p + '_st').textContent = getKey(p) ? '已設定' : '尚未設定';
+                document.getElementById('ks_' + p + '_st').className = 'ks-st';
+            });
+            document.getElementById('keyModal').style.display = 'flex';
+        }
+        function closeKeyModal() {
+            document.getElementById('keyModal').style.display = 'none';
+            if (hasTextKey()) processPendingAI();
+        }
+        function saveKey(p) {
+            const v = document.getElementById('ks_' + p).value.trim();
+            if (v) localStorage.setItem(KEY_STORE[p], v); else localStorage.removeItem(KEY_STORE[p]);
+        }
+        function toggleKeyVisible(p) { const el = document.getElementById('ks_' + p); el.type = el.type === 'password' ? 'text' : 'password'; }
+        async function testProvider(p) {
+            saveKey(p);
+            const st = document.getElementById('ks_' + p + '_st');
+            if (!getKey(p)) { st.textContent = '請先貼上金鑰'; st.className = 'ks-st bad'; return; }
+            st.textContent = '測試中…'; st.className = 'ks-st';
+            const q = '請回傳 JSON：{"ok": true, "word": "hello 的中文"}';
+            const why = e => (e instanceof TypeError && navigator.onLine) ? '無法連線（此服務可能不允許網頁直接連線）' : e.message;
+            const lines = [];
+            try { await ({ groq: chatGroq, freeai: chatFreeAI, gemini: chatGemini })[p](q); lines.push('✅ 查單字／例句：可以使用'); }
+            catch (e) { lines.push('❌ 查單字／例句：' + why(e)); }
+            if (p === 'freeai') {
+                try { const c = await fetchFreeTTS('Hello! This is a test.', 'af_heart'); lines.push(c.pcm.byteLength ? '✅ AI 語音：可以使用' : '❌ AI 語音：沒有聲音'); }
+                catch (e) { lines.push('❌ AI 語音：' + why(e)); }
+            }
+            st.textContent = lines.join('\n');
+            st.className = 'ks-st ' + (lines.every(l => l.startsWith('✅')) ? 'ok' : lines.some(l => l.startsWith('✅')) ? '' : 'bad');
         }
 
         // --- 4. 選單切換 ---
@@ -1877,9 +2084,9 @@
             if (!navigator.onLine) { if (manual) showToast("📴 目前離線，連上網路後會自動補齊"); return; }
             const total = countPending();
             if (total === 0) { if (manual) showToast("沒有需要補齊的單字 👍"); return; }
-            if (!localStorage.getItem(API_KEY_STORAGE)) {
-                if (manual) setGeminiApiKey(); else showToast(`有 ${total} 個單字待補齊\n請先在選單設定 Gemini 金鑰`, 4000);
-                if (!localStorage.getItem(API_KEY_STORAGE)) return;
+            if (!hasTextKey()) {
+                if (manual) openKeyModal(); else showToast(`有 ${total} 個單字待補齊\n請先在選單「AI 金鑰設定」填入金鑰`, 4000);
+                return;
             }
             isFillingPending = true;
             showToast(`🤖 已連上網路，正在補齊 ${total} 個單字...`, 3000);
@@ -1943,7 +2150,7 @@
             const { mainTaskId, subTaskId } = addExTarget;
             const sub = findSub(mainTaskId, subTaskId); if (!sub) return;
             if (!navigator.onLine) { showToast('📴 目前離線，無法使用 AI\n可以改用「自己輸入」'); return; }
-            if (!localStorage.getItem(API_KEY_STORAGE)) { setGeminiApiKey(); if (!localStorage.getItem(API_KEY_STORAGE)) return; }
+            if (!hasTextKey()) { openKeyModal(); return; }
             sub.genEx = true; renderTasks();
             try {
                 const sentence = await fetchExtraSentence(sub.text, sub.grandtasks.map(g => cleanForSpeech(g.text)));
@@ -1962,28 +2169,15 @@
 
         // 請 AI 為單字再產生一句「和現有不同」的例句
         async function fetchExtraSentence(word, existing) {
-            const apiKey = localStorage.getItem(API_KEY_STORAGE);
             const cleanWord = String(word).replace(/\([^)]*\)|（[^）]*）/g, ' ').replace(/[\u3000-\u303f\u4e00-\u9fff\uff00-\uffef]/g, ' ').replace(/\s+/g, ' ').trim() || word;
             const promptText = `請為英文單字/片語 "${cleanWord}" 寫一個新的實用例句，情境要和下面這些現有例句不同，也不要重複它們：
 ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（目前沒有例句）'}
 例句格式為：英文句子後面加上括號內的繁體中文翻譯，例如 "Let's stick to the plan. (我們照計畫進行吧。)"
 請嚴格使用以下 JSON 格式回傳，不要有任何多餘的文字或 Markdown 標籤：
 { "sentence": "..." }`;
-            let lastError = null;
-            for (const model of GEMINI_MODELS) {
-                try {
-                    const data = await callGemini(model, apiKey, promptText);
-                    const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
-                    const result = JSON.parse(text.replace(/```json|```/g, '').trim());
-                    if (!result.sentence) throw new Error('AI 沒有回傳例句');
-                    return result.sentence.trim();
-                } catch (e) {
-                    lastError = e;
-                    const k = classifyError(e);
-                    if (k === 'key' || k === 'offline' || k === 'quota') break;
-                }
-            }
-            throw lastError || new Error('未知錯誤');
+            const result = await aiJSON(promptText);
+            if (!result.sentence) throw new Error('AI 沒有回傳例句');
+            return String(result.sentence).trim();
         }
 
         function addGrandTaskManual(mainTaskId, subTaskId) {
