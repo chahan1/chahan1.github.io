@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v1.9.5 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v1.9.6 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -154,6 +154,41 @@
         .ps-word { font-size: 11.5px; color: var(--blue); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .ps-text { font-size: 17px; line-height: 1.45; color: var(--text); font-weight: 500; margin-top: 4px; min-height: 50px; max-height: 100px; overflow-y: auto; }
         .ps-text { white-space: pre-line; }
+        /* ---- 克漏字練習 ---- */
+        .cloze-panel { display: none; position: fixed; inset: 0; background: #f5f7f8; z-index: 1100; overflow-y: auto; padding: 8px 14px 30px; }
+        body.cloze-open .cloze-panel { display: block; }
+        body.cloze-open { overflow: hidden; }
+        .cloze-panel > * { max-width: 640px; margin-left: auto; margin-right: auto; }
+        .cz-head { display: flex; align-items: center; gap: 6px; height: 40px; }
+        .cz-title { flex: 1; font-size: 14px; font-weight: 600; color: var(--green); }
+        .cz-score { font-size: 12px; color: var(--muted); }
+        .cz-card { background: white; border-radius: 14px; padding: 18px 16px; margin-top: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+        .cz-sentence { font-size: 18px; line-height: 1.7; color: var(--text); word-break: break-word; }
+        .cz-blank { display: inline-block; color: var(--green); font-weight: 600; letter-spacing: 1.5px; border-bottom: 2px solid var(--green); padding: 0 2px; line-height: 1.2; }
+        .cz-answer { color: var(--green); font-weight: 700; background: var(--green-light); border-radius: 4px; padding: 0 3px; }
+        .cz-words { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+        .cz-cn { font-size: 13.5px; color: #868b90; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e3e6e8; }
+        .cz-tools { display: flex; gap: 8px; margin-top: 12px; }
+        .cz-tool { flex: 1; height: 34px; border-radius: 17px; border: 1px solid #dadce0; background: white; font-size: 12.5px; color: #5f6368; cursor: pointer; }
+        .cz-tool:active, .cz-tool.on { background: var(--green-light); border-color: #cfe7d7; color: var(--green); }
+        .cz-input { display: block; width: 100%; height: 46px; margin-top: 14px; border: 2px solid #dadce0; border-radius: 12px; padding: 0 14px; font-size: 17px; outline: none; background: white; color: var(--text); }
+        .cz-input:focus { border-color: var(--green); }
+        .cz-input.ok { border-color: #34a853; background: #f0faf3; }
+        .cz-input.bad { border-color: #e06055; background: #fdf1f0; }
+        .cz-ok, .cz-bad { margin-top: 10px; font-size: 14px; padding: 10px 12px; border-radius: 10px; }
+        .cz-ok { background: #e8f5ec; color: #137333; }
+        .cz-bad { background: #fce8e6; color: #b3261e; }
+        .cz-btn:focus { outline: none; }
+        .cz-btn { display: block; width: 100%; height: 44px; margin-top: 12px; border-radius: 22px; font-size: 14.5px; }
+        .cz-res-card { background: white; border-radius: 14px; padding: 24px 16px; margin-top: 14px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+        .cz-res-label { font-size: 12px; color: var(--muted); }
+        .cz-res-score { font-size: 40px; font-weight: 700; color: var(--green); margin: 4px 0; }
+        .cz-res-msg { font-size: 14px; color: var(--text); }
+        .cz-wrong-title { font-size: 12px; color: var(--muted); margin: 20px 0 6px; }
+        .cz-wrong { background: white; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; font-size: 13.5px; line-height: 1.5; }
+        .cz-wrong b { color: var(--green); }
+        .cz-wrong small { display: block; color: #b3261e; font-size: 11.5px; margin-top: 2px; }
+        .play-fab.cz-fab { bottom: 70px; width: 38px; height: 38px; left: max(17px, calc(50% - 323px)); background: white; color: var(--green); border: 1px solid #cfe7d7; box-shadow: 0 2px 8px rgba(0,0,0,0.12); font-size: 16px; }
         .add-ex { max-width: 340px; }
         .ae-word { font-size: 15px; font-weight: 600; color: var(--blue); margin-top: 2px; word-break: break-word; }
         .ae-count { font-size: 11.5px; color: var(--muted); margin: 2px 0 10px; }
@@ -208,12 +243,13 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.9.5</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.9.6</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
                     <div class="dropdown-item" onclick="setGeminiApiKey()">🔑 <span>設定 Gemini 金鑰</span></div>
                     <div class="dropdown-item" onclick="openPlayModal()">▶️ <span>播放例句</span></div>
+                    <div class="dropdown-item" onclick="openClozeSetup()">✍️ <span>克漏字練習</span></div>
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-item" id="itemHideDef" onclick="toggleHideDef()">📖 <span>隱藏釋義</span></div>
                     <div class="dropdown-item" id="itemHideEx" onclick="toggleHideEx()">📝 <span>隱藏例句</span></div>
@@ -246,6 +282,7 @@
     <div id="taskList"></div>
 
     <!-- 左下角小播放鍵 -->
+    <button class="play-fab cz-fab" title="克漏字練習" onclick="openClozeSetup()">✍️</button>
     <button class="play-fab" title="播放例句" onclick="openPlayModal()"><svg viewBox="0 0 24 24"><path d="M7 5v14l12-7z"/></svg></button>
 
     <!-- 例句播放設定 -->
@@ -295,6 +332,12 @@
                 <div class="num" id="pmRepeat">2 次</div>
                 <button onclick="setPlayOpt('repeat', playSettings.repeat + 1)">＋</button>
             </div>
+            <div class="pm-label">句子間隔（每句播完後停頓）</div>
+            <div class="stepper">
+                <button onclick="setPlayOpt('gap', Math.round((Number(playSettings.gap) - 0.5) * 10) / 10)">−</button>
+                <div class="num" id="pmGap">1.2 秒</div>
+                <button onclick="setPlayOpt('gap', Math.round((Number(playSettings.gap) + 0.5) * 10) / 10)">＋</button>
+            </div>
             <div class="pm-label">語速</div>
             <div class="seg" id="pmRate">
                 <button data-v="0.7" onclick="setPlayOpt('rate',0.7)">慢</button>
@@ -304,6 +347,74 @@
             <div class="pm-count" id="pmCount">共 0 句</div>
             <div class="pm-hint" id="pmCacheInfo" style="text-align:center"></div>
             <button class="btn-primary pm-start" id="pmStart" onclick="startPlayer()">開始播放</button>
+        </div>
+    </div>
+
+    <!-- 克漏字練習：設定 -->
+    <div id="clozeSetup" class="modal-overlay play-modal" onclick="if(event.target===this) closeClozeSetup()">
+        <div class="modal-content">
+            <div class="pm-title"><h3>✍️ 克漏字練習</h3><button class="pm-close" onclick="closeClozeSetup()">×</button></div>
+            <div class="pm-hint">從例句中隨機出題，把單字挖空讓你填寫。</div>
+            <div class="pm-label">題目範圍</div>
+            <div class="seg" id="czScope">
+                <button data-v="all" onclick="setClozeOpt('scope','all')">全部例句</button>
+                <button data-v="done" onclick="setClozeOpt('scope','done')">已熟記</button>
+                <button data-v="todo" onclick="setClozeOpt('scope','todo')">未熟記</button>
+            </div>
+            <div class="pm-label">日期</div>
+            <div class="seg" id="czDate">
+                <button data-v="all" onclick="setClozeOpt('dateMode','all')">全部日期</button>
+                <button data-v="today" onclick="setClozeOpt('dateMode','today')">今天</button>
+                <button data-v="7d" onclick="setClozeOpt('dateMode','7d')">最近7天</button>
+            </div>
+            <div class="pm-label">題數</div>
+            <div class="seg" id="czLimit">
+                <button data-v="10" onclick="setClozeOpt('limit',10)">10 題</button>
+                <button data-v="20" onclick="setClozeOpt('limit',20)">20 題</button>
+                <button data-v="30" onclick="setClozeOpt('limit',30)">30 題</button>
+                <button data-v="0" onclick="setClozeOpt('limit',0)">全部</button>
+            </div>
+            <div class="pm-count" id="czCount"></div>
+            <button class="btn-primary pm-start" id="czStart" onclick="startCloze()">開始練習</button>
+        </div>
+    </div>
+
+    <!-- 克漏字練習：作答畫面 -->
+    <div id="clozePanel" class="cloze-panel">
+        <div class="cz-head">
+            <button class="ps-icon-btn" title="結束" onclick="closeCloze()">×</button>
+            <div class="cz-title"><span id="czProgressText"></span></div>
+            <div class="cz-score" id="czScore"></div>
+        </div>
+        <div class="ps-progress"><div id="czBar"></div></div>
+        <div id="czQuiz">
+            <div class="cz-card">
+                <div class="cz-sentence" id="czSentence"></div>
+                <div class="cz-words" id="czWords"></div>
+                <div class="cz-cn" id="czCn"></div>
+            </div>
+            <div class="cz-tools">
+                <button class="cz-tool" onclick="clozeHint()">💡 提示字母</button>
+                <button class="cz-tool" id="czCnBtn" onclick="clozeToggleCn()">中 中文</button>
+                <button class="cz-tool" onclick="clozeListen()">🔊 聽句子</button>
+            </div>
+            <input type="text" id="czInput" class="cz-input" placeholder="輸入空格中的英文" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+                   onkeydown="if(event.key==='Enter' && !event.isComposing){ event.preventDefault(); clozeCheck(); }">
+            <div id="czFeedback"></div>
+            <button class="btn-primary cz-btn" id="czCheck" onclick="clozeCheck()">檢查答案</button>
+            <button class="btn-primary cz-btn" id="czNext" onclick="clozeNext()" style="display:none">下一題 →</button>
+        </div>
+        <div id="czResult" style="display:none">
+            <div class="cz-res-card">
+                <div class="cz-res-label">本次成績</div>
+                <div class="cz-res-score" id="czResScore"></div>
+                <div class="cz-res-msg" id="czResMsg"></div>
+            </div>
+            <button class="btn-primary cz-btn" id="czMarkDone" onclick="clozeMarkDone()"></button>
+            <button class="btn-primary cz-btn" id="czRetryWrong" onclick="clozeRetryWrong()">只重練答錯的題目</button>
+            <button class="btn-outline cz-btn" onclick="clozeAgain()">再隨機練一次</button>
+            <button class="btn-outline cz-btn" onclick="document.body.classList.remove('cloze-open')">完成</button>
+            <div id="czWrongList"></div>
         </div>
     </div>
 
@@ -681,7 +792,7 @@
 
         // --- 例句連續播放 ---
         const PLAY_KEY = 'eng_playSettings';
-        let playSettings = { engine: 'ai', voice: 'Kore', scope: 'all', repeat: 2, rate: 0.9, dateMode: 'all', day: '', order: 'seq', limit: 20 };
+        let playSettings = { engine: 'ai', voice: 'Kore', scope: 'all', repeat: 2, rate: 0.9, gap: 1.2, dateMode: 'all', day: '', order: 'seq', limit: 20 };
         try { Object.assign(playSettings, JSON.parse(localStorage.getItem(PLAY_KEY)) || {}); } catch (e) {}
         const player = { open: false, playing: false, finished: false, list: [], idx: 0, rep: 0, token: 0, mode: 'phone', segments: null, aiUrl: null };
         const ICON_PAUSE = '<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
@@ -752,6 +863,7 @@
 
         function setPlayOpt(key, val) {
             if (key === 'repeat') val = Math.max(1, Math.min(10, val));
+            if (key === 'gap') val = Math.max(0.5, Math.min(15, val));
             playSettings[key] = val;
             localStorage.setItem(PLAY_KEY, JSON.stringify(playSettings));
             refreshPlayModal();
@@ -772,6 +884,7 @@
             document.querySelectorAll('#pmDate button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.dateMode));
             document.querySelectorAll('#pmRate button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === Number(playSettings.rate)));
             document.getElementById('pmRepeat').textContent = `${playSettings.repeat} 次`;
+            document.getElementById('pmGap').textContent = `${Number(playSettings.gap || 1.2).toFixed(1)} 秒`;
             document.querySelectorAll('#pmOrder button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.order));
             document.querySelectorAll('#pmLimit button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === Number(playSettings.limit)));
             document.getElementById('pmLimit').style.display = playSettings.order === 'random' ? 'flex' : 'none';
@@ -914,7 +1027,7 @@
                     updatePlayerView();
                     await speakOnce(player.list[player.idx].en, Number(playSettings.rate));
                     if (!alive()) return;
-                    await sleep(player.rep < playSettings.repeat - 1 ? 700 : 1200);   // 同句之間短停頓，換句時長一點
+                    await sleep(player.rep < playSettings.repeat - 1 ? 700 : Number(playSettings.gap || 1.2) * 1000);   // 同句重複停 0.7 秒，換句依設定
                     if (!alive()) return;
                 }
                 player.idx++; player.rep = 0;
@@ -1150,7 +1263,7 @@
                     const start = samples / rate;
                     add(pcm);
                     segments.push({ idx, rep: r, start, end: samples / rate });
-                    gap(r < repeat - 1 ? 0.7 : 1.2);
+                    gap(r < repeat - 1 ? 0.7 : Number(playSettings.gap || 1.2));
                 }
             });
             const blob = new Blob([wavHeader(rate, samples * 2), ...parts], { type: 'audio/wav' });
@@ -1283,6 +1396,195 @@
             let missing = 0;
             for (const it of list) if (!(await ttsGet(clipKey(voice, it.en)))) missing++;
             el.textContent = !list.length ? '' : missing ? `其中 ${missing} 句需要先上網產生語音（只需一次）` : '✅ 語音都已存在手機裡，可離線播放';
+        }
+
+        // ================= 克漏字練習 =================
+        const CLOZE_KEY = 'eng_clozeSettings';
+        let clozeSettings = { scope: 'all', dateMode: 'all', day: '', limit: 10, showCn: false };
+        try { Object.assign(clozeSettings, JSON.parse(localStorage.getItem(CLOZE_KEY)) || {}); } catch (e) {}
+        const cz = { list: [], i: 0, results: [], answered: false, hint: 0 };
+        const STOP_WORDS = new Set(('a an the to of in on at for and or but is are was were be been being am it its this that these those with by from as ' +
+            'i you he she we they my your his her our their me him us them do does did not no so if then than too very can will would should ' +
+            'could may might must have has had just about into over up out there here what when where which who how all any some').split(' '));
+
+        // 單字欄位 → 要挖空的目標字（去掉詞性與中文）
+        function clozeTarget(subText) {
+            return cleanForSpeech(subText).replace(/\b(n|v|adj|adv|prep|conj|phr|pron)\.\s*/gi, ' ')
+                .replace(/[^A-Za-z'’ -]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+        }
+        const czStem = w => (w.length > 4 ? w.replace(/(e|y|es|s|ed|ing)$/, '') : w);
+        const czMatch = (tok, target) => { const a = tok.toLowerCase(), s = czStem(target); return a === target || (a.startsWith(s) && a.length - s.length <= 4); };
+
+        // 產生題目：優先挖掉「這個單字/片語」；找不到就挖片語中最長的字；再不行就隨機挖一個重要的字
+        function makeCloze(sentence, subText) {
+            const tokens = [...sentence.matchAll(/[A-Za-z]+(?:['’-][A-Za-z]+)*/g)].map(m => ({ w: m[0], i: m.index }));
+            if (!tokens.length) return null;
+            const mk = (a, b) => {
+                const start = tokens[a].i, end = tokens[b].i + tokens[b].w.length;
+                return { before: sentence.slice(0, start), answer: sentence.slice(start, end), after: sentence.slice(end) };
+            };
+            const tw = clozeTarget(subText).split(' ').filter(Boolean);
+            if (tw.length) {
+                if (tw.length <= 3) {   // 3 個字以內的片語整段挖空；更長的只挖最關鍵的字
+                    for (let k = 0; k + tw.length <= tokens.length; k++) {
+                        if (tw.every((t, j) => czMatch(tokens[k + j].w, t))) return mk(k, k + tw.length - 1);
+                    }
+                }
+                const content = tw.filter(w => !STOP_WORDS.has(w) && w.length >= 3).sort((a, b) => b.length - a.length);
+                for (const c of content) { const k = tokens.findIndex(t => czMatch(t.w, c)); if (k >= 0) return mk(k, k); }
+            }
+            const cand = tokens.map((t, k) => k).filter(k => tokens[k].w.length >= 4 && !STOP_WORDS.has(tokens[k].w.toLowerCase()));
+            const k = cand.length ? cand[Math.floor(Math.random() * cand.length)] : Math.floor(Math.random() * tokens.length);
+            return mk(k, k);
+        }
+
+        const czNorm = s => String(s || '').toLowerCase().replace(/[’`]/g, "'").replace(/[^a-z' -]/g, ' ').replace(/\s+/g, ' ').trim();
+        function czDistance(a, b) {
+            const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+            for (let j = 1; j <= b.length; j++) d[0][j] = j;
+            for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+                d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+            return d[a.length][b.length];
+        }
+
+        // ---- 設定視窗 ----
+        function openClozeSetup() { refreshClozeSetup(); document.getElementById('clozeSetup').style.display = 'flex'; }
+        function closeClozeSetup() { document.getElementById('clozeSetup').style.display = 'none'; }
+        function setClozeOpt(k, v) { clozeSettings[k] = v; localStorage.setItem(CLOZE_KEY, JSON.stringify(clozeSettings)); refreshClozeSetup(); }
+        function clozePool() { return getPlaylist(clozeSettings).filter(it => /[A-Za-z]{2,}/.test(it.en)); }
+        function refreshClozeSetup() {
+            document.querySelectorAll('#czScope button').forEach(b => b.classList.toggle('on', b.dataset.v === clozeSettings.scope));
+            document.querySelectorAll('#czDate button').forEach(b => b.classList.toggle('on', b.dataset.v === clozeSettings.dateMode));
+            document.querySelectorAll('#czLimit button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === Number(clozeSettings.limit)));
+            const n = clozePool().length, lim = Number(clozeSettings.limit) || 0, q = lim ? Math.min(lim, n) : n;
+            document.getElementById('czCount').textContent = n ? `從 ${n} 句例句中隨機出 ${q} 題` : '這個範圍沒有例句可以練習';
+            document.getElementById('czStart').disabled = n === 0;
+        }
+
+        // ---- 開始練習 ----
+        function startCloze(list) {
+            if (!list) {
+                list = clozePool();
+                for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
+                const lim = Number(clozeSettings.limit) || 0;
+                if (lim) list = list.slice(0, lim);
+            }
+            if (!list.length) return;
+            if (player.playing) playerPause();
+            closeClozeSetup();
+            cz.list = list.map(it => ({ ...it, q: makeCloze(it.en, it.word) })).filter(it => it.q);
+            cz.i = 0; cz.results = [];
+            document.body.classList.add('cloze-open');
+            document.getElementById('czQuiz').style.display = 'block';
+            document.getElementById('czResult').style.display = 'none';
+            showClozeQuestion();
+        }
+
+        function showClozeQuestion() {
+            const it = cz.list[cz.i], q = it.q, $ = id => document.getElementById(id);
+            cz.answered = false; cz.hint = 0;
+            $('czProgressText').textContent = `第 ${cz.i + 1} / ${cz.list.length} 題`;
+            $('czScore').textContent = `答對 ${cz.results.filter(r => r.ok).length}`;
+            $('czBar').style.width = `${(cz.i / cz.list.length) * 100}%`;
+            renderClozeSentence(false);
+            $('czCn').textContent = it.cn || '（這句沒有中文翻譯）';
+            $('czCn').style.display = clozeSettings.showCn ? 'block' : 'none';
+            $('czCnBtn').classList.toggle('on', !!clozeSettings.showCn);
+            $('czWords').textContent = q.answer.split(/\s+/).length > 1 ? `（${q.answer.split(/\s+/).length} 個字）` : '';
+            const input = $('czInput');
+            input.value = ''; input.disabled = false; input.className = 'cz-input';
+            $('czFeedback').innerHTML = '';
+            $('czCheck').style.display = 'block'; $('czNext').style.display = 'none';
+            setTimeout(() => input.focus(), 50);
+        }
+
+        function renderClozeSentence(reveal) {
+            const q = cz.list[cz.i].q;
+            let blank;
+            if (reveal) blank = `<span class="cz-answer">${escapeHtml(q.answer)}</span>`;
+            else blank = q.answer.split(/(\s+)/).map(part => {
+                if (/^\s+$/.test(part)) return ' ';
+                const shown = cz.hint ? part.slice(0, cz.hint) : '';
+                return `<span class="cz-blank">${escapeHtml(shown)}${'_'.repeat(Math.max(2, part.length - shown.length))}</span>`;
+            }).join('');
+            document.getElementById('czSentence').innerHTML = escapeHtml(q.before) + blank + escapeHtml(q.after);
+        }
+
+        function clozeHint() {
+            if (cz.answered) return;
+            const q = cz.list[cz.i].q, maxLen = Math.max(...q.answer.split(/\s+/).map(w => w.length));
+            if (cz.hint < maxLen - 1) cz.hint++;
+            renderClozeSentence(false);
+        }
+        function clozeToggleCn() { setClozeOpt('showCn', !clozeSettings.showCn); const el = document.getElementById('czCn'); el.style.display = clozeSettings.showCn ? 'block' : 'none'; document.getElementById('czCnBtn').classList.toggle('on', !!clozeSettings.showCn); }
+        function clozeListen() { speakText(cz.list[cz.i].en); }
+
+        function clozeCheck() {
+            if (cz.answered) { clozeNext(); return; }
+            const it = cz.list[cz.i], input = document.getElementById('czInput');
+            const given = czNorm(input.value), ans = czNorm(it.q.answer);
+            if (!given) { input.focus(); return; }
+            const dist = czDistance(given, ans);
+            const ok = given === ans || (ans.length >= 5 && dist === 1);
+            cz.answered = true;
+            cz.results.push({ item: it, ok, given: input.value.trim(), hinted: cz.hint > 0 });
+            input.disabled = true;
+            input.className = 'cz-input ' + (ok ? 'ok' : 'bad');
+            renderClozeSentence(true);
+            document.getElementById('czFeedback').innerHTML = ok
+                ? (given === ans ? '<div class="cz-ok">✅ 答對了！</div>' : `<div class="cz-ok">✅ 答對了！（正確拼法：<b>${escapeHtml(it.q.answer)}</b>）</div>`)
+                : `<div class="cz-bad">❌ 正確答案：<b>${escapeHtml(it.q.answer)}</b></div>`;
+            document.getElementById('czScore').textContent = `答對 ${cz.results.filter(r => r.ok).length}`;
+            document.getElementById('czCheck').style.display = 'none';
+            const next = document.getElementById('czNext');
+            next.style.display = 'block';
+            next.textContent = cz.i + 1 < cz.list.length ? '下一題 →' : '看成績';
+            next.focus();
+        }
+
+        function clozeNext() {
+            if (cz.i + 1 < cz.list.length) { cz.i++; showClozeQuestion(); }
+            else showClozeResult();
+        }
+
+        function showClozeResult() {
+            const $ = id => document.getElementById(id);
+            const right = cz.results.filter(r => r.ok).length, total = cz.results.length;
+            const pct = total ? Math.round(right / total * 100) : 0;
+            $('czQuiz').style.display = 'none'; $('czResult').style.display = 'block';
+            $('czBar').style.width = '100%';
+            $('czProgressText').textContent = '練習完成';
+            $('czScore').textContent = '';
+            $('czResScore').textContent = `${right} / ${total}`;
+            $('czResMsg').textContent = pct === 100 ? '🎉 全部答對，太厲害了！' : pct >= 80 ? '👍 很不錯，再接再厲！' : pct >= 50 ? '💪 有進步空間，多練幾次！' : '📖 再複習一下例句吧！';
+            const wrong = cz.results.filter(r => !r.ok);
+            $('czWrongList').innerHTML = wrong.length
+                ? '<div class="cz-wrong-title">答錯的題目</div>' + wrong.map(r => `<div class="cz-wrong"><div>${escapeHtml(r.item.q.before)}<b>${escapeHtml(r.item.q.answer)}</b>${escapeHtml(r.item.q.after)}</div><small>你的答案：${escapeHtml(r.given) || '（空白）'}</small></div>`).join('')
+                : '';
+            $('czRetryWrong').style.display = wrong.length ? 'block' : 'none';
+            const rightNotDone = cz.results.filter(r => r.ok && !isExampleChecked(r.item.id)).length;
+            $('czMarkDone').style.display = rightNotDone ? 'block' : 'none';
+            $('czMarkDone').textContent = `把答對的 ${rightNotDone} 句標為「已熟記」`;
+        }
+
+        function isExampleChecked(id) {
+            for (const t of tasks) for (const s of t.subtasks) { const g = s.grandtasks.find(x => x.id === id); if (g) return !!g.checked; }
+            return false;
+        }
+        function clozeMarkDone() {
+            let n = 0;
+            cz.results.filter(r => r.ok).forEach(r => {
+                for (const t of tasks) for (const s of t.subtasks) { const g = s.grandtasks.find(x => x.id === r.item.id); if (g && !g.checked) { g.checked = true; g.completedAt = Date.now(); n++; } }
+            });
+            saveData();
+            document.getElementById('czMarkDone').style.display = 'none';
+            showToast(`✅ 已把 ${n} 句標為已熟記`);
+        }
+        function clozeRetryWrong() { startCloze(cz.results.filter(r => !r.ok).map(r => r.item)); }
+        function clozeAgain() { startCloze(); }
+        function closeCloze() {
+            if (cz.results.length && document.getElementById('czQuiz').style.display !== 'none' && cz.i < cz.list.length - 1 && !confirm('確定要結束這次練習嗎？')) return;
+            document.body.classList.remove('cloze-open');
         }
 
         // --- 4. 選單切換 ---
