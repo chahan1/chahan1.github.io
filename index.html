@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v1.9.6 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v1.9.7 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -243,7 +243,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.9.6</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.9.7</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -332,7 +332,7 @@
                 <div class="num" id="pmRepeat">2 次</div>
                 <button onclick="setPlayOpt('repeat', playSettings.repeat + 1)">＋</button>
             </div>
-            <div class="pm-label">句子間隔（每句播完後停頓）</div>
+            <div class="pm-label">句子間隔（每念完一次就停頓，含同一句的重複）</div>
             <div class="stepper">
                 <button onclick="setPlayOpt('gap', Math.round((Number(playSettings.gap) - 0.5) * 10) / 10)">−</button>
                 <div class="num" id="pmGap">1.2 秒</div>
@@ -1027,7 +1027,7 @@
                     updatePlayerView();
                     await speakOnce(player.list[player.idx].en, Number(playSettings.rate));
                     if (!alive()) return;
-                    await sleep(player.rep < playSettings.repeat - 1 ? 700 : Number(playSettings.gap || 1.2) * 1000);   // 同句重複停 0.7 秒，換句依設定
+                    await sleep(Number(playSettings.gap || 1.2) * 1000);   // 每念完一次（同句重複或換句）都停頓設定的秒數
                     if (!alive()) return;
                 }
                 player.idx++; player.rep = 0;
@@ -1263,7 +1263,7 @@
                     const start = samples / rate;
                     add(pcm);
                     segments.push({ idx, rep: r, start, end: samples / rate });
-                    gap(r < repeat - 1 ? 0.7 : Number(playSettings.gap || 1.2));
+                    gap(Number(playSettings.gap || 1.2));   // 每念完一次都停頓設定的秒數
                 }
             });
             const blob = new Blob([wavHeader(rate, samples * 2), ...parts], { type: 'audio/wav' });
