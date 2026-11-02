@@ -4,7 +4,7 @@
     "target": {
       "namespace": "android_app",
       "package_name": "io.github.chahan1.twa",
-      "sha256_cert_fingerprints": ["D1:D5:C5:DA:BC:B3:75:78:6D:FE:92:56:0B:52:71:8A:A0:9C:42:A0:61:20:96:88:57:28:36:27:A1:73:4E:60"]
+      "sha256_cert_fingerprints": ["2D:F3:FF:B3:66:7B:ED:27:6E:50:C7:00:09:55:6B:23:92:27:59:7D:E5:EE:68:F8:06:09:3F:D8:C2:E1:BF:00"]
     }
   },
   {
@@ -12,7 +12,7 @@
     "target": {
       "namespace": "android_app",
       "package_name": "io.github.chahan1.worklog",
-      "sha256_cert_fingerprints": ["貼上工作記錄表新下載包裡的指紋"]
+      "sha256_cert_fingerprints": ["D1:D5:C5:DA:BC:B3:75:78:6D:FE:92:56:0B:52:71:8A:A0:9C:42:A0:61:20:96:88:57:28:36:27:A1:73:4E:60"]
     }
   }
 ]
