@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.0.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.0.1 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -297,7 +297,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.0.0</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.0.1</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -527,7 +527,7 @@
                 <button data-v="on" onclick="setAiStyle('mixReview', true)">開啟</button>
                 <button data-v="off" onclick="setAiStyle('mixReview', false)">關閉</button>
             </div>
-            <div class="pm-hint">開啟後，AI 會盡量把筆記裡已學過的 1～2 個單字或片語（優先挑未熟記、較少複習的）自然地放進新例句。</div>
+            <div class="pm-hint">開啟後，AI 會試著把 1 個已學過的單字（優先挑同一主題、未熟記、較少複習的）放進新例句；句子會再經過 AI 審核自然度，不自然就改用一般例句，不會硬湊。</div>
             <div class="pm-label">例句範例</div>
             <div class="st-example" id="stExample"></div>
             <button class="btn-primary pm-start" onclick="closeStyleModal()">完成</button>
@@ -819,7 +819,7 @@
         }
 
         // silent = true：背景自動補齊用，不跳出任何視窗，失敗時丟出錯誤
-        async function fetchDefinitionAndSentence(rawInput, { silent = false } = {}) {
+        async function fetchDefinitionAndSentence(rawInput, { silent = false, topicId = null } = {}) {
             if (!hasTextKey()) {
                 if (silent) { const e = new Error('尚未設定 AI 金鑰'); e.status = 401; throw e; }
                 openKeyModal();
@@ -832,21 +832,22 @@
                 .replace(/\s+/g, ' ').trim();
             if (!cleanWord) { if (silent) throw new Error('沒有可查詢的英文'); return null; }
 
-            const rvWords = pickReviewWords(cleanWord);
-            const promptText = `請提供英文單字/片語 "${cleanWord}" 的簡短英文定義（需包含詞性，如 "(noun) definition..."），以及一個實用的例句。
+            const rvWords = pickReviewWords(cleanWord, 5, topicId);
+            const promptText = `請提供英文單字/片語 "${cleanWord}" 的簡短英文定義（需包含詞性，如 "(noun) definition..."），以及一個實用、自然的例句 sentence。
 例句格式為：英文句子後面加上括號內的繁體中文翻譯，例如 "Let's stick to the plan. (我們照計畫進行吧。)"
-例句風格與程度：${styleInstruction()}${reviewPromptText(rvWords)}
+例句風格與程度：${styleInstruction()}${reviewPromptText(cleanWord, rvWords)}
 請嚴格使用以下 JSON 格式回傳，不要有任何多餘的文字或 Markdown 標籤：
 {
   "definition": "...",
-  "sentence": "..."${rvWords.length ? ',\n  "review_words": ["..."]' : ''}
+  "sentence": "..."${rvWords.length ? ',\n  "review_sentence": "",\n  "review_word": ""' : ''}
 }`;
             try {
                 const result = await aiJSON(promptText);
+                const pick = await chooseSentence(result, cleanWord, rvWords);
                 return {
                     definition: result.definition || '(無法解析定義)',
-                    sentence: result.sentence ? `🤖 ${result.sentence}` : null,
-                    reviewWords: result.sentence ? reviewedFrom(result, rvWords) : []
+                    sentence: pick.sentence ? `🤖 ${pick.sentence}` : null,
+                    reviewWords: pick.reviewWords
                 };
             } catch (e) {
                 console.error('AI 查詢錯誤:', e);
@@ -1910,29 +1911,63 @@
         const LEVEL_NAME = { mid: '中級', upper: '中高級' };
         function styleLabel() { return `${STYLE_NAME[aiStyle.style]}・${LEVEL_NAME[aiStyle.level]}${aiStyle.mixReview !== false ? '・搭配已學單字' : ''}`; }
 
-        // 從筆記中挑出適合複習的已學單字／片語（優先：未熟記、較少播放、較久沒複習）
-        function pickReviewWords(currentWord, n = 8) {
+        // 從筆記中挑出適合複習的已學單字／片語
+        // 優先：同一個主題（比較容易自然搭配）→ 未熟記 → 較少播放 → 較久沒複習
+        function pickReviewWords(currentWord, n = 5, topicId = null) {
             if (aiStyle.mixReview === false) return [];
             const cur = clozeTarget(currentWord || '');
             const seen = new Set([cur]), pool = [];
             tasks.forEach(t => t.subtasks.forEach(s => {
                 const w = clozeTarget(s.text);
-                if (!w || seen.has(w) || w.length < 3 || w.split(' ').length > 5) return;
+                if (!w || seen.has(w) || w.length < 3 || w.split(' ').length > 4) return;
                 seen.add(w);
                 const plays = s.grandtasks.reduce((a, g) => a + (g.playCount || 0), 0);
                 const last = Math.max(0, ...s.grandtasks.map(g => Math.max(g.lastPlayedAt || 0, g.lastClozeAt || 0)));
-                pool.push({ w, score: (s.checked ? 1000 : 0) + plays * 3 + (last ? (Date.now() - last < 86400000 ? 20 : 0) : 0) + Math.random() * 15 });
+                pool.push({ w, score: (topicId && t.id === topicId ? -100 : 0) + (s.checked ? 1000 : 0) + plays * 3 + (last && Date.now() - last < 86400000 ? 20 : 0) + Math.random() * 15 });
             }));
             return pool.sort((a, b) => a.score - b.score).slice(0, n).map(x => x.w);
         }
-        function reviewPromptText(words) {
+        // 請 AI「另外」試寫一句含已學單字的複習句；不自然就留空（主例句永遠只針對目前的單字）
+        function reviewPromptText(word, words) {
             if (!words.length) return '';
-            return `\n複習要求：為了幫助複習，請盡量在例句中自然地使用下列「已學過的單字／片語」其中 1～2 個（必須符合語意與文法，可依需要變化詞形；若都不適合可以不用，絕對不要硬塞）：${words.join(', ')}\n並在 JSON 的 "review_words" 欄位列出例句中實際用到的已學單字（沒有就給空陣列）。`;
+            return `\n\n【選擇性的複習句】另外請「嘗試」寫一句 review_sentence：同樣要使用 "${word}"，並從下列已學單字中挑「最多 1 個」最搭配的自然放進去：${words.join(', ')}
+review_sentence 的規則（非常重要）：
+- 必須像英語母語人士在真實生活或工作中會說的一句話，情境單一、語意合理、邏輯通順。
+- 絕對不可以為了放進單字而拼湊不相關的內容，也不要一句話塞進兩件不相干的事。
+- 只要有一點點不自然，就把 review_sentence 和 review_word 都留空字串 ""（留空完全沒關係）。
+- 格式同 sentence（英文句子＋括號內繁體中文翻譯），review_word 填實際用到的那個已學單字。
+注意：sentence 只針對 "${word}"，不要加入上面的已學單字。`;
         }
-        function reviewedFrom(result, words) {
-            // 不只相信 AI 的回報，以例句內容核對：單字（含詞形變化）真的出現才算
-            const sentence = cleanForSpeech(result.sentence || '').toLowerCase();
-            return words.filter(w => w.split(' ').every(part => new RegExp('\\b' + czStem(part).replace(/[^a-z'-]/g, '')).test(sentence)));
+        // 檢查句子中真的出現了哪些字（容許詞形變化）
+        function wordsIn(sentenceText, words) {
+            const sentence = cleanForSpeech(sentenceText || '').toLowerCase();
+            const has = part => new RegExp('\\b' + czStem(part).replace(/[^a-z'-]/g, '')).test(sentence);
+            return words.filter(w => w.split(' ').every(has));
+        }
+        function hasTarget(sentenceText, word) {
+            const parts = clozeTarget(word).split(' ').filter(p => p.length >= 3 && !STOP_WORDS.has(p));
+            return !parts.length || wordsIn(sentenceText, parts).length > 0;
+        }
+        // 請 AI 以母語老師的標準替句子的自然度打分（4 分以上才採用）
+        async function checkNatural(sentenceText) {
+            try {
+                const r = await aiJSON(`你是非常嚴格的英語母語老師。請評估下面這個英文例句是否自然、合乎邏輯、語意通順，像母語人士在真實情境中會說的話（而不是為了塞進單字而拼湊出來的句子）：
+"${cleanForSpeech(sentenceText)}"
+評分 1～5 分：5＝非常自然；4＝自然；3＝勉強、有拼湊感；2 以下＝不自然或不合邏輯。
+請只回傳 JSON：{"score": 分數, "reason": "簡短的繁體中文理由"}`);
+                return Number(r.score) >= 4;
+            } catch (e) { return false; }   // 無法確認時，寧可不用
+        }
+        // 決定最後採用哪一句：複習句要同時通過「格式檢查」與「自然度審核」，否則用一般例句
+        async function chooseSentence(result, word, rvWords) {
+            const base = String(result.sentence || '').trim();
+            const rs = String(result.review_sentence || '').trim();
+            const fallback = { sentence: base || rs, reviewWords: [] };
+            if (!rs || !rvWords.length) return fallback;
+            const used = wordsIn(rs, rvWords);
+            const len = cleanForSpeech(rs).split(/\s+/).length;
+            if (used.length !== 1 || !hasTarget(rs, word) || len > 26) return fallback;
+            return (await checkNatural(rs)) ? { sentence: rs, reviewWords: used } : fallback;
         }
         function styleInstruction() {
             const s = {
@@ -2398,7 +2433,7 @@
             task.collapsed = false; saveData();
 
             let result = null, failKind = null;
-            try { result = await fetchDefinitionAndSentence(text); }
+            try { result = await fetchDefinitionAndSentence(text, { topicId: mainTaskId }); }
             catch (e) { failKind = e.kind || classifyError(e); }
 
             // 查詢期間使用者可能拖曳或刪除，因此重新用 ID 找到該單字再寫入
@@ -2447,13 +2482,14 @@
             try {
                 while (true) {
                     let target = null;
-                    for (const t of tasks) { target = t.subtasks.find(s => s.pendingAI && !s.isLoading); if (target) break; }
+                    let topicId = null;
+                    for (const t of tasks) { target = t.subtasks.find(s => s.pendingAI && !s.isLoading); if (target) { topicId = t.id; break; } }
                     if (!target) break;
                     const id = target.id;
                     target.isLoading = true; target.definition = target.definition === PENDING_DEF_TEXT ? LOADING_TEXT : target.definition;
                     saveData();
                     try {
-                        const result = await fetchDefinitionAndSentence(target.text, { silent: true });
+                        const result = await fetchDefinitionAndSentence(target.text, { silent: true, topicId });
                         const sub = findSubAnywhere(id);
                         if (sub) { sub.isLoading = false; applyAIResult(sub, result); saveData(); }
                         done++;
@@ -2507,7 +2543,7 @@
             if (!hasTextKey()) { openKeyModal(); return; }
             sub.genEx = true; renderTasks();
             try {
-                const { sentence, reviewWords } = await fetchExtraSentence(sub.text, sub.grandtasks.map(g => cleanForSpeech(g.text)));
+                const { sentence, reviewWords } = await fetchExtraSentence(sub.text, sub.grandtasks.map(g => cleanForSpeech(g.text)), mainTaskId);
                 const s2 = findSubAnywhere(subTaskId);
                 if (s2) {
                     s2.grandtasks.unshift({ id: newId(), text: `🤖 ${sentence}`, checked: false, createdAt: Date.now(), ...(reviewWords.length ? { reviewWords } : {}) });
@@ -2523,18 +2559,18 @@
         }
 
         // 請 AI 為單字再產生一句「和現有不同」的例句
-        async function fetchExtraSentence(word, existing) {
+        async function fetchExtraSentence(word, existing, topicId = null) {
             const cleanWord = String(word).replace(/\([^)]*\)|（[^）]*）/g, ' ').replace(/[\u3000-\u303f\u4e00-\u9fff\uff00-\uffef]/g, ' ').replace(/\s+/g, ' ').trim() || word;
-            const rvWords = pickReviewWords(cleanWord);
-            const promptText = `請為英文單字/片語 "${cleanWord}" 寫一個新的實用例句，情境要和下面這些現有例句不同，也不要重複它們：
+            const rvWords = pickReviewWords(cleanWord, 5, topicId);
+            const promptText = `請為英文單字/片語 "${cleanWord}" 寫一個新的實用、自然的例句 sentence，情境要和下面這些現有例句不同，也不要重複它們：
 ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（目前沒有例句）'}
 例句格式為：英文句子後面加上括號內的繁體中文翻譯，例如 "Let's stick to the plan. (我們照計畫進行吧。)"
-例句風格與程度：${styleInstruction()}${reviewPromptText(rvWords)}
+例句風格與程度：${styleInstruction()}${reviewPromptText(cleanWord, rvWords)}
 請嚴格使用以下 JSON 格式回傳，不要有任何多餘的文字或 Markdown 標籤：
-{ "sentence": "..."${rvWords.length ? ', "review_words": ["..."]' : ''} }`;
+{ "sentence": "..."${rvWords.length ? ', "review_sentence": "", "review_word": ""' : ''} }`;
             const result = await aiJSON(promptText);
-            if (!result.sentence) throw new Error('AI 沒有回傳例句');
-            return { sentence: String(result.sentence).trim(), reviewWords: reviewedFrom(result, rvWords) };
+            if (!result.sentence && !result.review_sentence) throw new Error('AI 沒有回傳例句');
+            return await chooseSentence(result, cleanWord, rvWords);
         }
 
         function addGrandTaskManual(mainTaskId, subTaskId) {
