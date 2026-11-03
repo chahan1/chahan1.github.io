@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v1.9.9 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.0.0 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -297,7 +297,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.9.9</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.0.0</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -522,6 +522,12 @@
                 <button data-v="mid" onclick="setAiStyle('level','mid')">中級<br><small>B1・多益 550–750</small></button>
                 <button data-v="upper" onclick="setAiStyle('level','upper')">中高級<br><small>B2・多益 750–900</small></button>
             </div>
+            <div class="pm-label">搭配已學單字複習</div>
+            <div class="seg" id="stMix">
+                <button data-v="on" onclick="setAiStyle('mixReview', true)">開啟</button>
+                <button data-v="off" onclick="setAiStyle('mixReview', false)">關閉</button>
+            </div>
+            <div class="pm-hint">開啟後，AI 會盡量把筆記裡已學過的 1～2 個單字或片語（優先挑未熟記、較少複習的）自然地放進新例句。</div>
             <div class="pm-label">例句範例</div>
             <div class="st-example" id="stExample"></div>
             <button class="btn-primary pm-start" onclick="closeStyleModal()">完成</button>
@@ -826,19 +832,21 @@
                 .replace(/\s+/g, ' ').trim();
             if (!cleanWord) { if (silent) throw new Error('沒有可查詢的英文'); return null; }
 
+            const rvWords = pickReviewWords(cleanWord);
             const promptText = `請提供英文單字/片語 "${cleanWord}" 的簡短英文定義（需包含詞性，如 "(noun) definition..."），以及一個實用的例句。
 例句格式為：英文句子後面加上括號內的繁體中文翻譯，例如 "Let's stick to the plan. (我們照計畫進行吧。)"
-例句風格與程度：${styleInstruction()}
+例句風格與程度：${styleInstruction()}${reviewPromptText(rvWords)}
 請嚴格使用以下 JSON 格式回傳，不要有任何多餘的文字或 Markdown 標籤：
 {
   "definition": "...",
-  "sentence": "..."
+  "sentence": "..."${rvWords.length ? ',\n  "review_words": ["..."]' : ''}
 }`;
             try {
                 const result = await aiJSON(promptText);
                 return {
                     definition: result.definition || '(無法解析定義)',
-                    sentence: result.sentence ? `🤖 ${result.sentence}` : null
+                    sentence: result.sentence ? `🤖 ${result.sentence}` : null,
+                    reviewWords: result.sentence ? reviewedFrom(result, rvWords) : []
                 };
             } catch (e) {
                 console.error('AI 查詢錯誤:', e);
@@ -1896,11 +1904,36 @@
 
         // ================= AI 例句風格 =================
         const STYLE_KEY = 'eng_aiStyle';
-        let aiStyle = { style: 'general', level: 'mid' };
+        let aiStyle = { style: 'general', level: 'mid', mixReview: true };
         try { Object.assign(aiStyle, JSON.parse(localStorage.getItem(STYLE_KEY)) || {}); } catch (e) {}
         const STYLE_NAME = { general: '一般', daily: '生活口語', toeic: '多益題型' };
         const LEVEL_NAME = { mid: '中級', upper: '中高級' };
-        function styleLabel() { return `${STYLE_NAME[aiStyle.style]}・${LEVEL_NAME[aiStyle.level]}`; }
+        function styleLabel() { return `${STYLE_NAME[aiStyle.style]}・${LEVEL_NAME[aiStyle.level]}${aiStyle.mixReview !== false ? '・搭配已學單字' : ''}`; }
+
+        // 從筆記中挑出適合複習的已學單字／片語（優先：未熟記、較少播放、較久沒複習）
+        function pickReviewWords(currentWord, n = 8) {
+            if (aiStyle.mixReview === false) return [];
+            const cur = clozeTarget(currentWord || '');
+            const seen = new Set([cur]), pool = [];
+            tasks.forEach(t => t.subtasks.forEach(s => {
+                const w = clozeTarget(s.text);
+                if (!w || seen.has(w) || w.length < 3 || w.split(' ').length > 5) return;
+                seen.add(w);
+                const plays = s.grandtasks.reduce((a, g) => a + (g.playCount || 0), 0);
+                const last = Math.max(0, ...s.grandtasks.map(g => Math.max(g.lastPlayedAt || 0, g.lastClozeAt || 0)));
+                pool.push({ w, score: (s.checked ? 1000 : 0) + plays * 3 + (last ? (Date.now() - last < 86400000 ? 20 : 0) : 0) + Math.random() * 15 });
+            }));
+            return pool.sort((a, b) => a.score - b.score).slice(0, n).map(x => x.w);
+        }
+        function reviewPromptText(words) {
+            if (!words.length) return '';
+            return `\n複習要求：為了幫助複習，請盡量在例句中自然地使用下列「已學過的單字／片語」其中 1～2 個（必須符合語意與文法，可依需要變化詞形；若都不適合可以不用，絕對不要硬塞）：${words.join(', ')}\n並在 JSON 的 "review_words" 欄位列出例句中實際用到的已學單字（沒有就給空陣列）。`;
+        }
+        function reviewedFrom(result, words) {
+            // 不只相信 AI 的回報，以例句內容核對：單字（含詞形變化）真的出現才算
+            const sentence = cleanForSpeech(result.sentence || '').toLowerCase();
+            return words.filter(w => w.split(' ').every(part => new RegExp('\\b' + czStem(part).replace(/[^a-z'-]/g, '')).test(sentence)));
+        }
         function styleInstruction() {
             const s = {
                 general: '例句要自然、實用。',
@@ -1919,6 +1952,7 @@
         function refreshStyleModal() {
             document.querySelectorAll('#stStyle button').forEach(b => b.classList.toggle('on', b.dataset.v === aiStyle.style));
             document.querySelectorAll('#stLevel button').forEach(b => b.classList.toggle('on', b.dataset.v === aiStyle.level));
+            document.querySelectorAll('#stMix button').forEach(b => b.classList.toggle('on', (b.dataset.v === 'on') === (aiStyle.mixReview !== false)));
             document.getElementById('stExample').textContent = {
                 'general-mid': 'We need to finish the report before Friday.',
                 'general-upper': 'Despite the tight schedule, the team managed to deliver the report ahead of the deadline.',
@@ -2373,6 +2407,7 @@
             sub.isLoading = false;
             if (result) {
                 applyAIResult(sub, result);
+                if (result.reviewWords && result.reviewWords.length) showToast(`🔁 例句中複習了：${result.reviewWords.join('、')}`, 3000);
             } else if (failKind === 'offline' || failKind === 'quota') {
                 // 網路中斷或額度暫時用完：排入待補齊，之後自動重試
                 sub.pendingAI = true;
@@ -2389,7 +2424,7 @@
             const placeholders = [LOADING_TEXT, PENDING_DEF_TEXT, MANUAL_DEF_TEXT, ''];
             if (!sub.definition || placeholders.includes(sub.definition)) sub.definition = result.definition;
             sub.showDef = true;
-            if (result.sentence) sub.grandtasks.unshift({ id: newId(), text: result.sentence, checked: false, createdAt: Date.now() });
+            if (result.sentence) sub.grandtasks.unshift({ id: newId(), text: result.sentence, checked: false, createdAt: Date.now(), ...(result.reviewWords && result.reviewWords.length ? { reviewWords: result.reviewWords } : {}) });
             delete sub.pendingAI;
         }
 
@@ -2472,11 +2507,12 @@
             if (!hasTextKey()) { openKeyModal(); return; }
             sub.genEx = true; renderTasks();
             try {
-                const sentence = await fetchExtraSentence(sub.text, sub.grandtasks.map(g => cleanForSpeech(g.text)));
+                const { sentence, reviewWords } = await fetchExtraSentence(sub.text, sub.grandtasks.map(g => cleanForSpeech(g.text)));
                 const s2 = findSubAnywhere(subTaskId);
                 if (s2) {
-                    s2.grandtasks.unshift({ id: newId(), text: `🤖 ${sentence}`, checked: false, createdAt: Date.now() });
-                    showToast(isHideEx ? '✅ 已新增一句例句\n（目前例句為隱藏狀態，可在選單開啟）' : '✅ 已新增一句 AI 例句', 2500);
+                    s2.grandtasks.unshift({ id: newId(), text: `🤖 ${sentence}`, checked: false, createdAt: Date.now(), ...(reviewWords.length ? { reviewWords } : {}) });
+                    const rv = reviewWords.length ? `\n🔁 複習了：${reviewWords.join('、')}` : '';
+                    showToast((isHideEx ? '✅ 已新增一句例句\n（目前例句為隱藏狀態，可在選單開啟）' : '✅ 已新增一句 AI 例句') + rv, 3000);
                 }
             } catch (e) {
                 showToast('AI 產生例句失敗：' + (e.message || '未知錯誤'), 3500);
@@ -2489,15 +2525,16 @@
         // 請 AI 為單字再產生一句「和現有不同」的例句
         async function fetchExtraSentence(word, existing) {
             const cleanWord = String(word).replace(/\([^)]*\)|（[^）]*）/g, ' ').replace(/[\u3000-\u303f\u4e00-\u9fff\uff00-\uffef]/g, ' ').replace(/\s+/g, ' ').trim() || word;
+            const rvWords = pickReviewWords(cleanWord);
             const promptText = `請為英文單字/片語 "${cleanWord}" 寫一個新的實用例句，情境要和下面這些現有例句不同，也不要重複它們：
 ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（目前沒有例句）'}
 例句格式為：英文句子後面加上括號內的繁體中文翻譯，例如 "Let's stick to the plan. (我們照計畫進行吧。)"
-例句風格與程度：${styleInstruction()}
+例句風格與程度：${styleInstruction()}${reviewPromptText(rvWords)}
 請嚴格使用以下 JSON 格式回傳，不要有任何多餘的文字或 Markdown 標籤：
-{ "sentence": "..." }`;
+{ "sentence": "..."${rvWords.length ? ', "review_words": ["..."]' : ''} }`;
             const result = await aiJSON(promptText);
             if (!result.sentence) throw new Error('AI 沒有回傳例句');
-            return String(result.sentence).trim();
+            return { sentence: String(result.sentence).trim(), reviewWords: reviewedFrom(result, rvWords) };
         }
 
         function addGrandTaskManual(mainTaskId, subTaskId) {
