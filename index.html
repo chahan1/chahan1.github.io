@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v1.9.8 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v1.9.9 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -199,6 +199,50 @@
         .ks-test { border: 1px solid #cfe7d7; background: var(--green-light); color: var(--green); border-radius: 8px; padding: 0 10px; font-size: 12.5px; cursor: pointer; }
         .ks-st { font-size: 11.5px; color: var(--muted); margin-top: 6px; white-space: pre-line; line-height: 1.5; }
         .ks-st.ok { color: #137333; } .ks-st.bad { color: #b3261e; }
+        /* ---- 播放／練習紀錄、複習報表 ---- */
+        .st-badges { white-space: nowrap; }
+        .st-badge { display: inline-block; font-size: 9.5px; font-weight: 500; color: #80868b; background: #f1f3f4; border-radius: 8px; padding: 0 5px; margin-left: 4px; vertical-align: 1px; line-height: 16px; }
+        .seg button small { font-size: 10px; color: #9aa0a6; font-weight: 400; }
+        .seg button.on small { color: var(--green); }
+        .cz-in-row { display: flex; align-items: center; gap: 8px; }
+        .cz-in-row .cz-input { flex: 1; }
+        .cz-in-no { font-size: 18px; color: var(--green); margin-top: 14px; }
+        .cz-no { color: var(--green); font-size: 11px; margin-right: 1px; }
+        .fs-panel { display: none; position: fixed; inset: 0; background: #f5f7f8; z-index: 1100; overflow-y: auto; padding: 8px 14px 30px; }
+        .fs-panel > * { max-width: 640px; margin-left: auto; margin-right: auto; }
+        body.report-open #reportPanel { display: block; }
+        body.report-open { overflow: hidden; }
+        .rp-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+        .rp-tile { background: white; border-radius: 12px; padding: 10px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .rp-tile-label { font-size: 11.5px; color: var(--muted); }
+        .rp-tile-value { font-size: 24px; font-weight: 700; color: var(--text); margin-top: 2px; }
+        .rp-tile-sub { font-size: 11px; color: var(--muted); }
+        .rp-card { background: white; border-radius: 12px; padding: 12px; margin-top: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .rp-card-title { font-size: 12.5px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+        .rp-bars { display: flex; align-items: flex-end; gap: 4px; height: 120px; padding-top: 16px; border-bottom: 1px solid #dadce0; }
+        .rp-col { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; position: relative; cursor: pointer; }
+        .rp-bar { width: 100%; max-width: 18px; background: #107c41; border-radius: 4px 4px 0 0; }
+        .rp-bar.q { background: #1a73e8; }
+        .rp-val { font-size: 10px; line-height: 12px; margin-bottom: 2px; color: var(--text); visibility: hidden; }
+        .rp-val.always, .rp-col.show .rp-val { visibility: visible; }
+        .rp-x { position: absolute; bottom: -16px; font-size: 9.5px; color: var(--muted); white-space: nowrap; }
+        .rp-x.today { color: var(--text); font-weight: 600; }
+        .rp-bars + * { margin-top: 18px; }
+        .rp-empty { font-size: 12px; color: var(--muted); text-align: center; padding: 18px 0 8px; }
+        #rpChartP, #rpChartQ { padding-bottom: 16px; }
+        .rp-item { display: flex; align-items: center; gap: 6px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+        .rp-item:last-child { border-bottom: none; }
+        .rp-item-main { flex: 1; min-width: 0; }
+        .rp-item-en { font-size: 13.5px; line-height: 1.4; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .rp-item-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11px; color: var(--muted); margin-top: 3px; }
+        .rp-word { color: var(--blue); }
+        .rp-done { color: var(--green); }
+        #rpSort { margin-bottom: 4px; }
+        .rp-actions { display: flex; gap: 8px; margin-top: 10px; }
+        .rp-actions button { flex: 1; height: 40px; border-radius: 20px; font-size: 13.5px; }
+        .st-example { font-size: 14px; line-height: 1.5; color: var(--text); background: #f7f9f8; border-left: 3px solid var(--green); padding: 8px 12px; border-radius: 0 8px 8px 0; font-style: italic; }
+        .ae-style { font-size: 11.5px; color: var(--muted); margin-top: 10px; }
+        .ae-style a { color: var(--blue); cursor: pointer; }
         .add-ex { max-width: 340px; }
         .ae-word { font-size: 15px; font-weight: 600; color: var(--blue); margin-top: 2px; word-break: break-word; }
         .ae-count { font-size: 11.5px; color: var(--muted); margin: 2px 0 10px; }
@@ -253,13 +297,15 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.9.8</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v1.9.9</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
                     <div class="dropdown-item" onclick="openKeyModal()">🔑 <span>AI 金鑰設定</span></div>
                     <div class="dropdown-item" onclick="openPlayModal()">▶️ <span>播放例句</span></div>
                     <div class="dropdown-item" onclick="openClozeSetup()">✍️ <span>克漏字練習</span></div>
+                    <div class="dropdown-item" onclick="openReport()">📊 <span>複習報表</span></div>
+                    <div class="dropdown-item" onclick="openStyleModal()">🎨 <span>AI 例句風格</span></div>
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-item" id="itemHideDef" onclick="toggleHideDef()">📖 <span>隱藏釋義</span></div>
                     <div class="dropdown-item" id="itemHideEx" onclick="toggleHideEx()">📝 <span>隱藏例句</span></div>
@@ -366,6 +412,13 @@
         <div class="modal-content">
             <div class="pm-title"><h3>✍️ 克漏字練習</h3><button class="pm-close" onclick="closeClozeSetup()">×</button></div>
             <div class="pm-hint">從例句中隨機出題，把單字挖空讓你填寫。</div>
+            <div class="pm-label">難度</div>
+            <div class="seg" id="czLevel">
+                <button data-v="1" onclick="setClozeOpt('level',1)">初級<br><small>一個字</small></button>
+                <button data-v="2" onclick="setClozeOpt('level',2)">中級<br><small>整個片語</small></button>
+                <button data-v="3" onclick="setClozeOpt('level',3)">高級<br><small>多個空格</small></button>
+            </div>
+            <div class="pm-hint" id="czLevelHint"></div>
             <div class="pm-label">題目範圍</div>
             <div class="seg" id="czScope">
                 <button data-v="all" onclick="setClozeOpt('scope','all')">全部例句</button>
@@ -409,8 +462,7 @@
                 <button class="cz-tool" id="czCnBtn" onclick="clozeToggleCn()">中 中文</button>
                 <button class="cz-tool" onclick="clozeListen()">🔊 聽句子</button>
             </div>
-            <input type="text" id="czInput" class="cz-input" placeholder="輸入空格中的英文" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
-                   onkeydown="if(event.key==='Enter' && !event.isComposing){ event.preventDefault(); clozeCheck(); }">
+            <div id="czInputs"></div>
             <div id="czFeedback"></div>
             <button class="btn-primary cz-btn" id="czCheck" onclick="clozeCheck()">檢查答案</button>
             <button class="btn-primary cz-btn" id="czNext" onclick="clozeNext()" style="display:none">下一題 →</button>
@@ -424,8 +476,55 @@
             <button class="btn-primary cz-btn" id="czMarkDone" onclick="clozeMarkDone()"></button>
             <button class="btn-primary cz-btn" id="czRetryWrong" onclick="clozeRetryWrong()">只重練答錯的題目</button>
             <button class="btn-outline cz-btn" onclick="clozeAgain()">再隨機練一次</button>
-            <button class="btn-outline cz-btn" onclick="document.body.classList.remove('cloze-open')">完成</button>
+            <button class="btn-outline cz-btn" onclick="closeCloze()">完成</button>
             <div id="czWrongList"></div>
+        </div>
+    </div>
+
+    <!-- 複習報表 -->
+    <div id="reportPanel" class="fs-panel">
+        <div class="cz-head">
+            <button class="ps-icon-btn" title="關閉" onclick="closeReport()">×</button>
+            <div class="cz-title">📊 複習報表</div>
+        </div>
+        <div class="rp-tiles" id="rpTiles"></div>
+        <div class="rp-card"><div class="rp-card-title">最近 14 天・播放次數</div><div id="rpChartP"></div></div>
+        <div class="rp-card"><div class="rp-card-title">最近 14 天・克漏字題數</div><div id="rpChartQ"></div></div>
+        <div class="rp-card">
+            <div class="rp-card-title">例句清單（前 20 句）</div>
+            <div class="seg" id="rpSort">
+                <button data-v="least" onclick="setRpSort('least')">最少播放</button>
+                <button data-v="most" onclick="setRpSort('most')">最多播放</button>
+                <button data-v="wrong" onclick="setRpSort('wrong')">最常答錯</button>
+                <button data-v="stale" onclick="setRpSort('stale')">最久沒複習</button>
+            </div>
+            <div id="rpList"></div>
+            <div class="rp-actions" id="rpActions">
+                <button class="btn-primary" id="rpPlayBtn" onclick="rpPlay()">▶ 播放這些</button>
+                <button class="btn-outline" id="rpClozeBtn" onclick="rpCloze()">✍️ 練習這些</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI 例句風格 -->
+    <div id="styleModal" class="modal-overlay play-modal" onclick="if(event.target===this) closeStyleModal()">
+        <div class="modal-content">
+            <div class="pm-title"><h3>🎨 AI 例句風格</h3><button class="pm-close" onclick="closeStyleModal()">×</button></div>
+            <div class="pm-hint">之後 AI 產生的例句（新增單字、＋ AI 再產生一句、離線補齊）都會照這個設定。已經存在的例句不會改變。</div>
+            <div class="pm-label">風格</div>
+            <div class="seg" id="stStyle">
+                <button data-v="general" onclick="setAiStyle('style','general')">一般</button>
+                <button data-v="daily" onclick="setAiStyle('style','daily')">生活口語</button>
+                <button data-v="toeic" onclick="setAiStyle('style','toeic')">多益題型</button>
+            </div>
+            <div class="pm-label">程度</div>
+            <div class="seg" id="stLevel">
+                <button data-v="mid" onclick="setAiStyle('level','mid')">中級<br><small>B1・多益 550–750</small></button>
+                <button data-v="upper" onclick="setAiStyle('level','upper')">中高級<br><small>B2・多益 750–900</small></button>
+            </div>
+            <div class="pm-label">例句範例</div>
+            <div class="st-example" id="stExample"></div>
+            <button class="btn-primary pm-start" onclick="closeStyleModal()">完成</button>
         </div>
     </div>
 
@@ -467,6 +566,7 @@
             <div class="ae-word" id="aeWord"></div>
             <div class="ae-count" id="aeCount"></div>
             <button class="ae-opt" onclick="aeAI()"><span class="ae-ic">🤖</span><span><b>AI 再產生一句例句</b><small>自動產生和現有例句不同的新句子（含中文翻譯）</small></span></button>
+            <div class="ae-style">AI 例句風格：<b id="aeStyle"></b>　<a onclick="closeAddEx(); openStyleModal()">更改 ›</a></div>
             <button class="ae-opt" onclick="aeManual()"><span class="ae-ic">✏️</span><span><b>自己輸入例句</b><small>手動輸入，可在後面加上中文翻譯</small></span></button>
         </div>
     </div>
@@ -728,6 +828,7 @@
 
             const promptText = `請提供英文單字/片語 "${cleanWord}" 的簡短英文定義（需包含詞性，如 "(noun) definition..."），以及一個實用的例句。
 例句格式為：英文句子後面加上括號內的繁體中文翻譯，例如 "Let's stick to the plan. (我們照計畫進行吧。)"
+例句風格與程度：${styleInstruction()}
 請嚴格使用以下 JSON 格式回傳，不要有任何多餘的文字或 Markdown 標籤：
 {
   "definition": "...",
@@ -772,7 +873,8 @@
             return voices.find(v => v.lang.replace('_', '-').includes('en-US')) || voices.find(v => v.lang.startsWith('en'));
         }
 
-        function speakText(text) {
+        function speakText(text, gid) {
+            if (gid) recordPlay(gid);   // 例句被播放一次就記錄
             if (player.playing) playerPause();   // 手動點朗讀時，先暫停連續播放
             const englishOnly = cleanForSpeech(text);
             if (!englishOnly) return;
@@ -996,8 +1098,8 @@
         }
 
         // 從設定視窗按「開始播放」
-        function startPlayer() {
-            const list = buildPlayList();
+        function startPlayer(custom) {
+            const list = Array.isArray(custom) && custom.length ? custom.slice() : buildPlayList();
             if (!list.length) return;
             closePlayModal();
             playerPause();
@@ -1015,7 +1117,7 @@
             if (player.finished && playSettings.order === 'random') { startPlayer(); return; }
             if (player.mode === 'ai') {
                 if (!aiAudio || !player.segments) return;
-                if (player.finished || aiAudio.ended) { aiAudio.currentTime = 0; player.idx = 0; player.rep = 0; player.finished = false; }
+                if (player.finished || aiAudio.ended) { aiAudio.currentTime = 0; player.idx = 0; player.rep = 0; player.finished = false; player.lastSeg = -1; }
                 aiAudio.play().catch(() => {});
                 return;
             }
@@ -1049,6 +1151,7 @@
                 highlightPlaying(true);
                 for (; player.rep < playSettings.repeat; player.rep++) {
                     updatePlayerView();
+                    recordPlay(player.list[player.idx].id);
                     await speakOnce(player.list[player.idx].en, Number(playSettings.rate));
                     if (!alive()) return;
                     await sleep(Number(playSettings.gap || 1.2) * 1000);   // 每念完一次（同句重複或換句）都停頓設定的秒數
@@ -1314,6 +1417,11 @@
             let seg = segs[0];
             for (const s of segs) { if (s.start <= t + 0.05) seg = s; else break; }
             if (!seg) return;
+            const segNo = segs.indexOf(seg);
+            if (segNo !== player.lastSeg && !aiAudio.paused) {   // 每念一次（含重複）記錄一次
+                player.lastSeg = segNo;
+                const item = player.list[seg.idx]; if (item) recordPlay(item.id);
+            }
             if (seg.idx !== player.idx || seg.rep !== player.rep) {
                 const changed = seg.idx !== player.idx;
                 player.idx = seg.idx; player.rep = seg.rep;
@@ -1322,6 +1430,7 @@
             }
         }
         function aiSeekTo(idx) {
+            player.lastSeg = -1;
             const seg = (player.segments || []).find(s => s.idx === idx);
             if (!seg || !aiAudio) return;
             aiAudio.currentTime = seg.start;
@@ -1377,7 +1486,7 @@
             aiReleaseAudio();
             player.list = ready;
             const built = buildPlaylistAudio(ready, clips, playSettings.repeat);
-            player.aiUrl = built.url; player.segments = built.segments;
+            player.aiUrl = built.url; player.segments = built.segments; player.lastSeg = -1;
             const a = aiEnsureAudio();
             a.src = built.url;
             a.playbackRate = a.defaultPlaybackRate = AI_RATE[playSettings.rate] || 1.0;
@@ -1422,44 +1531,71 @@
             el.textContent = !list.length ? '' : missing ? `其中 ${missing} 句需要先上網產生語音（只需一次）` : '✅ 語音都已存在手機裡，可離線播放';
         }
 
-        // ================= 克漏字練習 =================
+        // ================= 克漏字練習（含難度）=================
         const CLOZE_KEY = 'eng_clozeSettings';
-        let clozeSettings = { scope: 'all', dateMode: 'all', day: '', limit: 10, showCn: false };
+        let clozeSettings = { scope: 'all', dateMode: 'all', day: '', limit: 10, showCn: false, level: 2 };
         try { Object.assign(clozeSettings, JSON.parse(localStorage.getItem(CLOZE_KEY)) || {}); } catch (e) {}
+        const CZ_LEVEL_NAME = { 1: '初級・挖一個字', 2: '中級・挖整個片語', 3: '高級・多個空格' };
+        const CIRCLED = ['①', '②', '③', '④', '⑤'];
         const cz = { list: [], i: 0, results: [], answered: false, hint: 0 };
         const STOP_WORDS = new Set(('a an the to of in on at for and or but is are was were be been being am it its this that these those with by from as ' +
             'i you he she we they my your his her our their me him us them do does did not no so if then than too very can will would should ' +
             'could may might must have has had just about into over up out there here what when where which who how all any some').split(' '));
 
-        // 單字欄位 → 要挖空的目標字（去掉詞性與中文）
         function clozeTarget(subText) {
             return cleanForSpeech(subText).replace(/\b(n|v|adj|adv|prep|conj|phr|pron)\.\s*/gi, ' ')
                 .replace(/[^A-Za-z'’ -]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
         }
         const czStem = w => (w.length > 4 ? w.replace(/(e|y|es|s|ed|ing)$/, '') : w);
         const czMatch = (tok, target) => { const a = tok.toLowerCase(), s = czStem(target); return a === target || (a.startsWith(s) && a.length - s.length <= 4); };
+        const isContent = w => w.length >= 4 && !STOP_WORDS.has(w.toLowerCase());
 
-        // 產生題目：優先挖掉「這個單字/片語」；找不到就挖片語中最長的字；再不行就隨機挖一個重要的字
-        function makeCloze(sentence, subText) {
+        // 產生題目：level 1 挖一個關鍵字；level 2 挖整個片語（4 字以內）；level 3 再多挖 1～2 個重要的字
+        function makeCloze(sentence, subText, level = 2) {
             const tokens = [...sentence.matchAll(/[A-Za-z]+(?:['’-][A-Za-z]+)*/g)].map(m => ({ w: m[0], i: m.index }));
             if (!tokens.length) return null;
-            const mk = (a, b) => {
-                const start = tokens[a].i, end = tokens[b].i + tokens[b].w.length;
-                return { before: sentence.slice(0, start), answer: sentence.slice(start, end), after: sentence.slice(end) };
-            };
             const tw = clozeTarget(subText).split(' ').filter(Boolean);
+            let span = null, keyIdx = -1;
             if (tw.length) {
-                if (tw.length <= 3) {   // 3 個字以內的片語整段挖空；更長的只挖最關鍵的字
-                    for (let k = 0; k + tw.length <= tokens.length; k++) {
-                        if (tw.every((t, j) => czMatch(tokens[k + j].w, t))) return mk(k, k + tw.length - 1);
-                    }
+                for (let k = 0; k + tw.length <= tokens.length && !span; k++) {
+                    if (tw.every((t, j) => czMatch(tokens[k + j].w, t))) span = [k, k + tw.length - 1];
                 }
                 const content = tw.filter(w => !STOP_WORDS.has(w) && w.length >= 3).sort((a, b) => b.length - a.length);
-                for (const c of content) { const k = tokens.findIndex(t => czMatch(t.w, c)); if (k >= 0) return mk(k, k); }
+                for (const c of content) {
+                    const from = span ? span[0] : 0, to = span ? span[1] : tokens.length - 1;
+                    for (let k = from; k <= to; k++) if (czMatch(tokens[k].w, c)) { keyIdx = k; break; }
+                    if (keyIdx >= 0) break;
+                }
+                if (keyIdx < 0 && span) keyIdx = span[0];
             }
-            const cand = tokens.map((t, k) => k).filter(k => tokens[k].w.length >= 4 && !STOP_WORDS.has(tokens[k].w.toLowerCase()));
-            const k = cand.length ? cand[Math.floor(Math.random() * cand.length)] : Math.floor(Math.random() * tokens.length);
-            return mk(k, k);
+            if (keyIdx < 0) {
+                const cand = tokens.map((t, k) => k).filter(k => isContent(tokens[k].w));
+                keyIdx = cand.length ? cand[Math.floor(Math.random() * cand.length)] : Math.floor(Math.random() * tokens.length);
+            }
+            let blanks = (Number(level) >= 2 && span && span[1] - span[0] <= 3) ? [span] : [[keyIdx, keyIdx]];
+            if (Number(level) >= 3) {
+                const used = new Set();
+                blanks.forEach(([a, b]) => { for (let x = a - 1; x <= b + 1; x++) used.add(x); });
+                const cand = tokens.map((t, k) => k).filter(k => !used.has(k) && isContent(tokens[k].w));
+                for (let i = cand.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [cand[i], cand[j]] = [cand[j], cand[i]]; }
+                for (const k of cand) {
+                    if (blanks.length >= 3) break;
+                    if (used.has(k)) continue;
+                    blanks.push([k, k]); used.add(k - 1); used.add(k); used.add(k + 1);
+                }
+                blanks.sort((a, b) => a[0] - b[0]);
+            }
+            const segs = [], answers = [];
+            let pos = 0;
+            blanks.forEach(([a, b]) => {
+                const start = tokens[a].i, end = tokens[b].i + tokens[b].w.length;
+                segs.push({ t: 'x', v: sentence.slice(pos, start) });
+                segs.push({ t: 'b', i: answers.length });
+                answers.push(sentence.slice(start, end));
+                pos = end;
+            });
+            segs.push({ t: 'x', v: sentence.slice(pos) });
+            return { segs, answers };
         }
 
         const czNorm = s => String(s || '').toLowerCase().replace(/[’`]/g, "'").replace(/[^a-z' -]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -1469,6 +1605,10 @@
             for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
                 d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
             return d[a.length][b.length];
+        }
+        // 整句（答案以粗體標示），給結果頁使用
+        function czFullHtml(q) {
+            return q.segs.map(s => s.t === 'x' ? escapeHtml(s.v) : `<b>${escapeHtml(q.answers[s.i])}</b>`).join('');
         }
 
         // ---- 設定視窗 ----
@@ -1480,12 +1620,18 @@
             document.querySelectorAll('#czScope button').forEach(b => b.classList.toggle('on', b.dataset.v === clozeSettings.scope));
             document.querySelectorAll('#czDate button').forEach(b => b.classList.toggle('on', b.dataset.v === clozeSettings.dateMode));
             document.querySelectorAll('#czLimit button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === Number(clozeSettings.limit)));
+            document.querySelectorAll('#czLevel button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === Number(clozeSettings.level)));
+            document.getElementById('czLevelHint').textContent = {
+                1: '每題只挖掉一個關鍵字，適合剛開始熟悉單字。',
+                2: '把單字或整個片語（例如 stick to）一起挖掉，要拼出完整用法。',
+                3: '除了單字，再多挖 1～2 個重要的字，每個空格都要答對才算對。'
+            }[clozeSettings.level] || '';
             const n = clozePool().length, lim = Number(clozeSettings.limit) || 0, q = lim ? Math.min(lim, n) : n;
             document.getElementById('czCount').textContent = n ? `從 ${n} 句例句中隨機出 ${q} 題` : '這個範圍沒有例句可以練習';
             document.getElementById('czStart').disabled = n === 0;
         }
 
-        // ---- 開始練習 ----
+        // ---- 開始練習（可傳入指定的例句清單）----
         function startCloze(list) {
             if (!list) {
                 list = clozePool();
@@ -1496,7 +1642,8 @@
             if (!list.length) return;
             if (player.playing) playerPause();
             closeClozeSetup();
-            cz.list = list.map(it => ({ ...it, q: makeCloze(it.en, it.word) })).filter(it => it.q);
+            document.body.classList.remove('report-open');
+            cz.list = list.map(it => ({ ...it, q: makeCloze(it.en, it.word, clozeSettings.level) })).filter(it => it.q);
             cz.i = 0; cz.results = [];
             document.body.classList.add('cloze-open');
             document.getElementById('czQuiz').style.display = 'block';
@@ -1508,57 +1655,70 @@
             const it = cz.list[cz.i], q = it.q, $ = id => document.getElementById(id);
             cz.answered = false; cz.hint = 0;
             $('czProgressText').textContent = `第 ${cz.i + 1} / ${cz.list.length} 題`;
-            $('czScore').textContent = `答對 ${cz.results.filter(r => r.ok).length}`;
+            $('czScore').textContent = `${CZ_LEVEL_NAME[clozeSettings.level].split('・')[0]}　答對 ${cz.results.filter(r => r.ok).length}`;
             $('czBar').style.width = `${(cz.i / cz.list.length) * 100}%`;
             renderClozeSentence(false);
             $('czCn').textContent = it.cn || '（這句沒有中文翻譯）';
             $('czCn').style.display = clozeSettings.showCn ? 'block' : 'none';
             $('czCnBtn').classList.toggle('on', !!clozeSettings.showCn);
-            $('czWords').textContent = q.answer.split(/\s+/).length > 1 ? `（${q.answer.split(/\s+/).length} 個字）` : '';
-            const input = $('czInput');
-            input.value = ''; input.disabled = false; input.className = 'cz-input';
+            const multi = q.answers.length > 1;
+            $('czWords').textContent = multi ? `共 ${q.answers.length} 個空格` : (q.answers[0].split(/\s+/).length > 1 ? `（${q.answers[0].split(/\s+/).length} 個字）` : '');
+            $('czInputs').innerHTML = q.answers.map((a, i) => `
+                <div class="cz-in-row">${multi ? `<span class="cz-in-no">${CIRCLED[i]}</span>` : ''}
+                <input type="text" class="cz-input" data-i="${i}" placeholder="${multi ? `第 ${i + 1} 個空格` : '輸入空格中的英文'}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+                    onkeydown="if(event.key==='Enter' && !event.isComposing){ event.preventDefault(); clozeEnter(${i}); }"></div>`).join('');
             $('czFeedback').innerHTML = '';
             $('czCheck').style.display = 'block'; $('czNext').style.display = 'none';
-            setTimeout(() => input.focus(), 50);
+            setTimeout(() => { const f = document.querySelector('#czInputs .cz-input'); if (f) f.focus(); }, 50);
         }
 
         function renderClozeSentence(reveal) {
-            const q = cz.list[cz.i].q;
-            let blank;
-            if (reveal) blank = `<span class="cz-answer">${escapeHtml(q.answer)}</span>`;
-            else blank = q.answer.split(/(\s+)/).map(part => {
-                if (/^\s+$/.test(part)) return ' ';
-                const shown = cz.hint ? part.slice(0, cz.hint) : '';
-                return `<span class="cz-blank">${escapeHtml(shown)}${'_'.repeat(Math.max(2, part.length - shown.length))}</span>`;
+            const q = cz.list[cz.i].q, multi = q.answers.length > 1;
+            document.getElementById('czSentence').innerHTML = q.segs.map(s => {
+                if (s.t === 'x') return escapeHtml(s.v);
+                const ans = q.answers[s.i], no = multi ? `<sup class="cz-no">${CIRCLED[s.i]}</sup>` : '';
+                if (reveal) return `<span class="cz-answer">${no}${escapeHtml(ans)}</span>`;
+                return no + ans.split(/(\s+)/).map(part => {
+                    if (/^\s+$/.test(part)) return ' ';
+                    const shown = cz.hint ? part.slice(0, cz.hint) : '';
+                    return `<span class="cz-blank">${escapeHtml(shown)}${'_'.repeat(Math.max(2, part.length - shown.length))}</span>`;
+                }).join('');
             }).join('');
-            document.getElementById('czSentence').innerHTML = escapeHtml(q.before) + blank + escapeHtml(q.after);
         }
 
+        function clozeEnter(i) {
+            const inputs = document.querySelectorAll('#czInputs .cz-input');
+            if (!cz.answered && i < inputs.length - 1) inputs[i + 1].focus();
+            else clozeCheck();
+        }
         function clozeHint() {
             if (cz.answered) return;
-            const q = cz.list[cz.i].q, maxLen = Math.max(...q.answer.split(/\s+/).map(w => w.length));
+            const maxLen = Math.max(...cz.list[cz.i].q.answers.flatMap(a => a.split(/\s+/)).map(w => w.length));
             if (cz.hint < maxLen - 1) cz.hint++;
             renderClozeSentence(false);
         }
-        function clozeToggleCn() { setClozeOpt('showCn', !clozeSettings.showCn); const el = document.getElementById('czCn'); el.style.display = clozeSettings.showCn ? 'block' : 'none'; document.getElementById('czCnBtn').classList.toggle('on', !!clozeSettings.showCn); }
-        function clozeListen() { speakText(cz.list[cz.i].en); }
+        function clozeToggleCn() { setClozeOpt('showCn', !clozeSettings.showCn); document.getElementById('czCn').style.display = clozeSettings.showCn ? 'block' : 'none'; document.getElementById('czCnBtn').classList.toggle('on', !!clozeSettings.showCn); }
+        function clozeListen() { const it = cz.list[cz.i]; speakText(it.en, it.id); }
 
         function clozeCheck() {
             if (cz.answered) { clozeNext(); return; }
-            const it = cz.list[cz.i], input = document.getElementById('czInput');
-            const given = czNorm(input.value), ans = czNorm(it.q.answer);
-            if (!given) { input.focus(); return; }
-            const dist = czDistance(given, ans);
-            const ok = given === ans || (ans.length >= 5 && dist === 1);
+            const it = cz.list[cz.i], inputs = [...document.querySelectorAll('#czInputs .cz-input')];
+            if (!inputs.some(x => czNorm(x.value))) { inputs[0].focus(); return; }
+            const per = it.q.answers.map((ans, i) => {
+                const given = czNorm(inputs[i].value), a = czNorm(ans);
+                const exact = given === a, ok = exact || (a.length >= 5 && czDistance(given, a) === 1);
+                return { ok, exact, given: inputs[i].value.trim(), ans };
+            });
+            const ok = per.every(p => p.ok);
             cz.answered = true;
-            cz.results.push({ item: it, ok, given: input.value.trim(), hinted: cz.hint > 0 });
-            input.disabled = true;
-            input.className = 'cz-input ' + (ok ? 'ok' : 'bad');
+            cz.results.push({ item: it, ok, given: per.map(p => p.given) });
+            recordCloze(it.id, ok);
+            inputs.forEach((x, i) => { x.disabled = true; x.classList.add(per[i].ok ? 'ok' : 'bad'); });
             renderClozeSentence(true);
-            document.getElementById('czFeedback').innerHTML = ok
-                ? (given === ans ? '<div class="cz-ok">✅ 答對了！</div>' : `<div class="cz-ok">✅ 答對了！（正確拼法：<b>${escapeHtml(it.q.answer)}</b>）</div>`)
-                : `<div class="cz-bad">❌ 正確答案：<b>${escapeHtml(it.q.answer)}</b></div>`;
-            document.getElementById('czScore').textContent = `答對 ${cz.results.filter(r => r.ok).length}`;
+            const multi = per.length > 1;
+            const detail = per.map((p, i) => `${multi ? CIRCLED[i] + ' ' : ''}${p.ok ? '✅' : '❌'} <b>${escapeHtml(p.ans)}</b>${p.ok && !p.exact ? '（拼法小差異）' : ''}${!p.ok && p.given ? `　你寫：${escapeHtml(p.given)}` : ''}`).join('<br>');
+            document.getElementById('czFeedback').innerHTML = `<div class="${ok ? 'cz-ok' : 'cz-bad'}">${ok ? '✅ 答對了！' : '❌ 再加油！'}${multi || !ok || !per[0].exact ? '<br>' + detail : ''}</div>`;
+            document.getElementById('czScore').textContent = `${CZ_LEVEL_NAME[clozeSettings.level].split('・')[0]}　答對 ${cz.results.filter(r => r.ok).length}`;
             document.getElementById('czCheck').style.display = 'none';
             const next = document.getElementById('czNext');
             next.style.display = 'block';
@@ -1578,12 +1738,12 @@
             $('czQuiz').style.display = 'none'; $('czResult').style.display = 'block';
             $('czBar').style.width = '100%';
             $('czProgressText').textContent = '練習完成';
-            $('czScore').textContent = '';
+            $('czScore').textContent = CZ_LEVEL_NAME[clozeSettings.level];
             $('czResScore').textContent = `${right} / ${total}`;
             $('czResMsg').textContent = pct === 100 ? '🎉 全部答對，太厲害了！' : pct >= 80 ? '👍 很不錯，再接再厲！' : pct >= 50 ? '💪 有進步空間，多練幾次！' : '📖 再複習一下例句吧！';
             const wrong = cz.results.filter(r => !r.ok);
             $('czWrongList').innerHTML = wrong.length
-                ? '<div class="cz-wrong-title">答錯的題目</div>' + wrong.map(r => `<div class="cz-wrong"><div>${escapeHtml(r.item.q.before)}<b>${escapeHtml(r.item.q.answer)}</b>${escapeHtml(r.item.q.after)}</div><small>你的答案：${escapeHtml(r.given) || '（空白）'}</small></div>`).join('')
+                ? '<div class="cz-wrong-title">答錯的題目</div>' + wrong.map(r => `<div class="cz-wrong"><div>${czFullHtml(r.item.q)}</div><small>你的答案：${r.given.map(g => escapeHtml(g) || '（空白）').join('／')}</small></div>`).join('')
                 : '';
             $('czRetryWrong').style.display = wrong.length ? 'block' : 'none';
             const rightNotDone = cz.results.filter(r => r.ok && !isExampleChecked(r.item.id)).length;
@@ -1591,15 +1751,10 @@
             $('czMarkDone').textContent = `把答對的 ${rightNotDone} 句標為「已熟記」`;
         }
 
-        function isExampleChecked(id) {
-            for (const t of tasks) for (const s of t.subtasks) { const g = s.grandtasks.find(x => x.id === id); if (g) return !!g.checked; }
-            return false;
-        }
+        function isExampleChecked(id) { const f = findGrand(id); return f ? !!f.g.checked : false; }
         function clozeMarkDone() {
             let n = 0;
-            cz.results.filter(r => r.ok).forEach(r => {
-                for (const t of tasks) for (const s of t.subtasks) { const g = s.grandtasks.find(x => x.id === r.item.id); if (g && !g.checked) { g.checked = true; g.completedAt = Date.now(); n++; } }
-            });
+            cz.results.filter(r => r.ok).forEach(r => { const f = findGrand(r.item.id); if (f && !f.g.checked) { f.g.checked = true; f.g.completedAt = Date.now(); n++; } });
             saveData();
             document.getElementById('czMarkDone').style.display = 'none';
             showToast(`✅ 已把 ${n} 句標為已熟記`);
@@ -1609,6 +1764,169 @@
         function closeCloze() {
             if (cz.results.length && document.getElementById('czQuiz').style.display !== 'none' && cz.i < cz.list.length - 1 && !confirm('確定要結束這次練習嗎？')) return;
             document.body.classList.remove('cloze-open');
+            saveData();
+        }
+
+        // ================= 學習紀錄（播放次數、克漏字成績）=================
+        const DAILY_KEY = 'eng_daily';
+        let daily = {};
+        try { daily = JSON.parse(localStorage.getItem(DAILY_KEY)) || {}; } catch (e) {}
+        function bumpDaily(field, n = 1) {
+            const k = dayKey(Date.now());
+            daily[k] = daily[k] || { p: 0, q: 0, r: 0 };
+            daily[k][field] = (daily[k][field] || 0) + n;
+            const keys = Object.keys(daily).sort();
+            while (keys.length > 120) delete daily[keys.shift()];
+            try { localStorage.setItem(DAILY_KEY, JSON.stringify(daily)); } catch (e) {}
+        }
+        function findGrand(id) {
+            for (const t of tasks) for (const s of t.subtasks) { const g = s.grandtasks.find(x => x.id === id); if (g) return { g, s, t }; }
+            return null;
+        }
+        let quietSaveTimer = null;
+        function flushQuietSave() { clearTimeout(quietSaveTimer); quietSaveTimer = null; try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); } catch (e) {} }
+        function saveQuiet() { clearTimeout(quietSaveTimer); quietSaveTimer = setTimeout(flushQuietSave, 1500); }   // 只存檔、不重畫畫面（播放中不會閃）
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && quietSaveTimer) flushQuietSave(); });
+        window.addEventListener('pagehide', () => { if (quietSaveTimer) flushQuietSave(); });
+
+        function statBadgeHtml(g) {
+            const p = g.playCount || 0, cr = g.czRight || 0, ct = cr + (g.czWrong || 0);
+            return (p ? `<span class="st-badge" title="播放次數">▶ ${p}</span>` : '') + (ct ? `<span class="st-badge" title="克漏字 答對／作答">✍️ ${cr}/${ct}</span>` : '');
+        }
+        function refreshBadge(id) {
+            const f = findGrand(id), el = document.querySelector(`.grandtask-row[data-id="${id}"] .st-badges`);
+            if (f && el) el.innerHTML = statBadgeHtml(f.g);
+        }
+        function recordPlay(id) {
+            const f = findGrand(id); if (!f) return;
+            f.g.playCount = (f.g.playCount || 0) + 1; f.g.lastPlayedAt = Date.now();
+            bumpDaily('p'); refreshBadge(id); saveQuiet();
+        }
+        function recordCloze(id, ok) {
+            const f = findGrand(id); if (!f) return;
+            if (ok) f.g.czRight = (f.g.czRight || 0) + 1; else f.g.czWrong = (f.g.czWrong || 0) + 1;
+            f.g.lastClozeAt = Date.now();
+            bumpDaily('q'); if (ok) bumpDaily('r');
+            refreshBadge(id); saveQuiet();
+        }
+
+        // ================= 複習報表 =================
+        let rpSortMode = 'least', rpCurrent = [];
+        const RP_LIMIT = 20;
+        function fmtMD(ts) { if (!ts) return '從未'; const d = new Date(ts); return `${d.getMonth() + 1}/${d.getDate()}`; }
+
+        function openReport() {
+            if (player.playing) playerPause();
+            document.body.classList.add('report-open');
+            renderReport();
+            document.getElementById('reportPanel').scrollTop = 0;
+        }
+        function closeReport() { document.body.classList.remove('report-open'); }
+        function setRpSort(m) { rpSortMode = m; renderReportList(); }
+
+        function reportItems() {
+            return getPlaylist({ scope: 'all', dateMode: 'all' }).map(it => ({ ...it, g: (findGrand(it.id) || {}).g || {} }));
+        }
+
+        function renderReport() {
+            const items = reportItems();
+            const total = items.length, done = items.filter(it => it.g.checked).length;
+            const plays = items.reduce((a, it) => a + (it.g.playCount || 0), 0);
+            const czR = items.reduce((a, it) => a + (it.g.czRight || 0), 0), czT = czR + items.reduce((a, it) => a + (it.g.czWrong || 0), 0);
+            const today = daily[dayKey(Date.now())] || {};
+            const never = items.filter(it => !(it.g.playCount || 0)).length;
+            const tile = (label, value, sub) => `<div class="rp-tile"><div class="rp-tile-label">${label}</div><div class="rp-tile-value">${value}</div><div class="rp-tile-sub">${sub}</div></div>`;
+            document.getElementById('rpTiles').innerHTML =
+                tile('例句總數', total, never ? `${never} 句還沒聽過` : '每句都聽過了') +
+                tile('已熟記', done, total ? `佔 ${Math.round(done / total * 100)}%` : '—') +
+                tile('總播放次數', plays, `今天 ${today.p || 0} 次`) +
+                tile('克漏字正確率', czT ? `${Math.round(czR / czT * 100)}%` : '—', czT ? `共 ${czT} 題・今天 ${today.q || 0} 題` : '還沒練習過');
+            renderBars('rpChartP', 'p', '次');
+            renderBars('rpChartQ', 'q', '題');
+            renderReportList();
+        }
+
+        // 最近 14 天的長條圖（每張圖只有一個數列）
+        function renderBars(elId, field, unit) {
+            const days = [];
+            for (let i = 13; i >= 0; i--) { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - i); days.push(d); }
+            const vals = days.map(d => (daily[dayKey(d.getTime())] || {})[field] || 0);
+            const max = Math.max(...vals), el = document.getElementById(elId);
+            if (!max) { el.innerHTML = `<div class="rp-empty">最近 14 天還沒有紀錄</div>`; return; }
+            const maxIdx = vals.lastIndexOf(max);
+            el.innerHTML = `<div class="rp-bars">` + vals.map((v, i) => {
+                const d = days[i], isToday = i === 13;
+                const label = isToday ? '今天' : (i % 2 === 1 ? `${d.getDate()}` : '');
+                const showVal = v > 0 && (i === maxIdx || isToday);
+                return `<div class="rp-col" title="${d.getMonth() + 1}/${d.getDate()}：${v} ${unit}" onclick="this.classList.toggle('show')">
+                    <div class="rp-val ${showVal ? 'always' : ''}">${v}</div>
+                    <div class="rp-bar ${field === 'q' ? 'q' : ''}" style="height:${v ? Math.max(3, v / max * 100) : 0}%"></div>
+                    <div class="rp-x ${isToday ? 'today' : ''}">${label}</div></div>`;
+            }).join('') + `</div>`;
+        }
+
+        function renderReportList() {
+            const items = reportItems();
+            const last = it => Math.max(it.g.lastPlayedAt || 0, it.g.lastClozeAt || 0);
+            let list;
+            if (rpSortMode === 'least') list = items.sort((a, b) => (a.g.playCount || 0) - (b.g.playCount || 0) || (a.g.lastPlayedAt || 0) - (b.g.lastPlayedAt || 0));
+            else if (rpSortMode === 'most') list = items.filter(it => it.g.playCount).sort((a, b) => b.g.playCount - a.g.playCount);
+            else if (rpSortMode === 'wrong') list = items.filter(it => it.g.czWrong).sort((a, b) => b.g.czWrong - a.g.czWrong || (b.g.czWrong / (b.g.czWrong + (b.g.czRight || 0))) - (a.g.czWrong / (a.g.czWrong + (a.g.czRight || 0))));
+            else list = items.sort((a, b) => last(a) - last(b));
+            rpCurrent = list.slice(0, RP_LIMIT);
+            document.querySelectorAll('#rpSort button').forEach(b => b.classList.toggle('on', b.dataset.v === rpSortMode));
+            const empty = { most: '還沒有播放紀錄', wrong: '克漏字還沒有答錯的題目 👍' }[rpSortMode] || '還沒有例句';
+            document.getElementById('rpList').innerHTML = rpCurrent.length ? rpCurrent.map(it => {
+                const ct = (it.g.czRight || 0) + (it.g.czWrong || 0);
+                return `<div class="rp-item">
+                    <div class="rp-item-main">
+                        <div class="rp-item-en">${escapeHtml(it.en)}</div>
+                        <div class="rp-item-meta"><span class="rp-word">${escapeHtml(cleanForSpeech(it.word))}</span>
+                            <span>▶ ${it.g.playCount || 0}</span><span>✍️ ${it.g.czRight || 0}/${ct}</span><span>上次 ${fmtMD(last(it))}</span>${it.g.checked ? '<span class="rp-done">已熟記</span>' : ''}</div>
+                    </div>
+                    <button class="icon-btn speak" title="朗讀" data-speak="${escapeAttr(it.en)}" onclick="speakText(this.dataset.speak, ${it.id})">${ICON.speak}</button>
+                </div>`;
+            }).join('') : `<div class="rp-empty">${empty}</div>`;
+            document.getElementById('rpActions').style.display = rpCurrent.length ? 'flex' : 'none';
+            document.getElementById('rpPlayBtn').textContent = `▶ 播放這 ${rpCurrent.length} 句`;
+            document.getElementById('rpClozeBtn').textContent = `✍️ 練習這 ${rpCurrent.length} 句`;
+        }
+        function rpPlay() { if (!rpCurrent.length) return; closeReport(); startPlayer(rpCurrent.map(({ g, ...it }) => it)); }
+        function rpCloze() { if (!rpCurrent.length) return; closeReport(); startCloze(rpCurrent.map(({ g, ...it }) => it)); }
+
+        // ================= AI 例句風格 =================
+        const STYLE_KEY = 'eng_aiStyle';
+        let aiStyle = { style: 'general', level: 'mid' };
+        try { Object.assign(aiStyle, JSON.parse(localStorage.getItem(STYLE_KEY)) || {}); } catch (e) {}
+        const STYLE_NAME = { general: '一般', daily: '生活口語', toeic: '多益題型' };
+        const LEVEL_NAME = { mid: '中級', upper: '中高級' };
+        function styleLabel() { return `${STYLE_NAME[aiStyle.style]}・${LEVEL_NAME[aiStyle.level]}`; }
+        function styleInstruction() {
+            const s = {
+                general: '例句要自然、實用。',
+                daily: '例句要生活化、口語化，像朋友、家人或同事之間日常對話會說的話，可以使用常見的口語用法。',
+                toeic: '例句要符合多益（TOEIC）考題的風格，情境以職場、商務、會議、電子郵件、客戶服務、出差旅遊、採購與人事等為主，語氣正式。'
+            }[aiStyle.style];
+            const l = {
+                mid: '程度為中級（約 CEFR B1、多益 550–750 分）：用字常見、句型清楚，句子約 10–15 個英文字。',
+                upper: '程度為中高級（約 CEFR B2、多益 750–900 分）：可使用較進階的字彙、片語與複合句，句子約 12–20 個英文字。'
+            }[aiStyle.level];
+            return `${s}${l}`;
+        }
+        function openStyleModal() { refreshStyleModal(); document.getElementById('styleModal').style.display = 'flex'; }
+        function closeStyleModal() { document.getElementById('styleModal').style.display = 'none'; }
+        function setAiStyle(k, v) { aiStyle[k] = v; localStorage.setItem(STYLE_KEY, JSON.stringify(aiStyle)); refreshStyleModal(); }
+        function refreshStyleModal() {
+            document.querySelectorAll('#stStyle button').forEach(b => b.classList.toggle('on', b.dataset.v === aiStyle.style));
+            document.querySelectorAll('#stLevel button').forEach(b => b.classList.toggle('on', b.dataset.v === aiStyle.level));
+            document.getElementById('stExample').textContent = {
+                'general-mid': 'We need to finish the report before Friday.',
+                'general-upper': 'Despite the tight schedule, the team managed to deliver the report ahead of the deadline.',
+                'daily-mid': "I'm running late, so let's grab coffee another time.",
+                'daily-upper': "Honestly, I wasn't expecting the trip to be that much fun, but it totally blew me away.",
+                'toeic-mid': 'Please submit your expense report to the accounting department by Friday.',
+                'toeic-upper': 'Applicants are required to submit their portfolios no later than the end of the month for consideration.'
+            }[`${aiStyle.style}-${aiStyle.level}`];
         }
 
         // ================= 多家 AI 服務（Groq / Free.ai / Gemini）=================
@@ -2136,6 +2454,7 @@
             const sub = findSub(mainTaskId, subTaskId); if (!sub) return;
             addExTarget = { mainTaskId, subTaskId };
             document.getElementById('aeWord').textContent = sub.text;
+            document.getElementById('aeStyle').textContent = styleLabel();
             document.getElementById('aeCount').textContent = sub.grandtasks.length ? `目前有 ${sub.grandtasks.length} 句例句` : '目前還沒有例句';
             document.getElementById('addExModal').style.display = 'flex';
         }
@@ -2173,6 +2492,7 @@
             const promptText = `請為英文單字/片語 "${cleanWord}" 寫一個新的實用例句，情境要和下面這些現有例句不同，也不要重複它們：
 ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（目前沒有例句）'}
 例句格式為：英文句子後面加上括號內的繁體中文翻譯，例如 "Let's stick to the plan. (我們照計畫進行吧。)"
+例句風格與程度：${styleInstruction()}
 請嚴格使用以下 JSON 格式回傳，不要有任何多餘的文字或 Markdown 標籤：
 { "sentence": "..." }`;
             const result = await aiJSON(promptText);
@@ -2289,10 +2609,10 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
                                 <div class="drag-handle grand-handle">☰</div>
                                 <input type="checkbox" ${grand.checked ? 'checked' : ''} onchange="toggleCheck(${grand.id}, 'grand', ${sub.id}, ${task.id})">
                                 <div class="task-text grand-task-text ${grand.checked ? 'completed' : ''}" onclick="editTask(${grand.id}, 'grand', ${sub.id}, ${task.id})">
-                                    ${formatTextWithCn(grand.text)} ${getTimeBadgeHtml(grand)}
+                                    ${formatTextWithCn(grand.text)}<span class="st-badges">${statBadgeHtml(grand)}</span> ${getTimeBadgeHtml(grand)}
                                 </div>
                                 <div class="row-actions">
-                                    <button class="icon-btn speak" title="朗讀" data-speak="${escapeAttr(grand.text)}" onclick="speakText(this.dataset.speak)">${ICON.speak}</button>
+                                    <button class="icon-btn speak" title="朗讀" data-speak="${escapeAttr(grand.text)}" onclick="speakText(this.dataset.speak, ${grand.id})">${ICON.speak}</button>
                                     <button class="action-btn btn-edit" onclick="editTask(${grand.id}, 'grand', ${sub.id}, ${task.id})">${ICON.edit}</button>
                                     <button class="action-btn btn-delete" onclick="deleteTask(${grand.id}, 'grand', ${sub.id}, ${task.id})">${ICON.trash}</button>
                                 </div>
