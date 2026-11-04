@@ -15,4 +15,13 @@
       "sha256_cert_fingerprints": ["D1:D5:C5:DA:BC:B3:75:78:6D:FE:92:56:0B:52:71:8A:A0:9C:42:A0:61:20:96:88:57:28:36:27:A1:73:4E:60"]
     }
   }
+  {
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.chahan1.speak",
+        "sha256_cert_fingerprints": ["21:D1:C6:64:5C:54:DC:D8:C4:BE:50:2E:0C:51:6D:24:6F:85:20:A4:AE:F8:1F:D9:53:36:BA:F2:8D:DA:8A:25"]
+      }
+    }
+
 ]
