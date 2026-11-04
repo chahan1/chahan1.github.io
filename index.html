@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.0.1 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.1.0 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -47,6 +47,8 @@
         .dropdown-menu.show { display: block; }
         .dropdown-item { padding: 9px 14px; font-size: 13px; color: #3c4043; cursor: pointer; display: flex; align-items: center; gap: 8px; }
         .dropdown-item:active, .dropdown-item:hover { background-color: var(--green-light); color: var(--green); }
+        .dropdown-menu { max-height: calc(100vh - 70px); overflow-y: auto; width: 210px; }
+        .dropdown-label { font-size: 10.5px; color: #9aa0a6; padding: 6px 14px 2px; }
         .dropdown-divider { height: 1px; background: var(--line); margin: 4px 0; }
         
         .input-group { display: flex; gap: 6px; align-items: center; }
@@ -243,6 +245,68 @@
         .st-example { font-size: 14px; line-height: 1.5; color: var(--text); background: #f7f9f8; border-left: 3px solid var(--green); padding: 8px 12px; border-radius: 0 8px 8px 0; font-style: italic; }
         .ae-style { font-size: 11.5px; color: var(--muted); margin-top: 10px; }
         .ae-style a { color: var(--blue); cursor: pointer; }
+        /* ---- 難易度標籤 ---- */
+        .lv-badge { display: inline-block; font-size: 9.5px; font-weight: 700; letter-spacing: 0.3px; border-radius: 5px; padding: 0 4px; margin-left: 5px; line-height: 15px; vertical-align: 2px; cursor: pointer; font-style: normal; }
+        .lv-A1 { background: #e6f4ea; color: #137333; } .lv-A2 { background: #ceead6; color: #0d652d; }
+        .lv-B1 { background: #e8f0fe; color: #1967d2; } .lv-B2 { background: #d2e3fc; color: #174ea6; }
+        .lv-C1 { background: #f3e8fd; color: #8430ce; } .lv-C2 { background: #e9d2fd; color: #681da8; }
+        .lv-none { background: transparent; color: #bdc1c6; border: 1px dashed #dadce0; font-weight: 500; line-height: 13px; }
+        .completed .lv-badge { opacity: 0.6; }
+        .lv-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 12px; }
+        .lv-grid button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border: 1px solid var(--line); border-radius: 10px; background: white; font-size: 12px; color: var(--muted); cursor: pointer; }
+        .lv-grid button .lv-badge { margin: 0; font-size: 13px; line-height: 20px; padding: 0 8px; }
+        .lv-grid button.on { border-color: var(--green); background: var(--green-light); }
+        .lv-row2 { display: flex; gap: 8px; margin-top: 10px; }
+        .lv-row2 button { flex: 1; height: 38px; border-radius: 19px; }
+        .lv-stats { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin: 12px 0 4px; }
+        .lv-stat { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 14px; }
+        .lv-stat .lv-badge { margin: 0; }
+        .pm-start + .pm-start { margin-top: 6px; }
+        /* ---- Google Drive ---- */
+        .dr-input { width: 100%; height: 36px; border: 1px solid #dadce0; border-radius: 8px; padding: 0 10px; font-size: 13px; }
+        .dr-help { font-size: 12px; color: #5f6368; margin-top: 8px; line-height: 1.6; background: #f7f9f8; border-radius: 8px; padding: 6px 10px; }
+        .dr-help summary { cursor: pointer; color: var(--blue); }
+        .dr-help ol { padding-left: 18px; margin: 6px 0; }
+        .dr-help code { background: #e8eaed; padding: 0 4px; border-radius: 3px; font-size: 11.5px; }
+        .dr-link { display: inline-block; font-size: 12.5px; color: var(--blue); margin-top: 6px; text-decoration: none; }
+        .drive-banner { display: none; align-items: center; gap: 6px; margin-top: 8px; padding: 6px 8px 6px 12px; background: #e8f0fe; border: 1px solid #c6dafc; border-radius: 10px; font-size: 12px; color: #174ea6; }
+        .drive-banner.show { display: flex; }
+        .drive-banner span { flex: 1; }
+        .drive-banner .bb-btn.primary { background: #1a73e8; }
+        /* ---- 播放視窗：即時調整速度 ---- */
+        .ps-speed { display: flex; align-items: center; gap: 2px; background: #f1f3f4; border-radius: 15px; padding: 2px; }
+        .ps-speed button { width: 26px; height: 26px; border: none; background: transparent; border-radius: 50%; font-size: 15px; color: var(--green); cursor: pointer; }
+        .ps-speed button:active { background: white; }
+        .ps-speed span { min-width: 36px; text-align: center; font-size: 12px; font-weight: 600; color: var(--text); }
+        /* ---- 朗讀練習 ---- */
+        body.read-open #readPanel { display: block; }
+        body.read-open { overflow: hidden; }
+        .rd-tools { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+        .rd-tools .cz-tool { flex: 1 1 auto; min-width: 54px; }
+        .rd-item { display: flex; gap: 10px; align-items: flex-start; background: white; border-radius: 12px; padding: 12px; margin-top: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .rd-item.done { background: #f0faf3; }
+        .rd-no { font-size: 12px; font-weight: 700; color: var(--green); background: var(--green-light); border-radius: 50%; min-width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+        .rd-body { flex: 1; min-width: 0; }
+        .rd-en { font-size: var(--rd-font, 18px); line-height: 1.55; color: var(--text); word-break: break-word; }
+        .rd-cn { font-size: calc(var(--rd-font, 18px) * 0.72); color: #868b90; margin-top: 4px; line-height: 1.45; }
+        .rd-word { font-size: 11px; color: var(--blue); margin-top: 6px; }
+        .rd-acts { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+        .rd-check { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid #dadce0; background: white; color: #bdc1c6; font-size: 15px; font-weight: 700; cursor: pointer; }
+        .rd-item.done .rd-check { background: var(--green); border-color: var(--green); color: white; }
+        .rd-card-wrap .rd-item { min-height: 200px; padding: 20px 16px; align-items: center; }
+        .rd-card-wrap .rd-en { font-size: calc(var(--rd-font, 18px) * 1.25); }
+        .rd-nav { display: none; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
+        .rd-nav button { height: 40px; border-radius: 20px; padding: 0 16px; }
+        .rd-nav span { font-size: 13px; color: var(--muted); }
+        .rd-pick-tools { display: flex; gap: 6px; margin-top: 12px; }
+        .rd-pick-tools .dr-input { flex: 1; }
+        .rd-pick-tools .btn-outline { flex-shrink: 0; padding: 0 10px; font-size: 12px; }
+        .rd-pick-list { max-height: 34vh; overflow-y: auto; margin-top: 8px; border: 1px solid var(--line); border-radius: 10px; }
+        .rd-pick { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border-bottom: 1px solid var(--line); cursor: pointer; }
+        .rd-pick:last-child { border-bottom: none; }
+        .rd-pick input { margin-top: 3px; }
+        .rd-pick-en { display: block; font-size: 13px; line-height: 1.4; color: var(--text); }
+        .rd-pick small { font-size: 11px; color: var(--blue); }
         .add-ex { max-width: 340px; }
         .ae-word { font-size: 15px; font-weight: 600; color: var(--blue); margin-top: 2px; word-break: break-word; }
         .ae-count { font-size: 11.5px; color: var(--muted); margin: 2px 0 10px; }
@@ -297,24 +361,33 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.0.1</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.1.0</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
-                    <div class="dropdown-item" onclick="openKeyModal()">🔑 <span>AI 金鑰設定</span></div>
+                    <div class="dropdown-label">練習與複習</div>
                     <div class="dropdown-item" onclick="openPlayModal()">▶️ <span>播放例句</span></div>
+                    <div class="dropdown-item" onclick="openReadSetup()">📖 <span>朗讀練習</span></div>
                     <div class="dropdown-item" onclick="openClozeSetup()">✍️ <span>克漏字練習</span></div>
                     <div class="dropdown-item" onclick="openReport()">📊 <span>複習報表</span></div>
-                    <div class="dropdown-item" onclick="openStyleModal()">🎨 <span>AI 例句風格</span></div>
                     <div class="dropdown-divider"></div>
+                    <div class="dropdown-label">AI 工具</div>
+                    <div class="dropdown-item" onclick="fillMissingExamples()">🧩 <span>替沒有例句的單字補例句</span></div>
+                    <div class="dropdown-item" onclick="openLevelModal()">🏷️ <span>單字難易度 A1–C2</span></div>
+                    <div class="dropdown-item" onclick="processPendingAI({ manual: true })">🤖 <span>立即補齊 AI 釋義</span></div>
+                    <div class="dropdown-item" onclick="openStyleModal()">🎨 <span>AI 例句風格</span></div>
+                    <div class="dropdown-item" onclick="openKeyModal()">🔑 <span>AI 金鑰設定</span></div>
+                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-label">顯示</div>
                     <div class="dropdown-item" id="itemHideDef" onclick="toggleHideDef()">📖 <span>隱藏釋義</span></div>
                     <div class="dropdown-item" id="itemHideEx" onclick="toggleHideEx()">📝 <span>隱藏例句</span></div>
                     <div class="dropdown-item" id="itemHideExCn" onclick="toggleHideExCn()">💬 <span>顯示例句中文</span></div>
                     <div class="dropdown-item" id="itemTime" onclick="toggleTime()">🕒 <span>顯示時間</span></div>
-                    <div class="dropdown-item" id="itemEditMode" onclick="toggleEditMode()">⚙️ <span>開啟修改</span></div>
-                    <div class="dropdown-item" onclick="processPendingAI({ manual: true })">🤖 <span>立即補齊 AI 釋義</span></div>
                     <div class="dropdown-item" id="itemCompleted" onclick="toggleCompleted()">👁️ <span>隱藏熟記項目</span></div>
+                    <div class="dropdown-item" id="itemEditMode" onclick="toggleEditMode()">⚙️ <span>開啟修改</span></div>
                     <div class="dropdown-divider"></div>
+                    <div class="dropdown-label">備份</div>
+                    <div class="dropdown-item" onclick="openDriveModal()">☁️ <span>Google Drive 自動備份</span></div>
                     <div class="dropdown-item" onclick="downloadBackup()">📥 <span>下載備份檔</span></div>
                     <div class="dropdown-item" onclick="document.getElementById('importFile').click()">📂 <span>從備份檔還原</span></div>
                     <div class="dropdown-item" onclick="exportData()">📋 <span>複製筆記文字</span></div>
@@ -328,6 +401,10 @@
             <button class="btn-primary" onclick="addMainTask()">新增</button>
         </div>
         <div id="voiceStatus"></div>
+        <div id="driveBanner" class="drive-banner">
+            <span>☁️ 今天還沒備份到 Google Drive</span>
+            <button class="bb-btn primary" onclick="driveBackupNow()">立即備份</button>
+        </div>
         <div id="backupBanner" class="backup-banner">
             <span id="backupBannerText">好一陣子沒備份了</span>
             <button class="bb-btn primary" onclick="downloadBackup()">立即備份</button>
@@ -397,9 +474,9 @@
             </div>
             <div class="pm-label">語速</div>
             <div class="seg" id="pmRate">
-                <button data-v="0.7" onclick="setPlayOpt('rate',0.7)">慢</button>
-                <button data-v="0.9" onclick="setPlayOpt('rate',0.9)">正常</button>
-                <button data-v="1.1" onclick="setPlayOpt('rate',1.1)">快</button>
+                <button data-v="0.8" onclick="setPlayOpt('speed',0.8)">慢 0.8x</button>
+                <button data-v="1" onclick="setPlayOpt('speed',1)">正常 1.0x</button>
+                <button data-v="1.2" onclick="setPlayOpt('speed',1.2)">快 1.2x</button>
             </div>
             <div class="pm-count" id="pmCount">共 0 句</div>
             <div class="pm-hint" id="pmCacheInfo" style="text-align:center"></div>
@@ -565,6 +642,138 @@
         </div>
     </div>
 
+    <!-- 難易度：單一單字 -->
+    <div id="lvPicker" class="modal-overlay play-modal" onclick="if(event.target===this) closeLevelPicker()">
+        <div class="modal-content">
+            <div class="pm-title"><h3>🏷️ 難易度</h3><button class="pm-close" onclick="closeLevelPicker()">×</button></div>
+            <div class="ae-word" id="lvWord"></div>
+            <div class="lv-grid" id="lvGrid">
+                <button data-v="A1" onclick="setLevel('A1')"><span class="lv-badge lv-A1">A1</span>入門</button>
+                <button data-v="A2" onclick="setLevel('A2')"><span class="lv-badge lv-A2">A2</span>基礎</button>
+                <button data-v="B1" onclick="setLevel('B1')"><span class="lv-badge lv-B1">B1</span>中級</button>
+                <button data-v="B2" onclick="setLevel('B2')"><span class="lv-badge lv-B2">B2</span>中高級</button>
+                <button data-v="C1" onclick="setLevel('C1')"><span class="lv-badge lv-C1">C1</span>高級</button>
+                <button data-v="C2" onclick="setLevel('C2')"><span class="lv-badge lv-C2">C2</span>精通</button>
+            </div>
+            <div class="lv-row2">
+                <button class="btn-outline" onclick="aiLevelOne()">🤖 讓 AI 判斷</button>
+                <button class="btn-outline" onclick="setLevel('')">清除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 難易度：總覽與 AI 一鍵標示 -->
+    <div id="levelModal" class="modal-overlay play-modal" onclick="if(event.target===this) closeLevelModal()">
+        <div class="modal-content">
+            <div class="pm-title"><h3>🏷️ 單字難易度 A1–C2</h3><button class="pm-close" onclick="closeLevelModal()">×</button></div>
+            <div class="pm-hint">每個單字旁邊都有一個等級標籤，點一下就能修改；還沒標示的會顯示「Lv」。新增單字時 AI 也會自動判斷等級。</div>
+            <div class="lv-stats" id="lvStats"></div>
+            <button class="btn-primary pm-start" id="lvAiAll" onclick="lvAiAll(false)">🤖 AI 一鍵標示</button>
+            <button class="btn-outline pm-start" onclick="lvAiAll(true)">重新判斷全部單字</button>
+        </div>
+    </div>
+
+    <!-- Google Drive 備份 -->
+    <div id="driveModal" class="modal-overlay play-modal" onclick="if(event.target===this) closeDriveModal()">
+        <div class="modal-content">
+            <div class="pm-title"><h3>☁️ Google Drive 自動備份</h3><button class="pm-close" onclick="closeDriveModal()">×</button></div>
+            <div class="pm-hint">每天第一次開啟 App 時備份一次，存到你 Google Drive 的「英語學習筆記本備份」資料夾（一天一個檔案）。</div>
+            <div class="pm-label">Google OAuth 用戶端 ID</div>
+            <input type="text" id="drClientId" class="dr-input" placeholder="xxxxxxxx.apps.googleusercontent.com" autocomplete="off" spellcheck="false" oninput="saveDriveClientId()">
+            <details class="dr-help">
+                <summary>如何取得用戶端 ID？（只需設定一次）</summary>
+                <ol>
+                    <li>用<b>個人 Gmail</b> 開啟 <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a>，建立一個新專案。</li>
+                    <li>左側「API 和服務 → 程式庫」，搜尋 <b>Google Drive API</b> 並按「啟用」。</li>
+                    <li>「OAuth 同意畫面」：使用者類型選「外部」，填好 App 名稱與 Email；在「測試使用者」加入你自己的 Gmail。</li>
+                    <li>「憑證 → 建立憑證 → OAuth 用戶端 ID」，類型選「網頁應用程式」。</li>
+                    <li>「已授權的 JavaScript 來源」填入：<code>https://chahan1.github.io</code></li>
+                    <li>建立後複製「用戶端 ID」，貼到上面的欄位。</li>
+                </ol>
+                第一次登入時 Google 可能顯示「這個應用程式未經驗證」，因為是你自己建立的，可以按「繼續」。
+            </details>
+            <div class="pm-label">每天自動備份</div>
+            <div class="seg" id="drAuto">
+                <button data-v="on" onclick="setDriveAuto(true)">開啟</button>
+                <button data-v="off" onclick="setDriveAuto(false)">關閉</button>
+            </div>
+            <div class="pm-hint" id="drStatus"></div>
+            <a class="dr-link" id="drFolder" href="#" target="_blank" rel="noopener">📁 開啟 Google Drive 備份資料夾 ›</a>
+            <button class="btn-primary pm-start" onclick="driveBackupNow()">☁️ 立即備份到 Google Drive</button>
+        </div>
+    </div>
+
+    <!-- 朗讀練習：設定 -->
+    <div id="readSetup" class="modal-overlay play-modal" onclick="if(event.target===this) closeReadSetup()">
+        <div class="modal-content">
+            <div class="pm-title"><h3>📖 朗讀練習</h3><button class="pm-close" onclick="closeReadSetup()">×</button></div>
+            <div class="pm-label">選句方式</div>
+            <div class="seg" id="rdPick">
+                <button data-v="random" onclick="setReadOpt('pick','random')">🔀 隨機</button>
+                <button data-v="pick" onclick="setReadOpt('pick','pick')">☑️ 自己指定</button>
+            </div>
+            <div id="rdRandomBox">
+                <div class="pm-label">範圍</div>
+                <div class="seg" id="rdScope">
+                    <button data-v="all" onclick="setReadOpt('scope','all')">全部例句</button>
+                    <button data-v="done" onclick="setReadOpt('scope','done')">已熟記</button>
+                    <button data-v="todo" onclick="setReadOpt('scope','todo')">未熟記</button>
+                </div>
+                <div class="seg" id="rdDate" style="margin-top:6px">
+                    <button data-v="all" onclick="setReadOpt('dateMode','all')">全部日期</button>
+                    <button data-v="today" onclick="setReadOpt('dateMode','today')">今天</button>
+                    <button data-v="7d" onclick="setReadOpt('dateMode','7d')">最近7天</button>
+                </div>
+                <div class="pm-label">數量</div>
+                <div class="seg" id="rdCount">
+                    <button data-v="5" onclick="setReadOpt('count',5)">5 句</button>
+                    <button data-v="10" onclick="setReadOpt('count',10)">10 句</button>
+                    <button data-v="20" onclick="setReadOpt('count',20)">20 句</button>
+                    <button data-v="30" onclick="setReadOpt('count',30)">30 句</button>
+                </div>
+            </div>
+            <div id="rdPickBox">
+                <div class="rd-pick-tools">
+                    <input type="text" id="rdSearch" class="dr-input" placeholder="🔍 搜尋單字或例句" oninput="renderReadPickList()">
+                    <button class="btn-outline" onclick="readPickAll(true)">全選</button>
+                    <button class="btn-outline" onclick="readPickAll(false)">清除</button>
+                </div>
+                <div class="rd-pick-list" id="rdPickList"></div>
+            </div>
+            <div class="pm-label">顯示方式</div>
+            <div class="seg" id="rdView">
+                <button data-v="list" onclick="setReadOpt('view','list')">☰ 列表（一次全部）</button>
+                <button data-v="card" onclick="setReadOpt('view','card')">🃏 卡片（一次一句）</button>
+            </div>
+            <div class="pm-count" id="rdCountText"></div>
+            <button class="btn-primary pm-start" id="rdStart" onclick="startReading()">開始朗讀</button>
+        </div>
+    </div>
+
+    <!-- 朗讀練習：畫面 -->
+    <div id="readPanel" class="fs-panel">
+        <div class="cz-head">
+            <button class="ps-icon-btn" title="結束" onclick="closeReading()">×</button>
+            <div class="cz-title" id="rdTitle">📖 朗讀練習</div>
+            <div class="cz-score" id="rdProgress"></div>
+        </div>
+        <div class="rd-tools">
+            <button class="cz-tool" onclick="readFont(-2)">A−</button>
+            <button class="cz-tool" onclick="readFont(2)">A＋</button>
+            <button class="cz-tool" id="rdCnBtn" onclick="readToggleCn()">中 中文</button>
+            <button class="cz-tool" id="rdViewBtn" onclick="readToggleView()">🃏 卡片</button>
+            <button class="cz-tool" onclick="readCopy()">📋 複製</button>
+        </div>
+        <div id="rdBody"></div>
+        <div class="rd-nav" id="rdNav">
+            <button class="btn-outline" onclick="readNav(-1)">← 上一句</button>
+            <span id="rdNavText"></span>
+            <button class="btn-outline" onclick="readNav(1)">下一句 →</button>
+        </div>
+        <button class="btn-primary cz-btn" id="rdShuffle" onclick="readShuffle()">🔀 換一組</button>
+        <button class="btn-outline cz-btn" onclick="closeReading()">完成</button>
+    </div>
+
     <!-- 新增例句：AI 或手動 -->
     <div id="addExModal" class="modal-overlay" onclick="if(event.target===this) closeAddEx()">
         <div class="modal-content add-ex">
@@ -581,6 +790,7 @@
     <div class="player-sheet" id="playerSheet">
         <div class="ps-head">
             <div class="ps-title" id="psTitle">▶️ 例句播放</div>
+            <div class="ps-speed" title="播放速度（可在播放中直接調整）"><button onclick="changeSpeed(-0.1)">−</button><span id="psSpeed">1.0x</span><button onclick="changeSpeed(0.1)">＋</button></div>
             <button class="ps-icon-btn" title="播放設定" onclick="openPlayModal()"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
             <button class="ps-icon-btn" title="關閉" onclick="closePlayer()">×</button>
         </div>
@@ -839,15 +1049,18 @@
 請嚴格使用以下 JSON 格式回傳，不要有任何多餘的文字或 Markdown 標籤：
 {
   "definition": "...",
-  "sentence": "..."${rvWords.length ? ',\n  "review_sentence": "",\n  "review_word": ""' : ''}
-}`;
+  "sentence": "..."${rvWords.length ? ',\n  "review_sentence": "",\n  "review_word": ""' : ''},
+  "cefr": "B1"
+}
+（cefr 為這個單字／片語最常見意思的 CEFR 難易度：A1、A2、B1、B2、C1、C2 其中之一）`;
             try {
                 const result = await aiJSON(promptText);
                 const pick = await chooseSentence(result, cleanWord, rvWords);
                 return {
                     definition: result.definition || '(無法解析定義)',
                     sentence: pick.sentence ? `🤖 ${pick.sentence}` : null,
-                    reviewWords: pick.reviewWords
+                    reviewWords: pick.reviewWords,
+                    cefr: CEFR.includes(String(result.cefr || '').toUpperCase().trim()) ? String(result.cefr).toUpperCase().trim() : ''
                 };
             } catch (e) {
                 console.error('AI 查詢錯誤:', e);
@@ -899,7 +1112,7 @@
             try {
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(englishOnly);
-                utterance.lang = 'en-US'; utterance.rate = 0.9;
+                utterance.lang = 'en-US'; utterance.rate = phoneRate();
                 const voices = window.speechSynthesis.getVoices();
                 const enVoice = voices.find(v => v.lang.replace('_', '-').includes('en-US')) || voices.find(v => v.lang.startsWith('en'));
                 if (enVoice) utterance.voice = enVoice;
@@ -923,8 +1136,21 @@
 
         // --- 例句連續播放 ---
         const PLAY_KEY = 'eng_playSettings';
-        let playSettings = { engine: 'ai', voice: 'Kore', fvoice: 'af_heart', scope: 'all', repeat: 2, rate: 0.9, gap: 1.2, dateMode: 'all', day: '', order: 'seq', limit: 20 };
+        let playSettings = { speed: 0, engine: 'ai', voice: 'Kore', fvoice: 'af_heart', scope: 'all', repeat: 2, rate: 0.9, gap: 1.2, dateMode: 'all', day: '', order: 'seq', limit: 20 };
         try { Object.assign(playSettings, JSON.parse(localStorage.getItem(PLAY_KEY)) || {}); } catch (e) {}
+        if (!playSettings.speed) playSettings.speed = { 0.7: 0.8, 0.9: 1.0, 1.1: 1.2 }[playSettings.rate] || 1.0;   // 舊設定轉換
+        const aiSpeed = () => Math.max(0.5, Math.min(1.5, Number(playSettings.speed) || 1));
+        const phoneRate = () => Math.round(0.9 * aiSpeed() * 100) / 100;
+        // 播放中直接調整速度，不需重新產生播放清單
+        function changeSpeed(d) {
+            playSettings.speed = Math.round(Math.max(0.5, Math.min(1.5, aiSpeed() + d)) * 10) / 10;
+            localStorage.setItem(PLAY_KEY, JSON.stringify(playSettings));
+            if (aiAudio) { aiAudio.playbackRate = aiAudio.defaultPlaybackRate = aiSpeed(); }
+            if (singleAudio) singleAudio.playbackRate = aiSpeed();
+            updateSpeedView();
+            if (document.getElementById('playModal').style.display === 'flex') refreshPlayModal();
+        }
+        function updateSpeedView() { const el = document.getElementById('psSpeed'); if (el) el.textContent = aiSpeed().toFixed(1) + 'x'; }
         const player = { open: false, playing: false, finished: false, list: [], idx: 0, rep: 0, token: 0, mode: 'phone', segments: null, aiUrl: null };
         const ICON_PAUSE = '<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
         const ICON_PLAY = '<svg viewBox="0 0 24 24" style="margin-left:2px"><path d="M7 5v14l12-7z"/></svg>';
@@ -995,6 +1221,7 @@
         function setPlayOpt(key, val) {
             if (key === 'repeat') val = Math.max(1, Math.min(10, val));
             if (key === 'gap') val = Math.max(0.5, Math.min(15, val));
+            if (key === 'speed') { playSettings.speed = val; changeSpeed(0); return; }
             playSettings[key] = val;
             localStorage.setItem(PLAY_KEY, JSON.stringify(playSettings));
             refreshPlayModal();
@@ -1017,7 +1244,8 @@
             refreshAICacheInfo();
             document.querySelectorAll('#pmScope button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.scope));
             document.querySelectorAll('#pmDate button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.dateMode));
-            document.querySelectorAll('#pmRate button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === Number(playSettings.rate)));
+            document.querySelectorAll('#pmRate button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === aiSpeed()));
+            updateSpeedView();
             document.getElementById('pmRepeat').textContent = `${playSettings.repeat} 次`;
             document.getElementById('pmGap').textContent = `${Number(playSettings.gap || 1.2).toFixed(1)} 秒`;
             document.querySelectorAll('#pmOrder button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.order));
@@ -1161,7 +1389,7 @@
                 for (; player.rep < playSettings.repeat; player.rep++) {
                     updatePlayerView();
                     recordPlay(player.list[player.idx].id);
-                    await speakOnce(player.list[player.idx].en, Number(playSettings.rate));
+                    await speakOnce(player.list[player.idx].en, phoneRate());   // 每句都用當下的速度
                     if (!alive()) return;
                     await sleep(Number(playSettings.gap || 1.2) * 1000);   // 每念完一次（同句重複或換句）都停頓設定的秒數
                     if (!alive()) return;
@@ -1498,7 +1726,7 @@
             player.aiUrl = built.url; player.segments = built.segments; player.lastSeg = -1;
             const a = aiEnsureAudio();
             a.src = built.url;
-            a.playbackRate = a.defaultPlaybackRate = AI_RATE[playSettings.rate] || 1.0;
+            a.playbackRate = a.defaultPlaybackRate = aiSpeed();
             try { a.preservesPitch = true; } catch (e) {}
             player.idx = 0; player.rep = 0; player.finished = false;
             highlightPlaying(true); updatePlayerView();
@@ -1515,7 +1743,7 @@
                 const clip = await getClip(en, voiceSpec());
                 if (singleAudio) { singleAudio.pause(); URL.revokeObjectURL(singleAudio.src); }
                 singleAudio = new Audio(URL.createObjectURL(new Blob([wavHeader(clip.rate, clip.pcm.byteLength), clip.pcm], { type: 'audio/wav' })));
-                singleAudio.playbackRate = AI_RATE[playSettings.rate] || 1.0;
+                singleAudio.playbackRate = aiSpeed();
                 await singleAudio.play();
                 return true;
             } catch (e) { return false; }
@@ -1800,7 +2028,8 @@
 
         function statBadgeHtml(g) {
             const p = g.playCount || 0, cr = g.czRight || 0, ct = cr + (g.czWrong || 0);
-            return (p ? `<span class="st-badge" title="播放次數">▶ ${p}</span>` : '') + (ct ? `<span class="st-badge" title="克漏字 答對／作答">✍️ ${cr}/${ct}</span>` : '');
+            const rdc = g.readCount || 0;
+            return (p ? `<span class="st-badge" title="播放次數">▶ ${p}</span>` : '') + (rdc ? `<span class="st-badge" title="朗讀次數">🗣️ ${rdc}</span>` : '') + (ct ? `<span class="st-badge" title="克漏字 答對／作答">✍️ ${cr}/${ct}</span>` : '');
         }
         function refreshBadge(id) {
             const f = findGrand(id), el = document.querySelector(`.grandtask-row[data-id="${id}"] .st-badges`);
@@ -2181,6 +2410,341 @@ review_sentence 的規則（非常重要）：
             st.className = 'ks-st ' + (lines.every(l => l.startsWith('✅')) ? 'ok' : lines.some(l => l.startsWith('✅')) ? '' : 'bad');
         }
 
+        // ================= 1. 單字難易度 A1–C2 =================
+        const CEFR = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+        const CEFR_DESC = { A1: '入門', A2: '基礎', B1: '中級', B2: '中高級', C1: '高級', C2: '精通' };
+        let lvTarget = null;
+        function cefrBadge(sub, taskId) {
+            const lv = CEFR.includes(sub.cefr) ? sub.cefr : '';
+            return `<span class="lv-badge ${lv ? 'lv-' + lv : 'lv-none'}" title="難易度（點一下修改）" onclick="event.stopPropagation(); openLevelPicker(${taskId}, ${sub.id})">${lv || 'Lv'}</span>`;
+        }
+        function openLevelPicker(taskId, subId) {
+            const sub = findSub(taskId, subId); if (!sub) return;
+            lvTarget = { taskId, subId };
+            document.getElementById('lvWord').textContent = sub.text;
+            document.querySelectorAll('#lvGrid button').forEach(b => b.classList.toggle('on', b.dataset.v === sub.cefr));
+            document.getElementById('lvPicker').style.display = 'flex';
+        }
+        function closeLevelPicker() { document.getElementById('lvPicker').style.display = 'none'; }
+        function setLevel(lv) {
+            const sub = lvTarget && findSub(lvTarget.taskId, lvTarget.subId); if (!sub) return;
+            if (lv) sub.cefr = lv; else delete sub.cefr;
+            closeLevelPicker(); saveData();
+        }
+        async function aiLevelOne() {
+            const sub = lvTarget && findSub(lvTarget.taskId, lvTarget.subId); if (!sub) return;
+            closeLevelPicker();
+            const n = await aiTagLevels([sub], true);
+            if (n) showToast(`🏷️ ${cleanForSpeech(sub.text)}：${sub.cefr}`);
+        }
+        // 請 AI 判斷 CEFR 等級（一次最多 30 個）
+        async function aiTagLevels(subs, force = false) {
+            const list = subs.filter(s => clozeTarget(s.text) && (force || !CEFR.includes(s.cefr)));
+            if (!list.length) return 0;
+            if (!navigator.onLine) { showToast('📴 目前離線，無法使用 AI'); return 0; }
+            if (!hasTextKey()) { openKeyModal(); return 0; }
+            let done = 0;
+            for (let i = 0; i < list.length; i += 30) {
+                const chunk = list.slice(i, i + 30);
+                showToast(`🏷️ AI 判斷難易度中… ${Math.min(i + 30, list.length)} / ${list.length}`, 60000);
+                const words = chunk.map(s => clozeTarget(s.text));
+                try {
+                    const r = await aiJSON(`請依照 CEFR 標準（A1、A2、B1、B2、C1、C2），判斷下列英文單字或片語「最常見意思」的難易度等級。
+${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
+請嚴格只回傳 JSON，格式：{"levels": ["B1", "A2", ...]}，陣列順序與數量要和上面的清單完全一致。`);
+                    const lv = Array.isArray(r.levels) ? r.levels : [];
+                    chunk.forEach((s, k) => { const v = String(lv[k] || '').toUpperCase().trim(); if (CEFR.includes(v)) { s.cefr = v; done++; } });
+                    saveData();
+                } catch (e) { showToast('AI 判斷失敗：' + e.message, 3500); break; }
+            }
+            if (subs.length > 1) showToast(`✅ 已標示 ${done} 個單字的難易度`);
+            return done;
+        }
+        function openLevelModal() {
+            const all = []; tasks.forEach(t => t.subtasks.forEach(s => { if (clozeTarget(s.text)) all.push(s); }));
+            const counts = {}; CEFR.forEach(l => counts[l] = 0);
+            let none = 0; all.forEach(s => CEFR.includes(s.cefr) ? counts[s.cefr]++ : none++);
+            document.getElementById('lvStats').innerHTML = CEFR.map(l => `<div class="lv-stat"><span class="lv-badge lv-${l}">${l}</span><b>${counts[l]}</b></div>`).join('') +
+                `<div class="lv-stat"><span class="lv-badge lv-none">Lv</span><b>${none}</b></div>`;
+            document.getElementById('lvAiAll').textContent = none ? `🤖 AI 一鍵標示未標示的 ${none} 個單字` : '✅ 所有單字都已標示';
+            document.getElementById('lvAiAll').disabled = !none;
+            document.getElementById('levelModal').style.display = 'flex';
+        }
+        function closeLevelModal() { document.getElementById('levelModal').style.display = 'none'; }
+        async function lvAiAll(force) {
+            const all = []; tasks.forEach(t => t.subtasks.forEach(s => all.push(s)));
+            if (force && !confirm(`要請 AI 重新判斷全部 ${all.length} 個單字的難易度嗎？（手動設定的等級也會被覆蓋）`)) return;
+            closeLevelModal();
+            await aiTagLevels(all, !!force);
+        }
+
+        // ================= 2. Google Drive 每日自動備份 =================
+        const DRIVE_KEY = 'eng_drive';
+        let driveCfg = { clientId: '', auto: true, lastDay: '', lastAt: 0, folderId: '', fileDay: '', fileId: '', authed: false };
+        try { Object.assign(driveCfg, JSON.parse(localStorage.getItem(DRIVE_KEY)) || {}); } catch (e) {}
+        let driveToken = null, driveTokenExp = 0, gisPromise = null, driveBusy = false;
+        const saveDriveCfg = () => localStorage.setItem(DRIVE_KEY, JSON.stringify(driveCfg));
+        function loadGIS() {
+            if (window.google && google.accounts && google.accounts.oauth2) return Promise.resolve();
+            return gisPromise = gisPromise || new Promise((res, rej) => {
+                const s = document.createElement('script');
+                s.src = 'https://accounts.google.com/gsi/client'; s.async = true;
+                s.onload = res; s.onerror = () => { gisPromise = null; rej(new Error('無法載入 Google 登入元件（請確認網路）')); };
+                document.head.appendChild(s);
+            });
+        }
+        function driveTokenValid() { return driveToken && Date.now() < driveTokenExp - 60000; }
+        async function getDriveToken() {
+            if (driveTokenValid()) return driveToken;
+            if (!driveCfg.clientId) throw new Error('請先填入 Google OAuth 用戶端 ID');
+            await loadGIS();
+            return new Promise((res, rej) => {
+                const tc = google.accounts.oauth2.initTokenClient({
+                    client_id: driveCfg.clientId,
+                    scope: 'https://www.googleapis.com/auth/drive.file',
+                    callback: r => {
+                        if (r.error) return rej(new Error(r.error_description || r.error));
+                        driveToken = r.access_token; driveTokenExp = Date.now() + (Number(r.expires_in) || 3600) * 1000;
+                        driveCfg.authed = true; saveDriveCfg(); res(driveToken);
+                    },
+                    error_callback: e => rej(new Error(e && e.type === 'popup_closed' ? '登入視窗被關閉了' : (e && (e.message || e.type)) || 'Google 登入失敗'))
+                });
+                tc.requestAccessToken({ prompt: driveCfg.authed ? '' : 'consent' });
+            });
+        }
+        async function driveFetch(url, opts = {}) {
+            const r = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + driveToken } });
+            if (r.status === 401) { driveToken = null; const e = new Error('Google 授權已過期，請重新登入'); e.status = 401; throw e; }
+            if (!r.ok) { let m = 'HTTP ' + r.status; try { m = (await r.json()).error.message || m; } catch (e) {} const e = new Error(m); e.status = r.status; throw e; }
+            return r.json();
+        }
+        async function ensureDriveFolder() {
+            if (driveCfg.folderId) {
+                try { const f = await driveFetch(`https://www.googleapis.com/drive/v3/files/${driveCfg.folderId}?fields=id,trashed`); if (!f.trashed) return f.id; }
+                catch (e) { if (e.status === 401) throw e; }
+            }
+            const f = await driveFetch('https://www.googleapis.com/drive/v3/files?fields=id', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: '英語學習筆記本備份', mimeType: 'application/vnd.google-apps.folder' })
+            });
+            driveCfg.folderId = f.id; driveCfg.fileDay = ''; driveCfg.fileId = ''; saveDriveCfg();
+            return f.id;
+        }
+        function multipartBody(meta, content) {
+            const b = 'eng' + Date.now();
+            return { boundary: b, body: `--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${content}\r\n--${b}--` };
+        }
+        // 上傳今天的備份（同一天重複備份會覆蓋同一個檔案）
+        async function uploadDriveBackup() {
+            const folder = await ensureDriveFolder();
+            const day = dayKey(Date.now()), name = `english-notes-backup_${day.replace(/-/g, '')}.json`;
+            const content = JSON.stringify(tasks, null, 2);
+            let f = null;
+            if (driveCfg.fileDay === day && driveCfg.fileId) {
+                const m = multipartBody({ name }, content);
+                try { f = await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${driveCfg.fileId}?uploadType=multipart&fields=id`, { method: 'PATCH', headers: { 'Content-Type': 'multipart/related; boundary=' + m.boundary }, body: m.body }); }
+                catch (e) { if (e.status === 401) throw e; f = null; }
+            }
+            if (!f) {
+                const m = multipartBody({ name, mimeType: 'application/json', parents: [folder] }, content);
+                f = await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + m.boundary }, body: m.body });
+            }
+            Object.assign(driveCfg, { fileDay: day, fileId: f.id, lastDay: day, lastAt: Date.now() }); saveDriveCfg();
+            localStorage.setItem(LAST_BACKUP_KEY, Date.now());
+            checkBackupReminder(); refreshDriveBanner();
+        }
+        // 按鈕觸發（可以跳出 Google 登入視窗）
+        async function driveBackupNow() {
+            if (driveBusy) return;
+            if (!tasks.length) return showToast('沒有筆記可以備份');
+            if (!navigator.onLine) return showToast('📴 目前離線，連上網路後再備份');
+            driveBusy = true;
+            try {
+                await getDriveToken();
+                showToast('☁️ 正在備份到 Google Drive…', 10000);
+                await uploadDriveBackup();
+                showToast('✅ 已備份到 Google Drive');
+            } catch (e) { showToast('Google Drive 備份失敗：' + e.message, 4000); }
+            finally { driveBusy = false; refreshDriveModal(); }
+        }
+        // 每天自動：已登入（授權還有效）就直接備份；否則在上方顯示「點一下備份」
+        async function autoDriveBackup() {
+            if (!driveCfg.clientId || !driveCfg.auto || !tasks.length || !navigator.onLine || driveBusy) { refreshDriveBanner(); return; }
+            if (driveCfg.lastDay === dayKey(Date.now())) { refreshDriveBanner(); return; }
+            if (driveTokenValid()) {
+                driveBusy = true;
+                try { await uploadDriveBackup(); showToast('☁️ 今天的筆記已自動備份到 Google Drive'); }
+                catch (e) { console.warn('自動備份失敗', e); }
+                finally { driveBusy = false; }
+            }
+            refreshDriveBanner();
+        }
+        function refreshDriveBanner() {
+            const due = driveCfg.clientId && driveCfg.auto && tasks.length && driveCfg.lastDay !== dayKey(Date.now());
+            document.getElementById('driveBanner').classList.toggle('show', !!due);
+        }
+        function openDriveModal() { refreshDriveModal(); document.getElementById('driveModal').style.display = 'flex'; }
+        function closeDriveModal() { document.getElementById('driveModal').style.display = 'none'; refreshDriveBanner(); }
+        function refreshDriveModal() {
+            const $ = id => document.getElementById(id);
+            $('drClientId').value = driveCfg.clientId;
+            document.querySelectorAll('#drAuto button').forEach(b => b.classList.toggle('on', (b.dataset.v === 'on') === !!driveCfg.auto));
+            $('drStatus').textContent = driveCfg.lastAt ? `上次備份：${new Date(driveCfg.lastAt).toLocaleString('zh-TW', { hour12: false })}` : '還沒有備份過';
+            $('drFolder').style.display = driveCfg.folderId ? 'inline' : 'none';
+            $('drFolder').href = `https://drive.google.com/drive/folders/${driveCfg.folderId}`;
+        }
+        function saveDriveClientId() { driveCfg.clientId = document.getElementById('drClientId').value.trim(); driveToken = null; saveDriveCfg(); }
+        function setDriveAuto(v) { driveCfg.auto = v; saveDriveCfg(); refreshDriveModal(); }
+
+        // ================= 4. 一鍵替沒有例句的單字產生例句 =================
+        let fillingMissing = false;
+        async function fillMissingExamples() {
+            if (fillingMissing) return;
+            const targets = [];
+            tasks.forEach(t => t.subtasks.forEach(s => { if (!s.grandtasks.length && !s.isLoading && !s.pendingAI && clozeTarget(s.text)) targets.push({ topicId: t.id, id: s.id }); }));
+            if (!targets.length) return showToast('每個單字都已經有例句了 👍');
+            if (!navigator.onLine) return showToast('📴 目前離線，連上網路後再試');
+            if (!hasTextKey()) return openKeyModal();
+            if (!confirm(`有 ${targets.length} 個單字還沒有例句，要用 AI 各產生一句嗎？\n（例句風格：${styleLabel()}）`)) return;
+            fillingMissing = true;
+            let done = 0, fail = 0, stop = '';
+            for (const { topicId, id } of targets) {
+                const sub = findSubAnywhere(id); if (!sub) continue;
+                sub.genEx = true; renderTasks();
+                showToast(`🤖 產生例句中… ${done + fail + 1} / ${targets.length}`, 60000);
+                try {
+                    const r = await fetchExtraSentence(sub.text, [], topicId);
+                    const s2 = findSubAnywhere(id);
+                    if (s2) s2.grandtasks.unshift({ id: newId(), text: `🤖 ${r.sentence}`, checked: false, createdAt: Date.now(), ...(r.reviewWords.length ? { reviewWords: r.reviewWords } : {}) });
+                    done++;
+                } catch (e) {
+                    fail++;
+                    const k = e.kind || classifyError(e);
+                    if (k === 'key' || k === 'offline' || k === 'quota') stop = e.message;
+                } finally { const s3 = findSubAnywhere(id); if (s3) delete s3.genEx; saveData(); }
+                if (stop) break;
+                await sleep(400);
+            }
+            fillingMissing = false;
+            showToast(`✅ 已替 ${done} 個單字產生例句${fail ? `\n${fail} 個失敗${stop ? '：' + stop : ''}` : ''}`, 4000);
+        }
+
+        // ================= 5. 朗讀練習 =================
+        const READ_KEY = 'eng_readSettings';
+        let readSettings = { pick: 'random', scope: 'all', dateMode: 'all', count: 10, view: 'list', font: 18, showCn: false };
+        try { Object.assign(readSettings, JSON.parse(localStorage.getItem(READ_KEY)) || {}); } catch (e) {}
+        const rd = { list: [], i: 0, done: new Set(), selected: new Set() };
+        const saveReadSettings = () => localStorage.setItem(READ_KEY, JSON.stringify(readSettings));
+
+        function openReadSetup() { refreshReadSetup(); document.getElementById('readSetup').style.display = 'flex'; }
+        function closeReadSetup() { document.getElementById('readSetup').style.display = 'none'; }
+        function setReadOpt(k, v) { readSettings[k] = v; saveReadSettings(); refreshReadSetup(); }
+        function readPool() { return getPlaylist({ scope: readSettings.scope, dateMode: readSettings.dateMode }); }
+        function refreshReadSetup() {
+            const $ = id => document.getElementById(id);
+            [['#rdPick', 'pick'], ['#rdScope', 'scope'], ['#rdDate', 'dateMode'], ['#rdView', 'view']].forEach(([sel, k]) =>
+                document.querySelectorAll(sel + ' button').forEach(b => b.classList.toggle('on', b.dataset.v === readSettings[k])));
+            document.querySelectorAll('#rdCount button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === Number(readSettings.count)));
+            const random = readSettings.pick === 'random';
+            $('rdRandomBox').style.display = random ? 'block' : 'none';
+            $('rdPickBox').style.display = random ? 'none' : 'block';
+            if (random) {
+                const n = readPool().length, c = Math.min(Number(readSettings.count) || n, n);
+                $('rdCountText').textContent = n ? `從 ${n} 句中隨機選 ${c} 句` : '這個範圍沒有例句';
+                $('rdStart').disabled = !n;
+            } else {
+                renderReadPickList();
+            }
+        }
+        function renderReadPickList() {
+            const q = (document.getElementById('rdSearch').value || '').trim().toLowerCase();
+            const all = getPlaylist({ scope: 'all', dateMode: 'all' });
+            const shown = all.filter(it => !q || it.en.toLowerCase().includes(q) || it.word.toLowerCase().includes(q));
+            document.getElementById('rdPickList').innerHTML = shown.length ? shown.map(it => `
+                <label class="rd-pick"><input type="checkbox" ${rd.selected.has(it.id) ? 'checked' : ''} onchange="toggleReadPick(${it.id}, this.checked)">
+                <span><span class="rd-pick-en">${escapeHtml(it.en)}</span><small>${escapeHtml(cleanForSpeech(it.word))}</small></span></label>`).join('')
+                : '<div class="rp-empty">找不到符合的例句</div>';
+            document.getElementById('rdCountText').textContent = `已選 ${rd.selected.size} 句`;
+            document.getElementById('rdStart').disabled = !rd.selected.size;
+        }
+        function toggleReadPick(id, on) { on ? rd.selected.add(id) : rd.selected.delete(id); document.getElementById('rdCountText').textContent = `已選 ${rd.selected.size} 句`; document.getElementById('rdStart').disabled = !rd.selected.size; }
+        function readPickAll(on) {
+            const q = (document.getElementById('rdSearch').value || '').trim().toLowerCase();
+            getPlaylist({ scope: 'all', dateMode: 'all' }).filter(it => !q || it.en.toLowerCase().includes(q) || it.word.toLowerCase().includes(q))
+                .forEach(it => on ? rd.selected.add(it.id) : rd.selected.delete(it.id));
+            renderReadPickList();
+        }
+        function startReading() {
+            let list;
+            if (readSettings.pick === 'random') {
+                list = readPool();
+                for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
+                list = list.slice(0, Number(readSettings.count) || list.length);
+            } else {
+                list = getPlaylist({ scope: 'all', dateMode: 'all' }).filter(it => rd.selected.has(it.id));
+            }
+            if (!list.length) return;
+            if (player.playing) playerPause();
+            closeReadSetup();
+            rd.list = list; rd.i = 0; rd.done = new Set();
+            document.body.classList.add('read-open');
+            renderReading();
+            document.getElementById('readPanel').scrollTop = 0;
+        }
+        function renderReading() {
+            const $ = id => document.getElementById(id);
+            const total = rd.list.length;
+            $('rdTitle').textContent = `📖 朗讀練習・${total} 句`;
+            $('rdProgress').textContent = `念過 ${rd.done.size} / ${total}`;
+            $('readPanel').style.setProperty('--rd-font', readSettings.font + 'px');
+            $('rdCnBtn').classList.toggle('on', !!readSettings.showCn);
+            $('rdViewBtn').textContent = readSettings.view === 'list' ? '🃏 卡片' : '☰ 列表';
+            $('rdShuffle').style.display = readSettings.pick === 'random' ? 'block' : 'none';
+            const item = (it, n) => `
+                <div class="rd-item ${rd.done.has(it.id) ? 'done' : ''}">
+                    <div class="rd-no">${n}</div>
+                    <div class="rd-body">
+                        <div class="rd-en">${escapeHtml(it.en)}</div>
+                        ${readSettings.showCn && it.cn ? `<div class="rd-cn">${escapeHtml(it.cn)}</div>` : ''}
+                        <div class="rd-word">${escapeHtml(cleanForSpeech(it.word))}</div>
+                    </div>
+                    <div class="rd-acts">
+                        <button class="icon-btn speak" title="聽一遍" data-speak="${escapeAttr(it.en)}" onclick="speakText(this.dataset.speak, ${it.id})">${ICON.speak}</button>
+                        <button class="rd-check" title="念過了" onclick="toggleReadDone(${it.id})">✓</button>
+                    </div>
+                </div>`;
+            if (readSettings.view === 'list') {
+                $('rdBody').innerHTML = rd.list.map((it, k) => item(it, k + 1)).join('');
+                $('rdNav').style.display = 'none';
+            } else {
+                $('rdBody').innerHTML = `<div class="rd-card-wrap">${item(rd.list[rd.i], rd.i + 1)}</div>`;
+                $('rdNav').style.display = 'flex';
+                $('rdNavText').textContent = `${rd.i + 1} / ${total}`;
+            }
+        }
+        function toggleReadDone(id) {
+            if (rd.done.has(id)) rd.done.delete(id);
+            else {
+                rd.done.add(id);
+                const f = findGrand(id);
+                if (f) { f.g.readCount = (f.g.readCount || 0) + 1; f.g.lastReadAt = Date.now(); refreshBadge(id); saveQuiet(); }
+                if (readSettings.view === 'card' && rd.i < rd.list.length - 1) { rd.i++; }
+            }
+            renderReading();
+            if (rd.done.size === rd.list.length) showToast(`🎉 ${rd.list.length} 句都念過了！`);
+        }
+        function readNav(d) { rd.i = Math.max(0, Math.min(rd.list.length - 1, rd.i + d)); renderReading(); }
+        function readFont(d) { readSettings.font = Math.max(14, Math.min(30, readSettings.font + d)); saveReadSettings(); renderReading(); }
+        function readToggleCn() { readSettings.showCn = !readSettings.showCn; saveReadSettings(); renderReading(); }
+        function readToggleView() { readSettings.view = readSettings.view === 'list' ? 'card' : 'list'; saveReadSettings(); renderReading(); }
+        function readShuffle() { startReading(); }
+        async function readCopy() {
+            const text = rd.list.map((it, k) => `${k + 1}. ${it.en}${readSettings.showCn && it.cn ? `\n   ${it.cn}` : ''}`).join('\n');
+            try { await navigator.clipboard.writeText(text); } catch (e) { const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
+            showToast(`📋 已複製 ${rd.list.length} 句`);
+        }
+        function closeReading() { document.body.classList.remove('read-open'); saveData(); }
+
         // --- 4. 選單切換 ---
 
         function toggleHideExCn() {
@@ -2459,6 +3023,7 @@ review_sentence 的規則（非常重要）：
             const placeholders = [LOADING_TEXT, PENDING_DEF_TEXT, MANUAL_DEF_TEXT, ''];
             if (!sub.definition || placeholders.includes(sub.definition)) sub.definition = result.definition;
             sub.showDef = true;
+            if (result.cefr && !CEFR.includes(sub.cefr)) sub.cefr = result.cefr;
             if (result.sentence) sub.grandtasks.unshift({ id: newId(), text: result.sentence, checked: false, createdAt: Date.now(), ...(result.reviewWords && result.reviewWords.length ? { reviewWords: result.reviewWords } : {}) });
             delete sub.pendingAI;
         }
@@ -2663,7 +3228,7 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
                             <div class="drag-handle sub-handle">☰</div>
                             <input type="checkbox" ${sub.checked ? 'checked' : ''} onchange="toggleCheck(${sub.id}, 'sub', ${task.id})">
                             <div class="task-text sub-task-text ${sub.checked ? 'completed' : ''}" onclick="editTask(${sub.id}, 'sub', ${task.id})">
-                                ${formatTextWithCn(sub.text)} ${loadingTag} ${getTimeBadgeHtml(sub)}
+                                ${formatTextWithCn(sub.text)}${cefrBadge(sub, task.id)} ${loadingTag} ${getTimeBadgeHtml(sub)}
                             </div>
                             <div class="row-actions">
                                 <button class="icon-btn speak" title="朗讀" data-speak="${escapeAttr(sub.text)}" onclick="speakText(this.dataset.speak)">${ICON.speak}</button>
@@ -2719,6 +3284,9 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
 
         initViewToggles(); initHideExCnBtn(); initTimeBtn(); initToggleBtn(); renderTasks(); checkBackupReminder();
         setTimeout(() => processPendingAI(), 2000);   // 開啟 App 時若有網路，自動補齊
+        setTimeout(() => autoDriveBackup(), 3000);     // 每天第一次開啟：Google Drive 自動備份
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') autoDriveBackup(); });
+        window.addEventListener('online', () => setTimeout(autoDriveBackup, 2000));
 
         // --- 9. 註冊 Service Worker（PWA 離線開啟） ---
         if ('serviceWorker' in navigator && location.protocol !== 'file:') {
