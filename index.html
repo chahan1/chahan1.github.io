@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.1.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.2.0 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -262,17 +262,8 @@
         .lv-stat { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 14px; }
         .lv-stat .lv-badge { margin: 0; }
         .pm-start + .pm-start { margin-top: 6px; }
-        /* ---- Google Drive ---- */
+        /* ---- 輸入框 ---- */
         .dr-input { width: 100%; height: 36px; border: 1px solid #dadce0; border-radius: 8px; padding: 0 10px; font-size: 13px; }
-        .dr-help { font-size: 12px; color: #5f6368; margin-top: 8px; line-height: 1.6; background: #f7f9f8; border-radius: 8px; padding: 6px 10px; }
-        .dr-help summary { cursor: pointer; color: var(--blue); }
-        .dr-help ol { padding-left: 18px; margin: 6px 0; }
-        .dr-help code { background: #e8eaed; padding: 0 4px; border-radius: 3px; font-size: 11.5px; }
-        .dr-link { display: inline-block; font-size: 12.5px; color: var(--blue); margin-top: 6px; text-decoration: none; }
-        .drive-banner { display: none; align-items: center; gap: 6px; margin-top: 8px; padding: 6px 8px 6px 12px; background: #e8f0fe; border: 1px solid #c6dafc; border-radius: 10px; font-size: 12px; color: #174ea6; }
-        .drive-banner.show { display: flex; }
-        .drive-banner span { flex: 1; }
-        .drive-banner .bb-btn.primary { background: #1a73e8; }
         /* ---- 播放視窗：即時調整速度 ---- */
         .ps-speed { display: flex; align-items: center; gap: 2px; background: #f1f3f4; border-radius: 15px; padding: 2px; }
         .ps-speed button { width: 26px; height: 26px; border: none; background: transparent; border-radius: 50%; font-size: 15px; color: var(--green); cursor: pointer; }
@@ -307,6 +298,32 @@
         .rd-pick input { margin-top: 3px; }
         .rd-pick-en { display: block; font-size: 13px; line-height: 1.4; color: var(--text); }
         .rd-pick small { font-size: 11px; color: var(--blue); }
+        /* ---- 朗讀錄音與 AI 評分 ---- */
+        .rd-rec { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid #f2b8b5; background: white; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .rd-rec.on { background: #d93025; border-color: #d93025; animation: blink 1s infinite; }
+        .rec-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; font-size: 12px; color: var(--muted); }
+        .rec-bar.recording { color: #d93025; }
+        .rec-dot { width: 8px; height: 8px; border-radius: 50%; background: #d93025; animation: blink 1s infinite; }
+        .rec-btn { border: 1px solid #dadce0; background: white; border-radius: 14px; padding: 4px 10px; font-size: 12px; color: #3c4043; cursor: pointer; }
+        .rec-btn.ai { border-color: #c6dafc; background: #e8f0fe; color: #174ea6; font-weight: 600; }
+        .rec-btn:disabled { opacity: 0.6; }
+        .rv-card { margin-top: 10px; background: #f8f9fa; border-radius: 10px; padding: 10px 12px; font-size: 12.5px; color: var(--text); line-height: 1.5; }
+        .rv-top { display: flex; align-items: center; gap: 12px; }
+        .rv-score { font-size: 28px; font-weight: 700; line-height: 1; }
+        .rv-score small { font-size: 12px; font-weight: 500; margin-left: 1px; }
+        .rv-score.good { color: #137333; } .rv-score.mid { color: #b06000; } .rv-score.low { color: #b3261e; }
+        .rv-meta { font-size: 11.5px; color: var(--muted); }
+        .rv-sum { margin-top: 8px; font-weight: 500; }
+        .rv-label { font-size: 11px; color: var(--muted); margin-top: 8px; }
+        .rv-heard, .rv-tr { font-size: 13px; }
+        .rv-miss { color: #b3261e; text-decoration: underline wavy #f28b82; text-underline-offset: 3px; font-weight: 600; }
+        .rv-tr { color: #5f6368; font-style: italic; }
+        .rv-list { margin: 4px 0 0; padding-left: 18px; }
+        .rv-list li { margin: 2px 0; }
+        .rv-list b { color: #174ea6; }
+        .rv-list.sub { color: #5f6368; }
+        .rv-enc { margin-top: 8px; color: #137333; }
+        .rv-via { margin-top: 6px; font-size: 10.5px; color: #9aa0a6; }
         .add-ex { max-width: 340px; }
         .ae-word { font-size: 15px; font-weight: 600; color: var(--blue); margin-top: 2px; word-break: break-word; }
         .ae-count { font-size: 11.5px; color: var(--muted); margin: 2px 0 10px; }
@@ -361,7 +378,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.1.0</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.2.0</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -387,9 +404,9 @@
                     <div class="dropdown-item" id="itemEditMode" onclick="toggleEditMode()">⚙️ <span>開啟修改</span></div>
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-label">備份</div>
-                    <div class="dropdown-item" onclick="openDriveModal()">☁️ <span>Google Drive 自動備份</span></div>
-                    <div class="dropdown-item" onclick="downloadBackup()">📥 <span>下載備份檔</span></div>
-                    <div class="dropdown-item" onclick="document.getElementById('importFile').click()">📂 <span>從備份檔還原</span></div>
+                    <div class="dropdown-item" onclick="shareBackupToDrive()">☁️ <span>備份到 Google Drive</span></div>
+                    <div class="dropdown-item" onclick="downloadBackup()">📥 <span>下載備份檔到手機</span></div>
+                    <div class="dropdown-item" onclick="openRestore()">📂 <span>從備份檔還原（可選 Drive）</span></div>
                     <div class="dropdown-item" onclick="exportData()">📋 <span>複製筆記文字</span></div>
                 </div>
                 <input type="file" id="importFile" accept=".json,application/json,text/plain,*/*" style="display: none;" onchange="importData(event)">
@@ -401,13 +418,9 @@
             <button class="btn-primary" onclick="addMainTask()">新增</button>
         </div>
         <div id="voiceStatus"></div>
-        <div id="driveBanner" class="drive-banner">
-            <span>☁️ 今天還沒備份到 Google Drive</span>
-            <button class="bb-btn primary" onclick="driveBackupNow()">立即備份</button>
-        </div>
         <div id="backupBanner" class="backup-banner">
             <span id="backupBannerText">好一陣子沒備份了</span>
-            <button class="bb-btn primary" onclick="downloadBackup()">立即備份</button>
+            <button class="bb-btn primary" onclick="quickBackup()">☁️ 立即備份</button>
             <button class="bb-btn" onclick="snoozeBackup()">稍後</button>
         </div>
     </div>
@@ -670,36 +683,6 @@
             <div class="lv-stats" id="lvStats"></div>
             <button class="btn-primary pm-start" id="lvAiAll" onclick="lvAiAll(false)">🤖 AI 一鍵標示</button>
             <button class="btn-outline pm-start" onclick="lvAiAll(true)">重新判斷全部單字</button>
-        </div>
-    </div>
-
-    <!-- Google Drive 備份 -->
-    <div id="driveModal" class="modal-overlay play-modal" onclick="if(event.target===this) closeDriveModal()">
-        <div class="modal-content">
-            <div class="pm-title"><h3>☁️ Google Drive 自動備份</h3><button class="pm-close" onclick="closeDriveModal()">×</button></div>
-            <div class="pm-hint">每天第一次開啟 App 時備份一次，存到你 Google Drive 的「英語學習筆記本備份」資料夾（一天一個檔案）。</div>
-            <div class="pm-label">Google OAuth 用戶端 ID</div>
-            <input type="text" id="drClientId" class="dr-input" placeholder="xxxxxxxx.apps.googleusercontent.com" autocomplete="off" spellcheck="false" oninput="saveDriveClientId()">
-            <details class="dr-help">
-                <summary>如何取得用戶端 ID？（只需設定一次）</summary>
-                <ol>
-                    <li>用<b>個人 Gmail</b> 開啟 <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a>，建立一個新專案。</li>
-                    <li>左側「API 和服務 → 程式庫」，搜尋 <b>Google Drive API</b> 並按「啟用」。</li>
-                    <li>「OAuth 同意畫面」：使用者類型選「外部」，填好 App 名稱與 Email；在「測試使用者」加入你自己的 Gmail。</li>
-                    <li>「憑證 → 建立憑證 → OAuth 用戶端 ID」，類型選「網頁應用程式」。</li>
-                    <li>「已授權的 JavaScript 來源」填入：<code>https://chahan1.github.io</code></li>
-                    <li>建立後複製「用戶端 ID」，貼到上面的欄位。</li>
-                </ol>
-                第一次登入時 Google 可能顯示「這個應用程式未經驗證」，因為是你自己建立的，可以按「繼續」。
-            </details>
-            <div class="pm-label">每天自動備份</div>
-            <div class="seg" id="drAuto">
-                <button data-v="on" onclick="setDriveAuto(true)">開啟</button>
-                <button data-v="off" onclick="setDriveAuto(false)">關閉</button>
-            </div>
-            <div class="pm-hint" id="drStatus"></div>
-            <a class="dr-link" id="drFolder" href="#" target="_blank" rel="noopener">📁 開啟 Google Drive 備份資料夾 ›</a>
-            <button class="btn-primary pm-start" onclick="driveBackupNow()">☁️ 立即備份到 Google Drive</button>
         </div>
     </div>
 
@@ -2028,8 +2011,8 @@
 
         function statBadgeHtml(g) {
             const p = g.playCount || 0, cr = g.czRight || 0, ct = cr + (g.czWrong || 0);
-            const rdc = g.readCount || 0;
-            return (p ? `<span class="st-badge" title="播放次數">▶ ${p}</span>` : '') + (rdc ? `<span class="st-badge" title="朗讀次數">🗣️ ${rdc}</span>` : '') + (ct ? `<span class="st-badge" title="克漏字 答對／作答">✍️ ${cr}/${ct}</span>` : '');
+            const rdc = g.readCount || 0, rsc = g.readScore != null ? `・${g.readScore}分` : '';
+            return (p ? `<span class="st-badge" title="播放次數">▶ ${p}</span>` : '') + (rdc ? `<span class="st-badge" title="朗讀次數・最近一次 AI 評分">🗣️ ${rdc}${rsc}</span>` : '') + (ct ? `<span class="st-badge" title="克漏字 答對／作答">✍️ ${cr}/${ct}</span>` : '');
         }
         function refreshBadge(id) {
             const f = findGrand(id), el = document.querySelector(`.grandtask-row[data-id="${id}"] .st-badges`);
@@ -2478,124 +2461,6 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
             await aiTagLevels(all, !!force);
         }
 
-        // ================= 2. Google Drive 每日自動備份 =================
-        const DRIVE_KEY = 'eng_drive';
-        let driveCfg = { clientId: '', auto: true, lastDay: '', lastAt: 0, folderId: '', fileDay: '', fileId: '', authed: false };
-        try { Object.assign(driveCfg, JSON.parse(localStorage.getItem(DRIVE_KEY)) || {}); } catch (e) {}
-        let driveToken = null, driveTokenExp = 0, gisPromise = null, driveBusy = false;
-        const saveDriveCfg = () => localStorage.setItem(DRIVE_KEY, JSON.stringify(driveCfg));
-        function loadGIS() {
-            if (window.google && google.accounts && google.accounts.oauth2) return Promise.resolve();
-            return gisPromise = gisPromise || new Promise((res, rej) => {
-                const s = document.createElement('script');
-                s.src = 'https://accounts.google.com/gsi/client'; s.async = true;
-                s.onload = res; s.onerror = () => { gisPromise = null; rej(new Error('無法載入 Google 登入元件（請確認網路）')); };
-                document.head.appendChild(s);
-            });
-        }
-        function driveTokenValid() { return driveToken && Date.now() < driveTokenExp - 60000; }
-        async function getDriveToken() {
-            if (driveTokenValid()) return driveToken;
-            if (!driveCfg.clientId) throw new Error('請先填入 Google OAuth 用戶端 ID');
-            await loadGIS();
-            return new Promise((res, rej) => {
-                const tc = google.accounts.oauth2.initTokenClient({
-                    client_id: driveCfg.clientId,
-                    scope: 'https://www.googleapis.com/auth/drive.file',
-                    callback: r => {
-                        if (r.error) return rej(new Error(r.error_description || r.error));
-                        driveToken = r.access_token; driveTokenExp = Date.now() + (Number(r.expires_in) || 3600) * 1000;
-                        driveCfg.authed = true; saveDriveCfg(); res(driveToken);
-                    },
-                    error_callback: e => rej(new Error(e && e.type === 'popup_closed' ? '登入視窗被關閉了' : (e && (e.message || e.type)) || 'Google 登入失敗'))
-                });
-                tc.requestAccessToken({ prompt: driveCfg.authed ? '' : 'consent' });
-            });
-        }
-        async function driveFetch(url, opts = {}) {
-            const r = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + driveToken } });
-            if (r.status === 401) { driveToken = null; const e = new Error('Google 授權已過期，請重新登入'); e.status = 401; throw e; }
-            if (!r.ok) { let m = 'HTTP ' + r.status; try { m = (await r.json()).error.message || m; } catch (e) {} const e = new Error(m); e.status = r.status; throw e; }
-            return r.json();
-        }
-        async function ensureDriveFolder() {
-            if (driveCfg.folderId) {
-                try { const f = await driveFetch(`https://www.googleapis.com/drive/v3/files/${driveCfg.folderId}?fields=id,trashed`); if (!f.trashed) return f.id; }
-                catch (e) { if (e.status === 401) throw e; }
-            }
-            const f = await driveFetch('https://www.googleapis.com/drive/v3/files?fields=id', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: '英語學習筆記本備份', mimeType: 'application/vnd.google-apps.folder' })
-            });
-            driveCfg.folderId = f.id; driveCfg.fileDay = ''; driveCfg.fileId = ''; saveDriveCfg();
-            return f.id;
-        }
-        function multipartBody(meta, content) {
-            const b = 'eng' + Date.now();
-            return { boundary: b, body: `--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${content}\r\n--${b}--` };
-        }
-        // 上傳今天的備份（同一天重複備份會覆蓋同一個檔案）
-        async function uploadDriveBackup() {
-            const folder = await ensureDriveFolder();
-            const day = dayKey(Date.now()), name = `english-notes-backup_${day.replace(/-/g, '')}.json`;
-            const content = JSON.stringify(tasks, null, 2);
-            let f = null;
-            if (driveCfg.fileDay === day && driveCfg.fileId) {
-                const m = multipartBody({ name }, content);
-                try { f = await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${driveCfg.fileId}?uploadType=multipart&fields=id`, { method: 'PATCH', headers: { 'Content-Type': 'multipart/related; boundary=' + m.boundary }, body: m.body }); }
-                catch (e) { if (e.status === 401) throw e; f = null; }
-            }
-            if (!f) {
-                const m = multipartBody({ name, mimeType: 'application/json', parents: [folder] }, content);
-                f = await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + m.boundary }, body: m.body });
-            }
-            Object.assign(driveCfg, { fileDay: day, fileId: f.id, lastDay: day, lastAt: Date.now() }); saveDriveCfg();
-            localStorage.setItem(LAST_BACKUP_KEY, Date.now());
-            checkBackupReminder(); refreshDriveBanner();
-        }
-        // 按鈕觸發（可以跳出 Google 登入視窗）
-        async function driveBackupNow() {
-            if (driveBusy) return;
-            if (!tasks.length) return showToast('沒有筆記可以備份');
-            if (!navigator.onLine) return showToast('📴 目前離線，連上網路後再備份');
-            driveBusy = true;
-            try {
-                await getDriveToken();
-                showToast('☁️ 正在備份到 Google Drive…', 10000);
-                await uploadDriveBackup();
-                showToast('✅ 已備份到 Google Drive');
-            } catch (e) { showToast('Google Drive 備份失敗：' + e.message, 4000); }
-            finally { driveBusy = false; refreshDriveModal(); }
-        }
-        // 每天自動：已登入（授權還有效）就直接備份；否則在上方顯示「點一下備份」
-        async function autoDriveBackup() {
-            if (!driveCfg.clientId || !driveCfg.auto || !tasks.length || !navigator.onLine || driveBusy) { refreshDriveBanner(); return; }
-            if (driveCfg.lastDay === dayKey(Date.now())) { refreshDriveBanner(); return; }
-            if (driveTokenValid()) {
-                driveBusy = true;
-                try { await uploadDriveBackup(); showToast('☁️ 今天的筆記已自動備份到 Google Drive'); }
-                catch (e) { console.warn('自動備份失敗', e); }
-                finally { driveBusy = false; }
-            }
-            refreshDriveBanner();
-        }
-        function refreshDriveBanner() {
-            const due = driveCfg.clientId && driveCfg.auto && tasks.length && driveCfg.lastDay !== dayKey(Date.now());
-            document.getElementById('driveBanner').classList.toggle('show', !!due);
-        }
-        function openDriveModal() { refreshDriveModal(); document.getElementById('driveModal').style.display = 'flex'; }
-        function closeDriveModal() { document.getElementById('driveModal').style.display = 'none'; refreshDriveBanner(); }
-        function refreshDriveModal() {
-            const $ = id => document.getElementById(id);
-            $('drClientId').value = driveCfg.clientId;
-            document.querySelectorAll('#drAuto button').forEach(b => b.classList.toggle('on', (b.dataset.v === 'on') === !!driveCfg.auto));
-            $('drStatus').textContent = driveCfg.lastAt ? `上次備份：${new Date(driveCfg.lastAt).toLocaleString('zh-TW', { hour12: false })}` : '還沒有備份過';
-            $('drFolder').style.display = driveCfg.folderId ? 'inline' : 'none';
-            $('drFolder').href = `https://drive.google.com/drive/folders/${driveCfg.folderId}`;
-        }
-        function saveDriveClientId() { driveCfg.clientId = document.getElementById('drClientId').value.trim(); driveToken = null; saveDriveCfg(); }
-        function setDriveAuto(v) { driveCfg.auto = v; saveDriveCfg(); refreshDriveModal(); }
-
         // ================= 4. 一鍵替沒有例句的單字產生例句 =================
         let fillingMissing = false;
         async function fillMissingExamples() {
@@ -2707,9 +2572,11 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
                         <div class="rd-en">${escapeHtml(it.en)}</div>
                         ${readSettings.showCn && it.cn ? `<div class="rd-cn">${escapeHtml(it.cn)}</div>` : ''}
                         <div class="rd-word">${escapeHtml(cleanForSpeech(it.word))}</div>
+                        ${recBarHtml(it)}
                     </div>
                     <div class="rd-acts">
                         <button class="icon-btn speak" title="聽一遍" data-speak="${escapeAttr(it.en)}" onclick="speakText(this.dataset.speak, ${it.id})">${ICON.speak}</button>
+                        <button class="rd-rec ${rec.id === it.id ? 'on' : ''}" title="${rec.id === it.id ? '停止錄音' : '錄下自己的朗讀'}" onclick="toggleRecord(${it.id})">🎙️</button>
                         <button class="rd-check" title="念過了" onclick="toggleReadDone(${it.id})">✓</button>
                     </div>
                 </div>`;
@@ -2722,18 +2589,18 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
                 $('rdNavText').textContent = `${rd.i + 1} / ${total}`;
             }
         }
-        function toggleReadDone(id) {
+        function toggleReadDone(id, stay) {
             if (rd.done.has(id)) rd.done.delete(id);
             else {
                 rd.done.add(id);
                 const f = findGrand(id);
                 if (f) { f.g.readCount = (f.g.readCount || 0) + 1; f.g.lastReadAt = Date.now(); refreshBadge(id); saveQuiet(); }
-                if (readSettings.view === 'card' && rd.i < rd.list.length - 1) { rd.i++; }
+                if (!stay && readSettings.view === 'card' && rd.i < rd.list.length - 1) { rd.i++; }
             }
             renderReading();
             if (rd.done.size === rd.list.length) showToast(`🎉 ${rd.list.length} 句都念過了！`);
         }
-        function readNav(d) { rd.i = Math.max(0, Math.min(rd.list.length - 1, rd.i + d)); renderReading(); }
+        function readNav(d) { if (rec.id) stopRecord(); rd.i = Math.max(0, Math.min(rd.list.length - 1, rd.i + d)); renderReading(); }
         function readFont(d) { readSettings.font = Math.max(14, Math.min(30, readSettings.font + d)); saveReadSettings(); renderReading(); }
         function readToggleCn() { readSettings.showCn = !readSettings.showCn; saveReadSettings(); renderReading(); }
         function readToggleView() { readSettings.view = readSettings.view === 'list' ? 'card' : 'list'; saveReadSettings(); renderReading(); }
@@ -2743,7 +2610,212 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
             try { await navigator.clipboard.writeText(text); } catch (e) { const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
             showToast(`📋 已複製 ${rd.list.length} 句`);
         }
-        function closeReading() { document.body.classList.remove('read-open'); saveData(); }
+        function closeReading() { releaseRecordings(); document.body.classList.remove('read-open'); saveData(); }
+
+        // ================= 朗讀錄音與 AI 評分 =================
+        const rec = { id: null, mr: null, chunks: [], stream: null, timer: null, start: 0, clips: {}, results: {}, busy: null };
+
+        async function toggleRecord(id) {
+            if (rec.id === id) return stopRecord();
+            if (rec.id) stopRecord();
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) return showToast('這個瀏覽器不支援錄音');
+            try { rec.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
+            catch (e) { return showToast('無法使用麥克風\n請允許 App 使用麥克風', 3500); }
+            if (player.playing) playerPause();
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'].find(m => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || '';
+            const mr = new MediaRecorder(rec.stream, mime ? { mimeType: mime } : undefined);
+            rec.mr = mr; rec.chunks = []; rec.id = id; rec.start = Date.now();
+            mr.ondataavailable = e => { if (e.data && e.data.size) rec.chunks.push(e.data); };
+            mr.onstop = () => {
+                const type = (mr.mimeType || mime || 'audio/webm').split(';')[0];
+                const blob = new Blob(rec.chunks, { type }), dur = (Date.now() - rec.start) / 1000;
+                if (rec.stream) rec.stream.getTracks().forEach(t => t.stop());
+                const old = rec.clips[id]; if (old) URL.revokeObjectURL(old.url);
+                rec.clips[id] = { blob, url: URL.createObjectURL(blob), mime: type, dur };
+                delete rec.results[id];
+                rec.id = null; rec.mr = null; rec.stream = null; clearInterval(rec.timer);
+                if (!rd.done.has(id)) toggleReadDone(id, true); else renderReading();
+            };
+            mr.start();
+            rec.timer = setInterval(() => { const el = document.getElementById('recTime'); if (el) el.textContent = Math.floor((Date.now() - rec.start) / 1000) + 's'; }, 250);
+            renderReading();
+            setTimeout(() => { if (rec.id === id && rec.mr === mr) stopRecord(); }, 30000);   // 最長 30 秒
+        }
+        function stopRecord() { if (rec.mr && rec.mr.state !== 'inactive') rec.mr.stop(); }
+        let myAudio = null;
+        function playMyRecording(id) {
+            const c = rec.clips[id]; if (!c) return;
+            if (myAudio) myAudio.pause();
+            myAudio = new Audio(c.url); myAudio.play().catch(() => showToast('無法播放錄音'));
+        }
+
+        // ---- 逐字比對（找出漏念、念錯的字）----
+        const wordsOf = s => cleanForSpeech(s).toLowerCase().replace(/[’`]/g, "'").replace(/[^a-z0-9' -]/g, ' ').split(/\s+/).filter(Boolean);
+        function wordDiff(target, heard) {
+            const a = wordsOf(target), b = wordsOf(heard);
+            const near = (x, y) => x === y || (x.length >= 5 && czDistance(x, y) <= 1);
+            const L = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
+            for (let i = a.length - 1; i >= 0; i--) for (let j = b.length - 1; j >= 0; j--)
+                L[i][j] = near(a[i], b[j]) ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+            const marks = [], extra = [];
+            let i = 0, j = 0;
+            while (i < a.length && j < b.length) {
+                if (near(a[i], b[j])) { marks.push({ w: a[i], ok: true }); i++; j++; }
+                else if (L[i + 1][j] >= L[i][j + 1]) { marks.push({ w: a[i], ok: false }); i++; }
+                else { extra.push(b[j]); j++; }
+            }
+            while (i < a.length) marks.push({ w: a[i++], ok: false });
+            while (j < b.length) extra.push(b[j++]);
+            const ok = marks.filter(m => m.ok).length;
+            return { marks, extra, accuracy: a.length ? ok / a.length : 0, missed: marks.filter(m => !m.ok).map(m => m.w) };
+        }
+
+        // ---- 語音辨識：Groq Whisper（首選）／Free.ai ----
+        async function groqTranscribe(clip) {
+            const key = getKey('groq'); let last = null;
+            const ext = clip.mime.includes('mp4') ? 'm4a' : clip.mime.includes('ogg') ? 'ogg' : clip.mime.includes('wav') ? 'wav' : 'webm';
+            for (const model of ['whisper-large-v3-turbo', 'whisper-large-v3']) {
+                try {
+                    const fd = new FormData();
+                    fd.append('file', clip.blob, 'reading.' + ext); fd.append('model', model); fd.append('language', 'en'); fd.append('response_format', 'json');
+                    const r = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', { method: 'POST', headers: { Authorization: 'Bearer ' + key }, body: fd });
+                    if (!r.ok) { let m = 'HTTP ' + r.status; try { m = (await r.json()).error.message || m; } catch (e) {} const e = new Error(m); e.status = r.status; throw e; }
+                    const j = await r.json();
+                    return String(j.text || '').trim();
+                } catch (e) { last = e; const k = classifyError(e); if (k === 'key' || k === 'offline') break; }
+            }
+            throw last;
+        }
+        async function freeTranscribe(clip) {
+            const key = getKey('freeai');
+            const fd = new FormData(); fd.append('file', clip.blob, 'reading.webm'); fd.append('language', 'en');
+            const r = await fetch(FREEAI_BASE + '/v1/stt/transcribe/', { method: 'POST', headers: { Authorization: 'Bearer ' + key }, body: fd });
+            if (!r.ok) { const e = new Error('Free.ai 語音辨識失敗 HTTP ' + r.status); e.status = r.status; throw e; }
+            let j = await r.json();
+            for (let t = 0; !(j.text || j.transcript) && (j.job_id || j.id) && t < 30; t++) {
+                await sleep(1000);
+                j = await (await fetch(`${FREEAI_BASE}/v1/status/${j.job_id || j.id}/`, { headers: { Authorization: 'Bearer ' + key } })).json();
+            }
+            return String(j.text || j.transcript || j.result?.text || '').trim();
+        }
+
+        // ---- Gemini：直接「聽」錄音評估發音 ----
+        function bytesToB64(bytes) { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); }
+        async function clipToWavB64(clip) {
+            const decoded = await decodeToClip(await clip.blob.arrayBuffer());
+            const pcm = resamplePCM(decoded.pcm, decoded.rate, 16000);
+            const wav = new Uint8Array(44 + pcm.byteLength);
+            wav.set(new Uint8Array(wavHeader(16000, pcm.byteLength)), 0); wav.set(new Uint8Array(pcm), 44);
+            return bytesToB64(wav);
+        }
+        async function geminiListen(target, clip) {
+            const key = getKey('gemini'), audio = await clipToWavB64(clip); let last = null;
+            const prompt = `這是一位以中文為母語的學生朗讀英文句子的錄音。目標句子是：
+"${target}"
+請仔細聽錄音，以英語老師的角度評估：發音是否清楚正確、有沒有漏念或念錯的字、流暢度、重音與語調。
+請只回傳 JSON（說明都用繁體中文）：
+{"transcript": "你實際聽到的英文", "score": 0到100的總分, "pronunciation": 0到100, "fluency": 0到100, "summary": "一句話總評", "issues": [{"word": "有問題的英文字", "tip": "具體怎麼改進"}], "suggestions": ["其他建議"], "encouragement": "一句鼓勵"}
+issues 最多 4 項；如果念得很好，issues 可以是空陣列，並給進階建議（如連音、語調）。`;
+            for (const model of GEMINI_MODELS) {
+                try {
+                    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+                        body: JSON.stringify({ contents: [{ parts: [{ inline_data: { mime_type: 'audio/wav', data: audio } }, { text: prompt }] }], generationConfig: { responseMimeType: 'application/json' } })
+                    });
+                    if (!r.ok) { let m = 'HTTP ' + r.status; try { m = (await r.json()).error.message || m; } catch (e) {} const e = new Error(m); e.status = r.status; throw e; }
+                    const j = await r.json();
+                    return extractJSON((j?.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join(''));
+                } catch (e) { last = e; const k = classifyError(e); if (k === 'key' || k === 'offline' || k === 'quota') break; }
+            }
+            throw last;
+        }
+
+        // ---- 綜合評分 ----
+        async function assessRecording(it, clip) {
+            const target = it.en, words = wordsOf(target).length || 1;
+            const wpm = Math.round(words / Math.max(1, clip.dur) * 60);
+            // 流暢度：每分鐘 90～170 字算自然
+            const fluencyPts = wpm >= 90 && wpm <= 170 ? 100 : wpm < 90 ? Math.max(30, Math.round(wpm / 90 * 100)) : Math.max(50, Math.round(100 - (wpm - 170) / 2));
+            if (getKey('gemini')) {
+                try {
+                    const g = await geminiListen(target, clip);
+                    const diff = wordDiff(target, g.transcript || '');
+                    const ai = Number(g.score); const acc = Math.round(diff.accuracy * 100);
+                    return { score: Math.round(isFinite(ai) ? ai * 0.6 + acc * 0.4 : acc), accuracy: acc, fluency: Number(g.fluency) || fluencyPts, pronunciation: Number(g.pronunciation) || null,
+                             transcript: g.transcript || '', diff, wpm, summary: g.summary || '', issues: g.issues || [], suggestions: g.suggestions || [], encouragement: g.encouragement || '', via: 'Gemini 聽音評估' };
+                } catch (e) { console.warn('Gemini 評估失敗，改用語音辨識比對', e); }
+            }
+            let transcript = '', via = '';
+            if (getKey('groq')) { try { transcript = await groqTranscribe(clip); via = 'Groq 語音辨識'; } catch (e) { if (!getKey('freeai')) throw e; } }
+            if (!via && getKey('freeai')) { transcript = await freeTranscribe(clip); via = 'Free.ai 語音辨識'; }
+            if (!via) throw new Error('沒有可用的語音辨識服務，請在「AI 金鑰設定」填入 Groq 金鑰');
+            const diff = wordDiff(target, transcript), acc = Math.round(diff.accuracy * 100);
+            let tips = {};
+            try {
+                tips = await aiJSON(`一位以中文為母語的學生朗讀這句英文：
+"${target}"
+語音辨識聽到的是："${transcript || '（沒有辨識到內容）'}"
+沒有被正確辨識的字（可能是漏念或發音不清楚）：${diff.missed.length ? diff.missed.join(', ') : '無'}
+多出來的字：${diff.extra.length ? diff.extra.join(', ') : '無'}
+朗讀時間約 ${clip.dur.toFixed(1)} 秒（約每分鐘 ${wpm} 字）。
+請以英語老師的角度，用繁體中文給具體的朗讀與發音改進建議（辨識不出來的字，通常代表發音不夠清楚，請說明該字的發音重點，例如重音、母音、字尾子音）。
+請只回傳 JSON：{"summary": "一句話總評", "issues": [{"word": "英文字", "tip": "具體怎麼改進"}], "suggestions": ["其他建議"], "encouragement": "一句鼓勵"}
+issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建議（如連音、語調、速度）。`);
+            } catch (e) { tips = { summary: '', issues: diff.missed.slice(0, 4).map(w => ({ word: w, tip: '這個字沒有被辨識出來，可能是漏念或發音不夠清楚，請聽原音再跟讀。' })) }; }
+            return { score: Math.round(acc * 0.85 + fluencyPts * 0.15), accuracy: acc, fluency: fluencyPts, pronunciation: null, transcript, diff, wpm,
+                     summary: tips.summary || '', issues: tips.issues || [], suggestions: tips.suggestions || [], encouragement: tips.encouragement || '', via: via + '＋逐字比對（僅供參考）' };
+        }
+
+        async function evaluateReading(id) {
+            const c = rec.clips[id], it = rd.list.find(x => x.id === id);
+            if (!c || !it || rec.busy) return;
+            if (!navigator.onLine) return showToast('📴 需要網路才能 AI 評分');
+            if (!getKey('groq') && !getKey('gemini') && !getKey('freeai')) return openKeyModal();
+            if (!localStorage.getItem('eng_recConsent')) {
+                if (!confirm('AI 評分會把這段錄音上傳到你設定的 AI 服務（Gemini／Groq／Free.ai）進行分析。\n錄音不會存到其他地方。要繼續嗎？')) return;
+                localStorage.setItem('eng_recConsent', '1');
+            }
+            rec.busy = id; renderReading();
+            try {
+                const r = await assessRecording(it, c);
+                rec.results[id] = r;
+                const f = findGrand(id);
+                if (f) { f.g.readScore = r.score; f.g.readBest = Math.max(f.g.readBest || 0, r.score); refreshBadge(id); saveQuiet(); }
+            } catch (e) { showToast('AI 評分失敗：' + (e.message || '未知錯誤'), 4000); }
+            finally { rec.busy = null; renderReading(); }
+        }
+
+        // ---- 錄音列與評分結果的畫面 ----
+        function recBarHtml(it) {
+            const id = it.id, c = rec.clips[id], r = rec.results[id];
+            if (rec.id === id) return `<div class="rec-bar recording"><span class="rec-dot"></span>錄音中 <b id="recTime">0s</b>　念完請再按一次 🎙️ 停止</div>`;
+            if (!c) return '';
+            let html = `<div class="rec-bar">
+                <button class="rec-btn" onclick="playMyRecording(${id})">▶ 我的錄音 ${c.dur.toFixed(0)}s</button>
+                <button class="rec-btn" onclick="toggleRecord(${id})">🔄 重錄</button>
+                <button class="rec-btn ai" onclick="evaluateReading(${id})" ${rec.busy ? 'disabled' : ''}>${rec.busy === id ? '🤖 分析中…' : r ? '🤖 再評一次' : '🤖 AI 評分'}</button></div>`;
+            if (r) {
+                const color = r.score >= 85 ? 'good' : r.score >= 60 ? 'mid' : 'low';
+                const heard = r.diff.marks.map(m => m.ok ? escapeHtml(m.w) : `<span class="rv-miss">${escapeHtml(m.w)}</span>`).join(' ');
+                html += `<div class="rv-card">
+                    <div class="rv-top"><div class="rv-score ${color}">${r.score}<small>分</small></div>
+                        <div class="rv-meta">準確度 ${r.accuracy}%${r.pronunciation ? `・發音 ${r.pronunciation}` : ''}・流暢度 ${Math.round(r.fluency)}<br>速度約 ${r.wpm} 字／分</div></div>
+                    ${r.summary ? `<div class="rv-sum">${escapeHtml(r.summary)}</div>` : ''}
+                    <div class="rv-label">逐字比對（紅色＝沒被辨識到）</div><div class="rv-heard">${heard}</div>
+                    <div class="rv-label">AI 聽到</div><div class="rv-tr">${escapeHtml(r.transcript || '（沒有辨識到內容）')}</div>
+                    ${r.issues.length ? `<div class="rv-label">改進建議</div><ul class="rv-list">${r.issues.map(x => `<li><b>${escapeHtml(x.word || '')}</b> ${escapeHtml(x.tip || '')}</li>`).join('')}</ul>` : ''}
+                    ${r.suggestions.length ? `<ul class="rv-list sub">${r.suggestions.map(x => `<li>${escapeHtml(String(x))}</li>`).join('')}</ul>` : ''}
+                    ${r.encouragement ? `<div class="rv-enc">💪 ${escapeHtml(r.encouragement)}</div>` : ''}
+                    <div class="rv-via">評分方式：${escapeHtml(r.via)}</div></div>`;
+            }
+            return html;
+        }
+        function releaseRecordings() {
+            stopRecord();
+            Object.values(rec.clips).forEach(c => URL.revokeObjectURL(c.url));
+            rec.clips = {}; rec.results = {};
+        }
 
         // --- 4. 選單切換 ---
 
@@ -2854,11 +2926,39 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
             document.body.appendChild(a); a.click();
             setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 3000);
 
-            localStorage.setItem(LAST_BACKUP_KEY, Date.now());
-            localStorage.removeItem(SNOOZE_KEY);
-            checkBackupReminder();
+            markBackedUp();
             const c = countWords();
             showToast(`✅ 已備份 ${c.mains} 個主題、${c.subs} 個單字、${c.grands} 個例句\n檔案在手機的「下載」資料夾`, 3500);
+        }
+        function markBackedUp() { localStorage.setItem(LAST_BACKUP_KEY, Date.now()); localStorage.removeItem(SNOOZE_KEY); checkBackupReminder(); }
+        function backupFileName(ext) {
+            const d = new Date(), pad = n => String(n).padStart(2, '0');
+            return `english-notes-backup_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.${ext}`;
+        }
+        const canShareFiles = () => { try { return !!(navigator.canShare && navigator.canShare({ files: [new File(['x'], 't.txt', { type: 'text/plain' })] })); } catch (e) { return false; } };
+        // 備份到 Google Drive：用手機的「分享」，在分享選單選「雲端硬碟」直接存進 Drive（不需要任何設定）
+        async function shareBackupToDrive() {
+            if (tasks.length === 0) return alert("沒有筆記可備份！");
+            const file = new File([JSON.stringify(tasks, null, 2)], backupFileName('txt'), { type: 'text/plain' });
+            if (!canShareFiles() || !navigator.canShare({ files: [file] })) {
+                showToast('這個瀏覽器不支援直接分享\n改為下載到手機，可再從「檔案」App 上傳到 Drive', 4000);
+                return downloadBackup();
+            }
+            try {
+                await navigator.share({ files: [file], title: '英語學習筆記本備份' });
+                markBackedUp();
+                const c = countWords();
+                showToast(`✅ 已送出備份（${c.subs} 個單字、${c.grands} 個例句）\n若選了「雲端硬碟」，檔案就在你的 Google Drive`, 4000);
+            } catch (e) {
+                if (e && e.name === 'AbortError') return;   // 使用者取消
+                showToast('分享失敗，改為下載到手機', 3000); downloadBackup();
+            }
+        }
+        function quickBackup() { canShareFiles() ? shareBackupToDrive() : downloadBackup(); }
+        // 還原：檔案選擇畫面可以直接選 Google Drive 裡的備份檔
+        function openRestore() {
+            showToast('在檔案選擇畫面點左上角 ☰\n選「雲端硬碟」就能找到 Google Drive 裡的備份檔', 5000);
+            setTimeout(() => document.getElementById('importFile').click(), 400);
         }
 
         function snoozeBackup() {
@@ -3284,9 +3384,7 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
 
         initViewToggles(); initHideExCnBtn(); initTimeBtn(); initToggleBtn(); renderTasks(); checkBackupReminder();
         setTimeout(() => processPendingAI(), 2000);   // 開啟 App 時若有網路，自動補齊
-        setTimeout(() => autoDriveBackup(), 3000);     // 每天第一次開啟：Google Drive 自動備份
-        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') autoDriveBackup(); });
-        window.addEventListener('online', () => setTimeout(autoDriveBackup, 2000));
+        localStorage.removeItem('eng_drive');          // 舊版「Google Drive 自動備份」設定已移除
 
         // --- 9. 註冊 Service Worker（PWA 離線開啟） ---
         if ('serviceWorker' in navigator && location.protocol !== 'file:') {
