@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.5.1 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.6.0 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -257,6 +257,19 @@
         .lv-grid button .lv-badge { margin: 0; font-size: 13px; line-height: 20px; padding: 0 8px; }
         .lv-grid button.on { border-color: var(--green); background: var(--green-light); }
         .lv-row2 { display: flex; gap: 8px; margin-top: 10px; }
+        .pf-modal { max-height: 88vh; display: flex; flex-direction: column; }
+        .pf-tools { display: flex; gap: 6px; margin: 8px 0 4px; }
+        .pf-tools .btn-outline { padding: 4px 10px; font-size: 12px; }
+        .pf-list { overflow-y: auto; flex: 1; min-height: 80px; margin: 0 -4px; padding: 0 4px; }
+        .pf-group { font-size: 12.5px; font-weight: 700; color: var(--green); margin: 10px 0 4px; }
+        .pf-item { display: flex; gap: 8px; align-items: flex-start; padding: 8px 6px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .pf-item input { margin-top: 3px; width: 17px; height: 17px; accent-color: var(--green); flex-shrink: 0; }
+        .pf-body { flex: 1; min-width: 0; font-size: 13px; line-height: 1.45; }
+        .pf-path { font-size: 10.5px; color: var(--muted); }
+        .pf-from { color: #c5221f; text-decoration: line-through; text-decoration-color: rgba(197,34,31,.5); }
+        .pf-to { color: #137333; font-weight: 500; }
+        .pf-reason { font-size: 11.5px; color: #5f6368; margin-top: 2px; }
+        .lv-row2 .btn-primary:disabled { opacity: .5; }
         .us-badge { display: inline-block; font-size: 9.5px; font-weight: 600; border-radius: 5px; padding: 0 4px; margin-left: 4px; line-height: 15px; vertical-align: 2px; cursor: pointer; font-style: normal; white-space: nowrap; }
         .us-spoken { background: #e6f4ea; color: #137333; } .us-neutral { background: #f1f3f4; color: #5f6368; }
         .us-formal { background: #fef7e0; color: #b06000; } .us-rare { background: #fce8e6; color: #c5221f; }
@@ -419,7 +432,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.5.1</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.6.0</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -433,6 +446,8 @@
                     <div class="dropdown-item" onclick="openReport()">📊 <span>複習報表</span></div>
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-label">AI 工具</div>
+                    <div class="dropdown-item" onclick="proofAll()">🩺 <span>一鍵檢查並修正例句與單字</span></div>
+                    <div class="dropdown-item" id="itemUndoProof" style="display:none" onclick="undoProof()">↩ <span>復原上次的 AI 修正</span></div>
                     <div class="dropdown-item" onclick="fillMissingDefinitions()">📖 <span>一鍵補齊釋義／同義字／常用度／搭配</span></div>
                     <div class="dropdown-item" onclick="fillMissingExamples()">🧩 <span>替沒有例句的單字補例句</span></div>
                     <div class="dropdown-item" onclick="openLevelModal()">🏷️ <span>單字難易度 A1–C2</span></div>
@@ -648,6 +663,15 @@
     </div>
 
     <!-- AI 例句風格 -->
+    <div id="proofModal" class="modal-overlay play-modal" onclick="if(event.target===this) closeProofModal()">
+        <div class="modal-content pf-modal">
+            <div class="pm-title"><h3>🩺 建議的修正</h3><button class="pm-close" onclick="closeProofModal()">×</button></div>
+            <div class="pm-hint">紅色刪除線是原本的內容，綠色是 AI 建議的修正。請確認後勾選要套用的項目；沒勾選的會保留原樣，下次也不會再提出。</div>
+            <div class="pf-tools"><button class="btn-outline" onclick="pfAll(true)">全選</button><button class="btn-outline" onclick="pfAll(false)">全不選</button></div>
+            <div id="pfList" class="pf-list"></div>
+            <div class="lv-row2"><button class="btn-outline" onclick="closeProofModal()">稍後再說</button><button class="btn-primary" id="pfApply" onclick="applyProofFixes()">套用</button></div>
+        </div>
+    </div>
     <div id="styleModal" class="modal-overlay play-modal" onclick="if(event.target===this) closeStyleModal()">
         <div class="modal-content">
             <div class="pm-title"><h3>🎨 AI 例句風格</h3><button class="pm-close" onclick="closeStyleModal()">×</button></div>
@@ -1096,17 +1120,23 @@
   "synonyms": ["...", "..."],
   "usage": "neutral",
   "common": [],
-  "collocations": ["...", "..."]
+  "collocations": ["...", "..."],
+  "corrected_word": ""
 }
 （cefr 為這個單字／片語最常見意思的 CEFR 難易度：A1、A2、B1、B2、C1、C2 其中之一）
-${ENRICH_RULES}`;
+${ENRICH_RULES}
+（corrected_word：如果 "${cleanWord}" 拼錯了，或不是正確的英文寫法（例如片語的介系詞錯誤），請填正確寫法，並且 definition、sentence 等全部都以正確寫法為準；如果寫法正確就留空字串）`;
             try {
                 const result = await aiJSON(promptText);
-                const pick = await chooseSentence(result, cleanWord, rvWords);
+                const fixedWord = String(result.corrected_word || '').trim();
+                const correctedWord = fixedWord && /^[a-z][a-z '.\-]*$/i.test(fixedWord) && fixedWord.toLowerCase() !== cleanWord.toLowerCase() ? fixedWord : '';
+                const pick = await chooseSentence(result, correctedWord || cleanWord, rvWords);
                 return {
                     definition: result.definition || '(無法解析定義)',
                     sentence: pick.sentence ? `🤖 ${pick.sentence}` : null,
+                    proofed: !!pick.proofed,
                     reviewWords: pick.reviewWords,
+                    correctedWord, originalWord: cleanWord,
                     cefr: CEFR.includes(String(result.cefr || '').toUpperCase().trim()) ? String(result.cefr).toUpperCase().trim() : '',
                     synonyms: cleanSynonyms(result.synonyms, cleanWord),
                     ...cleanUsageFields(result, cleanWord)
@@ -2229,7 +2259,7 @@ review_sentence 的規則（非常重要）：
         // 請 AI 以母語老師的標準替句子的自然度打分（4 分以上才採用）
         async function checkNatural(sentenceText) {
             try {
-                const r = await aiJSON(`你是非常嚴格的英語母語老師。請評估下面這個英文例句是否自然、合乎邏輯、語意通順，像母語人士在真實情境中會說的話（而不是為了塞進單字而拼湊出來的句子）：
+                const r = await aiJSON(`你是非常嚴格的英語母語老師。請評估下面這個英文例句是否完全合乎文法、自然、合乎邏輯、語意通順，像母語人士在真實情境中會說的話（而不是為了塞進單字而拼湊出來的句子）：
 "${cleanForSpeech(sentenceText)}"
 評分 1～5 分：5＝非常自然；4＝自然；3＝勉強、有拼湊感；2 以下＝不自然或不合邏輯。
 請只回傳 JSON：{"score": 分數, "reason": "簡短的繁體中文理由"}`);
@@ -2241,12 +2271,31 @@ review_sentence 的規則（非常重要）：
             const base = String(result.sentence || '').trim();
             const rs = String(result.review_sentence || '').trim();
             const fallback = { sentence: base || rs, reviewWords: [] };
-            if (!rs || !rvWords.length) return fallback;
-            const used = wordsIn(rs, rvWords);
-            const len = cleanForSpeech(rs).split(/\s+/).length;
-            if (used.length !== 1 || !hasTarget(rs, word) || len > 26) return fallback;
-            return (await checkNatural(rs)) ? { sentence: rs, reviewWords: used } : fallback;
+            let pick = fallback;
+            if (rs && rvWords.length) {
+                const used = wordsIn(rs, rvWords);
+                const len = cleanForSpeech(rs).split(/\s+/).length;
+                if (used.length === 1 && hasTarget(rs, word) && len <= 26 && await checkNatural(rs)) pick = { sentence: rs, reviewWords: used };
+            }
+            return await proofPick(pick, word);
         }
+        // 每一句新例句都再請 AI 以母語編輯的標準校對一次；有錯就採用修正後的句子
+        async function proofPick(pick, word) {
+            if (!pick.sentence) return pick;
+            try {
+                const [r] = await proofSentences([{ word: clozeTarget(word) || word, text: pick.sentence }]);
+                if (!r) return pick;
+                if (r.ok) return { ...pick, proofed: true };
+                if (r.corrected && hasTarget(r.corrected, word)) return { sentence: r.corrected, reviewWords: wordsIn(r.corrected, pick.reviewWords || []), proofed: true, fixed: true };
+            } catch (e) { /* 校對失敗時保留原句，之後可用「一鍵檢查並修正」再檢查 */ }
+            return pick;
+        }
+        const QUALITY_RULES = `
+例句品質要求（最重要）：
+- 英文必須完全合乎文法（時態、主詞動詞一致、冠詞、介系詞、詞性、單複數、搭配都要正確）。
+- 必須是英語母語人士在真實情境中真的會說的一句完整、通順、合乎邏輯的話；不可以有拼湊感或中式英文。
+- 目標單字／片語的意思和用法要正確、自然。
+- 括號內的繁體中文翻譯要準確、通順。`;
         function styleInstruction() {
             const s = {
                 general: '例句要自然、實用，用字以母語人士日常慣用的說法為優先，避免生硬、過度正式或少見的字。',
@@ -2257,7 +2306,7 @@ review_sentence 的規則（非常重要）：
                 mid: '程度為中級（約 CEFR B1、多益 550–750 分）：用字常見、句型清楚，句子約 10–15 個英文字。',
                 upper: '程度為中高級（約 CEFR B2、多益 750–900 分）：可使用較進階的字彙、片語與複合句，句子約 12–20 個英文字。'
             }[aiStyle.level];
-            return `${s}${l}`;
+            return `${s}${l}${QUALITY_RULES}`;
         }
         function openStyleModal() { refreshStyleModal(); document.getElementById('styleModal').style.display = 'flex'; }
         function closeStyleModal() { document.getElementById('styleModal').style.display = 'none'; }
@@ -2555,7 +2604,7 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
                 try {
                     const r = await fetchExtraSentence(sub.text, [], topicId);
                     const s2 = findSubAnywhere(id);
-                    if (s2) s2.grandtasks.unshift({ id: newId(), text: `🤖 ${r.sentence}`, checked: false, createdAt: Date.now(), ...(r.reviewWords.length ? { reviewWords: r.reviewWords } : {}) });
+                    if (s2) s2.grandtasks.unshift({ id: newId(), text: `🤖 ${r.sentence}`, checked: false, createdAt: Date.now(), ...(r.proofed ? { proofed: proofKey(r.sentence) } : {}), ...(r.reviewWords.length ? { reviewWords: r.reviewWords } : {}) });
                     done++;
                 } catch (e) {
                     fail++;
@@ -3065,13 +3114,23 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
                 targets = noExtra.map(s => ({ s, def: false }));
             }
             fillingDefs = true;
+            const st = await runEnrich(targets);
+            fillingDefs = false;
+            if (isHideDef && st.defDone) toggleHideDef();
+            renderTasks();
+            const left = targets.map(x => findSubAnywhere(x.s.id)).filter(s => s && (needsDefinition(s) || needsUsage(s) || !CEFR.includes(s.cefr)));
+            const names = left.slice(0, 5).map(s => clozeTarget(s.text)).join('、') + (left.length > 5 ? ` 等 ${left.length} 個` : '');
+            showToast(`✅ 已建立 ${st.defDone} 個釋義、補上 ${st.synDone} 組同義字、${st.usageDone} 個單字的常用度／搭配${left.length ? `\n⚠️ 還有未補齊的：${names}，可再按一次重試` : '\n點單字旁的難易度標籤可查看或修改難易度與常用度'}${st.stop ? `\n（${st.stop}）` : ''}`, 6000);
+        }
+        // 依清單請 AI 補資料（def:true 代表連釋義一起重建）
+        async function runEnrich(targets, label = '📖 AI 補齊資料中…') {
             let defDone = 0, synDone = 0, usageDone = 0, stop = '', fatal = false;
             const chunks = [];
             for (let i = 0; i < targets.length; i += 8) chunks.push(targets.slice(i, i + 8));
             let doneCount = 0;
             while (chunks.length && !fatal) {
                 const chunk = chunks.shift();
-                showToast(`📖 AI 補齊資料中… ${Math.min(doneCount + chunk.length, targets.length)} / ${targets.length}`, 60000);
+                showToast(`${label} ${Math.min(doneCount + chunk.length, targets.length)} / ${targets.length}`, 60000);
                 const words = chunk.map(x => clozeTarget(x.s.text));
                 try {
                     const r = await aiJSON(`請為下列英文單字或片語各提供以下資料：
@@ -3105,12 +3164,185 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
                 }
                 await sleep(300);
             }
-            fillingDefs = false;
-            if (isHideDef && defDone) toggleHideDef();
-            renderTasks();
-            const left = targets.map(x => findSubAnywhere(x.s.id)).filter(s => s && (needsDefinition(s) || needsUsage(s) || !CEFR.includes(s.cefr)));
-            const names = left.slice(0, 5).map(s => clozeTarget(s.text)).join('、') + (left.length > 5 ? ` 等 ${left.length} 個` : '');
-            showToast(`✅ 已建立 ${defDone} 個釋義、補上 ${synDone} 組同義字、${usageDone} 個單字的常用度／搭配${left.length ? `\n⚠️ 還有未補齊的：${names}，可再按一次重試` : '\n點單字旁的難易度標籤可查看或修改難易度與常用度'}${stop ? `\n（${stop}）` : ''}`, 6000);
+            return { defDone, synDone, usageDone, stop };
+        }
+
+        // ================= 檢查並修正例句與單字（文法、自然度、拼字） =================
+        const proofKey = t => String(t || '').replace(/🤖/g, '').replace(/\s+/g, ' ').trim();
+        // 一次校對多句：items = [{ word, text }]，回傳 [{ ok, corrected, reason }]
+        async function proofSentences(items) {
+            const r = await aiJSON(`你是非常嚴格、專業的英語母語編輯。下列每一句都是英文學習筆記裡，用來示範某個單字／片語用法的例句。請逐句檢查：
+1. 英文是否完全合乎文法（時態、主詞動詞一致、冠詞、介系詞、詞性、單複數、標點）
+2. 是否語意通順、合乎邏輯，是英語母語人士在真實情境中真的會說的話（不是拼湊或中式英文）
+3. 指定的單字／片語在句中的意思與用法是否正確、搭配是否自然
+4. 括號內的繁體中文翻譯是否正確（沒有中文翻譯的句子就不用檢查這項）
+判斷標準：
+- 完全沒問題：ok 為 true，corrected 和 reason 留空字串。不要因為個人偏好或「可以寫得更好」就修改。
+- 只要有任何文法錯誤、不自然或翻譯錯誤：ok 為 false；corrected 給修正後的完整句子，格式和原句相同（英文句子後面加上括號內的繁體中文翻譯；原句沒有中文就不要加）。盡量小幅修改、保留原本情境，而且一定要保留指定的單字／片語（可依文法變化詞形）；如果原句錯得太多，可以改寫成一句自然的新句子。reason 用繁體中文簡短說明錯在哪裡（20 字以內）。
+
+${items.map((x, i) => `#${i + 1} 【${x.word}】 ${proofKey(x.text)}`).join('\n')}
+
+請嚴格只回傳 JSON：{"items": [{"ok": true, "corrected": "", "reason": ""}, ...]}，陣列順序與數量要和上面完全一致。`);
+            const out = Array.isArray(r.items) ? r.items : [];
+            if (out.length !== items.length) throw new Error('AI 回傳數量不符');
+            return out.map((x, i) => {
+                const corrected = proofKey(x.corrected);
+                const ok = x.ok === true || x.ok === 'true' || !corrected || corrected === proofKey(items[i].text);
+                return { ok, corrected: ok ? '' : corrected, reason: String(x.reason || '').trim() };
+            });
+        }
+        async function proofWords(items) {
+            const r = await aiJSON(`你是嚴格的英語老師。下列是學生登錄在筆記本中的英文單字或片語，有些後面附有詞性或中文意思。請逐項檢查：
+1. 英文拼字是否正確、是否為真實存在的正確寫法（片語的介系詞、連字號、空格都要正確）
+2. 附註的詞性與中文意思是否正確（沒有附註就不用檢查）
+判斷標準：
+- 正確：ok 為 true，corrected 和 reason 留空字串。大小寫、多一個空格這種小差異不用修改。
+- 有錯：ok 為 false；corrected 給修正後的完整內容，保留原本的格式，只改錯的地方（例如 "recieve (v.) 收到" → "receive (v.) 收到"）；reason 用繁體中文簡短說明（20 字以內）。
+
+${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
+
+請嚴格只回傳 JSON：{"items": [{"ok": true, "corrected": "", "reason": ""}, ...]}，陣列順序與數量要和上面完全一致。`);
+            const out = Array.isArray(r.items) ? r.items : [];
+            if (out.length !== items.length) throw new Error('AI 回傳數量不符');
+            return out.map((x, i) => {
+                const corrected = String(x.corrected || '').trim();
+                const ok = x.ok === true || x.ok === 'true' || !corrected || corrected.replace(/\s+/g, ' ').toLowerCase() === items[i].text.replace(/\s+/g, ' ').toLowerCase();
+                return { ok, corrected: ok ? '' : corrected, reason: String(x.reason || '').trim() };
+            });
+        }
+        // 分批執行；整批失敗就改成一個一個查
+        async function proofBatches(list, size, fn, label) {
+            const results = new Map(); const queue = [];
+            for (let i = 0; i < list.length; i += size) queue.push(list.slice(i, i + size));
+            let done = 0, stop = '', fatal = false;
+            while (queue.length) {
+                const chunk = queue.shift();
+                showToast(`${label} ${Math.min(done + chunk.length, list.length)} / ${list.length}`, 60000);
+                try {
+                    const rs = await fn(chunk);
+                    chunk.forEach((x, k) => results.set(x, rs[k]));
+                    done += chunk.length;
+                } catch (e) {
+                    const k = e.kind || classifyError(e);
+                    if (k === 'key' || k === 'offline' || k === 'quota') { stop = e.message; fatal = true; break; }
+                    if (chunk.length > 1) queue.unshift(...chunk.map(x => [x])); else { done++; stop = e.message; }
+                }
+                await sleep(300);
+            }
+            return { results, stop, fatal };
+        }
+
+        let proofing = false, proofFixes = [];
+        async function proofAll() {
+            if (proofing) return;
+            const words = [], sents = [];
+            tasks.forEach(t => t.subtasks.forEach(s => {
+                if (s.isLoading || s.pendingAI) return;
+                if (clozeTarget(s.text) && s.proofed !== s.text) words.push({ t, s, text: s.text });
+                s.grandtasks.forEach(g => { if (/[a-z]{2}/i.test(cleanForSpeech(g.text)) && g.proofed !== proofKey(g.text)) sents.push({ t, s, g, text: g.text }); });
+            }));
+            if (!words.length && !sents.length) return showToast('所有單字和例句都已檢查過，沒有發現問題 👍\n（之後新增或修改的內容才會再檢查）', 4000);
+            if (!navigator.onLine) return showToast('📴 目前離線，連上網路後再試');
+            if (!hasTextKey()) return openKeyModal();
+            if (!confirm(`要請 AI 以英語母語編輯的標準檢查以下內容嗎？\n• 單字／片語拼字：${words.length} 個\n• 例句文法、自然度與中文翻譯：${sents.length} 句\n\n檢查完會先列出建議的修正，由你確認後才會修改。\n（已檢查過且沒有修改的內容，下次不會重複檢查）`)) return;
+            proofing = true;
+            const fixes = [];
+            const w = await proofBatches(words, 20, ch => proofWords(ch), '🩺 檢查單字拼字…');
+            let stop = w.stop;
+            const wordNow = new Map();   // 單字若有修正，例句檢查時以修正後的寫法為準
+            w.results.forEach((r, x) => {
+                if (!r) return;
+                if (r.ok) { x.s.proofed = x.text; return; }
+                fixes.push({ kind: 'word', x, from: x.text, to: r.corrected, reason: r.reason, on: true });
+                wordNow.set(x.s, clozeTarget(r.corrected) || clozeTarget(x.text));
+            });
+            if (!w.fatal) {
+                const items = sents.map(x => ({ ...x, word: wordNow.get(x.s) || clozeTarget(x.s.text) }));
+                const sr = await proofBatches(items, 10, ch => proofSentences(ch), '🩺 檢查例句…');
+                stop = sr.stop || stop;
+                sr.results.forEach((r, x) => {
+                    if (!r) return;
+                    if (r.ok) { x.g.proofed = proofKey(x.text); return; }
+                    const keepBot = /🤖/.test(x.text);
+                    fixes.push({ kind: 'sent', x, from: x.text, to: (keepBot ? '🤖 ' : '') + r.corrected, reason: r.reason, on: true });
+                });
+            }
+            saveData();
+            proofing = false;
+            if (!fixes.length) return showToast(`✅ 檢查完成，沒有發現需要修正的地方 👍${stop ? `\n（部分未完成：${stop}，可再按一次繼續）` : ''}`, 5000);
+            proofFixes = fixes;
+            showToast(`🩺 檢查完成，找到 ${fixes.length} 處建議修正${stop ? `\n（部分未完成：${stop}）` : ''}`, 3500);
+            openProofModal();
+        }
+
+        function openProofModal() {
+            const list = document.getElementById('pfList');
+            const groups = [['word', '✏️ 單字／片語'], ['sent', '📝 例句']];
+            list.innerHTML = groups.map(([k, title]) => {
+                const items = proofFixes.map((f, i) => ({ f, i })).filter(o => o.f.kind === k);
+                if (!items.length) return '';
+                return `<div class="pf-group">${title}（${items.length}）</div>` + items.map(({ f, i }) => `
+                    <label class="pf-item">
+                        <input type="checkbox" ${f.on ? 'checked' : ''} onchange="proofFixes[${i}].on = this.checked; pfCount()">
+                        <div class="pf-body">
+                            <div class="pf-path">${escapeHtml(f.x.t.text)}${k === 'sent' ? ' › ' + escapeHtml(clozeTarget(f.x.s.text)) : ''}</div>
+                            <div class="pf-from">${escapeHtml(proofKey(f.from))}</div>
+                            <div class="pf-to">${escapeHtml(proofKey(f.to))}</div>
+                            ${f.reason ? `<div class="pf-reason">💡 ${escapeHtml(f.reason)}</div>` : ''}
+                        </div>
+                    </label>`).join('');
+            }).join('');
+            pfCount();
+            document.getElementById('proofModal').style.display = 'flex';
+        }
+        function pfCount() {
+            const n = proofFixes.filter(f => f.on).length;
+            document.getElementById('pfApply').textContent = `套用勾選的修正（${n}）`;
+            document.getElementById('pfApply').disabled = !n;
+        }
+        function pfAll(on) { proofFixes.forEach(f => f.on = on); openProofModal(); }
+        function closeProofModal() { document.getElementById('proofModal').style.display = 'none'; }
+        async function applyProofFixes() {
+            const chosen = proofFixes.filter(f => f.on);
+            if (!chosen.length) return;
+            try { localStorage.setItem('eng_beforeProof', JSON.stringify({ at: Date.now(), tasks })); } catch (e) {}
+            const reEnrich = [];
+            chosen.forEach(f => {
+                if (f.kind === 'word') {
+                    const s = findSubAnywhere(f.x.s.id); if (!s || s.text !== f.from) return;
+                    const changedWord = clozeTarget(f.from) !== clozeTarget(f.to);
+                    s.text = f.to; s.proofed = f.to;
+                    if (changedWord) {   // 英文寫法改了：釋義、同義字等要依正確的字重新建立
+                        s.definition = ''; ['synonyms', 'usage', 'common', 'collocations', 'cefr', 'noSynonyms'].forEach(k => delete s[k]);
+                        reEnrich.push({ s, def: true });
+                    }
+                } else {
+                    const s = findSubAnywhere(f.x.s.id); const g = s && s.grandtasks.find(g => g.id === f.x.g.id);
+                    if (!g || g.text !== f.from) return;
+                    g.text = f.to; g.proofed = proofKey(f.to); g.fixedAt = Date.now();
+                }
+            });
+            // 沒被勾選的建議：視為使用者確認沒問題，下次不再提出
+            proofFixes.filter(f => !f.on).forEach(f => { if (f.kind === 'word') f.x.s.proofed = f.x.s.text; else f.x.g.proofed = proofKey(f.x.g.text); });
+            proofFixes = [];
+            closeProofModal(); saveData(); updateUndoProof();
+            if (reEnrich.length && navigator.onLine && hasTextKey()) {
+                fillingDefs = true;
+                await runEnrich(reEnrich, '📖 依修正後的單字重建釋義…');
+                fillingDefs = false; saveData();
+            }
+            showToast(`✅ 已修正 ${chosen.length} 處${reEnrich.length ? `\n（${reEnrich.length} 個單字已依正確寫法重建釋義）` : ''}\n如需還原，可用選單「↩ 復原上次的 AI 修正」`, 5000);
+        }
+        function updateUndoProof() {
+            const el = document.getElementById('itemUndoProof');
+            if (el) el.style.display = localStorage.getItem('eng_beforeProof') ? '' : 'none';
+        }
+        function undoProof() {
+            let snap; try { snap = JSON.parse(localStorage.getItem('eng_beforeProof')); } catch (e) {}
+            if (!snap || !Array.isArray(snap.tasks)) return showToast('沒有可以復原的修正');
+            if (!confirm(`要把筆記還原到 ${new Date(snap.at).toLocaleString()} 修正之前的狀態嗎？\n（在那之後新增或修改的內容也會一起還原）`)) return;
+            tasks = snap.tasks; localStorage.removeItem('eng_beforeProof');
+            saveData(); updateUndoProof(); showToast('↩ 已還原');
         }
 
         // --- 4. 選單切換 ---
@@ -3433,7 +3665,11 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
             if (result.cefr && !CEFR.includes(sub.cefr)) sub.cefr = result.cefr;
             if (result.synonyms && result.synonyms.length && !(sub.synonyms && sub.synonyms.length)) sub.synonyms = result.synonyms;
             applyUsageFields(sub, result);
-            if (result.sentence) sub.grandtasks.unshift({ id: newId(), text: result.sentence, checked: false, createdAt: Date.now(), ...(result.reviewWords && result.reviewWords.length ? { reviewWords: result.reviewWords } : {}) });
+            if (result.correctedWord && result.originalWord && sub.text.includes(result.originalWord)) {
+                sub.text = sub.text.replace(result.originalWord, result.correctedWord);
+                setTimeout(() => showToast(`✏️ 拼字已自動修正：${result.originalWord} → ${result.correctedWord}`, 4000), 600);
+            }
+            if (result.sentence) sub.grandtasks.unshift({ id: newId(), text: result.sentence, checked: false, createdAt: Date.now(), ...(result.proofed ? { proofed: proofKey(result.sentence) } : {}), ...(result.reviewWords && result.reviewWords.length ? { reviewWords: result.reviewWords } : {}) });
             delete sub.pendingAI;
         }
 
@@ -3517,10 +3753,10 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
             if (!hasTextKey()) { openKeyModal(); return; }
             sub.genEx = true; renderTasks();
             try {
-                const { sentence, reviewWords } = await fetchExtraSentence(sub.text, sub.grandtasks.map(g => cleanForSpeech(g.text)), mainTaskId);
+                const { sentence, reviewWords, proofed } = await fetchExtraSentence(sub.text, sub.grandtasks.map(g => cleanForSpeech(g.text)), mainTaskId);
                 const s2 = findSubAnywhere(subTaskId);
                 if (s2) {
-                    s2.grandtasks.unshift({ id: newId(), text: `🤖 ${sentence}`, checked: false, createdAt: Date.now(), ...(reviewWords.length ? { reviewWords } : {}) });
+                    s2.grandtasks.unshift({ id: newId(), text: `🤖 ${sentence}`, checked: false, createdAt: Date.now(), ...(proofed ? { proofed: proofKey(sentence) } : {}), ...(reviewWords.length ? { reviewWords } : {}) });
                     const rv = reviewWords.length ? `\n🔁 複習了：${reviewWords.join('、')}` : '';
                     showToast((isHideEx ? '✅ 已新增一句例句\n（目前例句為隱藏狀態，可在選單開啟）' : '✅ 已新增一句 AI 例句') + rv, 3000);
                 }
@@ -3696,7 +3932,8 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
 
         initViewToggles(); initHideExCnBtn(); initTimeBtn(); initToggleBtn(); renderTasks(); checkBackupReminder();
         setTimeout(() => processPendingAI(), 2000);   // 開啟 App 時若有網路，自動補齊
-        localStorage.removeItem('eng_drive');          // 舊版「Google Drive 自動備份」設定已移除
+        localStorage.removeItem('eng_drive');
+        updateUndoProof();          // 舊版「Google Drive 自動備份」設定已移除
 
         // --- 9. 註冊 Service Worker（PWA 離線開啟） ---
         if ('serviceWorker' in navigator && location.protocol !== 'file:') {
