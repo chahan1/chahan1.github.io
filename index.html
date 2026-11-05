@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.3.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.4.0 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -352,6 +352,8 @@
         .sr-empty, .sr-more { font-size: 12.5px; color: var(--muted); text-align: center; padding: 18px 10px; }
         .flash { animation: flashBg 2.2s ease-out; border-radius: 6px; }
         @keyframes flashBg { 0%, 30% { background: #fde293; } 100% { background: transparent; } }
+        .def-syn { font-size: 11.5px; color: #5f6368; margin-top: 3px; font-style: normal; }
+        .def-syn b { color: var(--green); font-weight: 600; }
         .add-ex { max-width: 340px; }
         .ae-word { font-size: 15px; font-weight: 600; color: var(--blue); margin-top: 2px; word-break: break-word; }
         .ae-count { font-size: 11.5px; color: var(--muted); margin: 2px 0 10px; }
@@ -406,7 +408,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.3.0</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.4.0</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -420,6 +422,7 @@
                     <div class="dropdown-item" onclick="openReport()">📊 <span>複習報表</span></div>
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-label">AI 工具</div>
+                    <div class="dropdown-item" onclick="fillMissingDefinitions()">📖 <span>補齊缺少的釋義／同義字</span></div>
                     <div class="dropdown-item" onclick="fillMissingExamples()">🧩 <span>替沒有例句的單字補例句</span></div>
                     <div class="dropdown-item" onclick="openLevelModal()">🏷️ <span>單字難易度 A1–C2</span></div>
                     <div class="dropdown-item" onclick="processPendingAI({ manual: true })">🤖 <span>立即補齊 AI 釋義</span></div>
@@ -1071,9 +1074,11 @@
 {
   "definition": "...",
   "sentence": "..."${rvWords.length ? ',\n  "review_sentence": "",\n  "review_word": ""' : ''},
-  "cefr": "B1"
+  "cefr": "B1",
+  "synonyms": ["...", "..."]
 }
-（cefr 為這個單字／片語最常見意思的 CEFR 難易度：A1、A2、B1、B2、C1、C2 其中之一）`;
+（cefr 為這個單字／片語最常見意思的 CEFR 難易度：A1、A2、B1、B2、C1、C2 其中之一）
+（synonyms 為 1～2 個意思最接近、可以替換使用的英文同義字；片語請給同義的單字或片語；真的沒有就給空陣列）`;
             try {
                 const result = await aiJSON(promptText);
                 const pick = await chooseSentence(result, cleanWord, rvWords);
@@ -1081,7 +1086,8 @@
                     definition: result.definition || '(無法解析定義)',
                     sentence: pick.sentence ? `🤖 ${pick.sentence}` : null,
                     reviewWords: pick.reviewWords,
-                    cefr: CEFR.includes(String(result.cefr || '').toUpperCase().trim()) ? String(result.cefr).toUpperCase().trim() : ''
+                    cefr: CEFR.includes(String(result.cefr || '').toUpperCase().trim()) ? String(result.cefr).toUpperCase().trim() : '',
+                    synonyms: cleanSynonyms(result.synonyms, cleanWord)
                 };
             } catch (e) {
                 console.error('AI 查詢錯誤:', e);
@@ -2883,7 +2889,7 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
                 if (hit(t.text)) out.push({ type: 'topic', text: t.text, topic: t, path: '' });
                 t.subtasks.forEach(s => {
                     if (hit(s.text)) out.push({ type: 'word', text: s.text, topic: t, sub: s, path: t.text });
-                    else if (s.definition && hit(s.definition)) out.push({ type: 'def', text: s.definition, topic: t, sub: s, path: `${t.text} › ${s.text}` });
+                    else if ((s.definition || s.synonyms) && hit(`${s.definition || ''} ${(s.synonyms || []).join(' ')}`)) out.push({ type: 'def', text: `${s.definition || ''}${s.synonyms && s.synonyms.length ? `　≈ ${s.synonyms.join('、')}` : ''}`, topic: t, sub: s, path: `${t.text} › ${s.text}` });
                     s.grandtasks.forEach(g => { if (hit(g.text)) out.push({ type: 'ex', text: g.text, topic: t, sub: s, g, path: `${t.text} › ${s.text}` }); });
                 });
             });
@@ -2969,6 +2975,66 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
             showToast(`✅ 已新增主題「${text.trim()}」\n按主題右邊的 ＋ 開始加入單字`);
         }
 
+        // ================= 補齊缺少的釋義／同義字 =================
+        const BAD_DEFS = () => [MANUAL_DEF_TEXT, LOADING_TEXT, '(無法解析定義)', '(點擊下方「✏️ 編輯釋義」手動填寫)', '(點擊下方「編輯釋義」手動填寫)'];
+        function cleanSynonyms(list, word) {
+            if (!Array.isArray(list)) return [];
+            const w = String(word || '').toLowerCase().trim();
+            return [...new Set(list.map(x => String(x || '').replace(/[()（）]/g, '').trim()).filter(x => x && /[a-z]/i.test(x) && x.toLowerCase() !== w))].slice(0, 2);
+        }
+        const needsDefinition = s => !s.isLoading && !s.pendingAI && clozeTarget(s.text) && (!s.definition || !s.definition.trim() || BAD_DEFS().includes(s.definition.trim()));
+        const needsSynonyms = s => !s.isLoading && !s.pendingAI && clozeTarget(s.text) && !(Array.isArray(s.synonyms) && s.synonyms.length) && !s.noSynonyms;
+        let fillingDefs = false;
+        async function fillMissingDefinitions() {
+            if (fillingDefs) return;
+            const all = []; tasks.forEach(t => t.subtasks.forEach(s => all.push(s)));
+            const noDef = all.filter(needsDefinition);
+            const noSyn = all.filter(s => !needsDefinition(s) && needsSynonyms(s));
+            if (!noDef.length && !noSyn.length) return showToast('每個單字都有釋義和同義字了 👍');
+            if (!navigator.onLine) return showToast('📴 目前離線，連上網路後再試');
+            if (!hasTextKey()) return openKeyModal();
+            let targets = [];
+            if (noDef.length) {
+                if (!confirm(`有 ${noDef.length} 個單字缺少釋義（被刪除、空白或查詢失敗），要用 AI 重新建立釋義（含同義字）嗎？`)) return;
+                targets = noDef.map(s => ({ s, def: true }));
+                if (noSyn.length && confirm(`另外有 ${noSyn.length} 個單字還沒有同義字，要一起補上嗎？（原本的釋義不會改變）`)) targets = targets.concat(noSyn.map(s => ({ s, def: false })));
+            } else {
+                if (!confirm(`所有單字都有釋義。\n有 ${noSyn.length} 個單字還沒有同義字，要用 AI 補上嗎？（原本的釋義不會改變）`)) return;
+                targets = noSyn.map(s => ({ s, def: false }));
+            }
+            fillingDefs = true;
+            let defDone = 0, synDone = 0, stop = '';
+            for (let i = 0; i < targets.length; i += 10) {
+                const chunk = targets.slice(i, i + 10);
+                showToast(`📖 AI 建立釋義中… ${Math.min(i + 10, targets.length)} / ${targets.length}`, 60000);
+                const words = chunk.map(x => clozeTarget(x.s.text));
+                try {
+                    const r = await aiJSON(`請為下列英文單字或片語各提供：
+1. definition：簡短的英文定義，開頭標示詞性，例如 "(noun) a list of items to be discussed at a meeting."
+2. synonyms：1～2 個意思最接近、可以替換使用的英文同義字（片語請給同義的單字或片語；真的沒有就給空陣列）
+${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
+請嚴格只回傳 JSON，格式：{"items": [{"definition": "...", "synonyms": ["...", "..."]}, ...]}，陣列順序與數量要和上面的清單完全一致。`);
+                    const items = Array.isArray(r.items) ? r.items : [];
+                    chunk.forEach((x, k) => {
+                        const it = items[k] || {}, sub = findSubAnywhere(x.s.id); if (!sub) return;
+                        if (x.def && it.definition && String(it.definition).trim()) { sub.definition = String(it.definition).trim(); sub.showDef = true; defDone++; }
+                        const syn = cleanSynonyms(it.synonyms, words[k]);
+                        if (syn.length && !(sub.synonyms && sub.synonyms.length)) { sub.synonyms = syn; synDone++; }
+                        else if (!syn.length && !x.def) sub.noSynonyms = true;   // AI 認為沒有合適的同義字，下次不再詢問
+                    });
+                    saveData();
+                } catch (e) {
+                    const k = e.kind || classifyError(e);
+                    stop = e.message;
+                    if (k === 'key' || k === 'offline' || k === 'quota') break;
+                }
+                await sleep(300);
+            }
+            fillingDefs = false;
+            if (isHideDef && defDone) toggleHideDef();
+            showToast(`✅ 已建立 ${defDone} 個釋義、補上 ${synDone} 組同義字${stop ? `\n部分失敗：${stop}` : ''}`, 4000);
+        }
+
         // --- 4. 選單切換 ---
 
         function toggleHideExCn() {
@@ -3043,8 +3109,17 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
             const sub = findSub(mainTaskId, subTaskId);
             if (sub) {
                 const newDef = prompt("請修改英文定義/註釋：", sub.definition || "");
-                if (newDef !== null) { sub.definition = newDef.trim(); saveData(); }
+                if (newDef !== null) { sub.definition = newDef.trim(); saveData(); if (!sub.definition) showToast('釋義已清空。之後可從 ⋮ →「📖 補齊缺少的釋義／同義字」一鍵重建', 3500); }
             }
+        }
+
+        function editSynonyms(subTaskId, mainTaskId) {
+            const sub = findSub(mainTaskId, subTaskId); if (!sub) return;
+            const v = prompt("請修改同義字（用逗號分開，清空即刪除）：", (sub.synonyms || []).join(', '));
+            if (v === null) return;
+            const list = v.split(/[,，、;；]/).map(x => x.trim()).filter(Boolean).slice(0, 4);
+            if (list.length) sub.synonyms = list; else delete sub.synonyms;
+            saveData();
         }
 
         // --- 5. 備份 / 還原 ---
@@ -3270,6 +3345,7 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
             if (!sub.definition || placeholders.includes(sub.definition)) sub.definition = result.definition;
             sub.showDef = true;
             if (result.cefr && !CEFR.includes(sub.cefr)) sub.cefr = result.cefr;
+            if (result.synonyms && result.synonyms.length && !(sub.synonyms && sub.synonyms.length)) sub.synonyms = result.synonyms;
             if (result.sentence) sub.grandtasks.unshift({ id: newId(), text: result.sentence, checked: false, createdAt: Date.now(), ...(result.reviewWords && result.reviewWords.length ? { reviewWords: result.reviewWords } : {}) });
             delete sub.pendingAI;
         }
@@ -3484,7 +3560,8 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
                             </div>
                         </div>
                     `;
-                    if (sub.definition) html += `<div class="definition-box" title="點一下可修改釋義" onclick="editDefinition(${sub.id}, ${task.id})"><div class="def-content">${escapeHtml(sub.definition)}</div></div>`;
+                    const syn = Array.isArray(sub.synonyms) && sub.synonyms.length ? sub.synonyms : null;
+                    if (sub.definition || syn) html += `<div class="definition-box" title="點一下可修改釋義" onclick="editDefinition(${sub.id}, ${task.id})">${sub.definition ? `<div class="def-content">${escapeHtml(sub.definition)}</div>` : ''}${syn ? `<div class="def-syn" title="點一下修改同義字" onclick="event.stopPropagation(); editSynonyms(${sub.id}, ${task.id})">≈ ${syn.map(w => `<b>${escapeHtml(w)}</b>`).join('、')}</div>` : ''}</div>`;
                     
                     html += `<div class="grandtask-container">`;
                     sub.grandtasks.forEach(grand => {
