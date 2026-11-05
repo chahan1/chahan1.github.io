@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.4.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.5.0 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -257,6 +257,17 @@
         .lv-grid button .lv-badge { margin: 0; font-size: 13px; line-height: 20px; padding: 0 8px; }
         .lv-grid button.on { border-color: var(--green); background: var(--green-light); }
         .lv-row2 { display: flex; gap: 8px; margin-top: 10px; }
+        .us-badge { display: inline-block; font-size: 9.5px; font-weight: 600; border-radius: 5px; padding: 0 4px; margin-left: 4px; line-height: 15px; vertical-align: 2px; cursor: pointer; font-style: normal; white-space: nowrap; }
+        .us-spoken { background: #e6f4ea; color: #137333; } .us-neutral { background: #f1f3f4; color: #5f6368; }
+        .us-formal { background: #fef7e0; color: #b06000; } .us-rare { background: #fce8e6; color: #c5221f; }
+        .completed .us-badge { opacity: 0.6; }
+        .us-title { font-size: 13px; color: var(--muted); margin-top: 14px; font-weight: 600; }
+        .us-grid { grid-template-columns: 1fr 1fr; margin-top: 6px; }
+        .us-grid button .us-badge { margin: 0; font-size: 12px; line-height: 20px; padding: 0 8px; }
+        .def-common { font-size: 11.5px; color: #b06000; margin-top: 3px; font-style: normal; }
+        .def-common b { color: #137333; font-weight: 600; }
+        .def-col { font-size: 11.5px; color: #5f6368; margin-top: 3px; font-style: normal; }
+        .def-col i { font-style: normal; color: #1967d2; }
         .lv-row2 button { flex: 1; height: 38px; border-radius: 19px; }
         .lv-stats { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin: 12px 0 4px; }
         .lv-stat { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 14px; }
@@ -408,7 +419,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.4.0</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.5.0</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -422,7 +433,7 @@
                     <div class="dropdown-item" onclick="openReport()">📊 <span>複習報表</span></div>
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-label">AI 工具</div>
-                    <div class="dropdown-item" onclick="fillMissingDefinitions()">📖 <span>補齊缺少的釋義／同義字</span></div>
+                    <div class="dropdown-item" onclick="fillMissingDefinitions()">📖 <span>一鍵補齊釋義／同義字／常用度／搭配</span></div>
                     <div class="dropdown-item" onclick="fillMissingExamples()">🧩 <span>替沒有例句的單字補例句</span></div>
                     <div class="dropdown-item" onclick="openLevelModal()">🏷️ <span>單字難易度 A1–C2</span></div>
                     <div class="dropdown-item" onclick="processPendingAI({ manual: true })">🤖 <span>立即補齊 AI 釋義</span></div>
@@ -698,7 +709,7 @@
     <!-- 難易度：單一單字 -->
     <div id="lvPicker" class="modal-overlay play-modal" onclick="if(event.target===this) closeLevelPicker()">
         <div class="modal-content">
-            <div class="pm-title"><h3>🏷️ 難易度</h3><button class="pm-close" onclick="closeLevelPicker()">×</button></div>
+            <div class="pm-title"><h3>🏷️ 難易度／常用度</h3><button class="pm-close" onclick="closeLevelPicker()">×</button></div>
             <div class="ae-word" id="lvWord"></div>
             <div class="lv-grid" id="lvGrid">
                 <button data-v="A1" onclick="setLevel('A1')"><span class="lv-badge lv-A1">A1</span>入門</button>
@@ -707,6 +718,13 @@
                 <button data-v="B2" onclick="setLevel('B2')"><span class="lv-badge lv-B2">B2</span>中高級</button>
                 <button data-v="C1" onclick="setLevel('C1')"><span class="lv-badge lv-C1">C1</span>高級</button>
                 <button data-v="C2" onclick="setLevel('C2')"><span class="lv-badge lv-C2">C2</span>精通</button>
+            </div>
+            <div class="us-title">常用度</div>
+            <div class="lv-grid us-grid" id="usGrid">
+                <button data-v="spoken" onclick="setUsage('spoken')"><span class="us-badge us-spoken">🗣️ 口語</span>日常很常用</button>
+                <button data-v="neutral" onclick="setUsage('neutral')"><span class="us-badge us-neutral">✓ 通用</span>口語書面都常用</button>
+                <button data-v="formal" onclick="setUsage('formal')"><span class="us-badge us-formal">📄 書面</span>偏正式</button>
+                <button data-v="rare" onclick="setUsage('rare')"><span class="us-badge us-rare">⚠️ 少用</span>日常很少用</button>
             </div>
             <div class="lv-row2">
                 <button class="btn-outline" onclick="aiLevelOne()">🤖 讓 AI 判斷</button>
@@ -1075,10 +1093,13 @@
   "definition": "...",
   "sentence": "..."${rvWords.length ? ',\n  "review_sentence": "",\n  "review_word": ""' : ''},
   "cefr": "B1",
-  "synonyms": ["...", "..."]
+  "synonyms": ["...", "..."],
+  "usage": "neutral",
+  "common": [],
+  "collocations": ["...", "..."]
 }
 （cefr 為這個單字／片語最常見意思的 CEFR 難易度：A1、A2、B1、B2、C1、C2 其中之一）
-（synonyms 為 1～2 個意思最接近、可以替換使用的英文同義字；片語請給同義的單字或片語；真的沒有就給空陣列）`;
+${ENRICH_RULES}`;
             try {
                 const result = await aiJSON(promptText);
                 const pick = await chooseSentence(result, cleanWord, rvWords);
@@ -1087,7 +1108,8 @@
                     sentence: pick.sentence ? `🤖 ${pick.sentence}` : null,
                     reviewWords: pick.reviewWords,
                     cefr: CEFR.includes(String(result.cefr || '').toUpperCase().trim()) ? String(result.cefr).toUpperCase().trim() : '',
-                    synonyms: cleanSynonyms(result.synonyms, cleanWord)
+                    synonyms: cleanSynonyms(result.synonyms, cleanWord),
+                    ...cleanUsageFields(result, cleanWord)
                 };
             } catch (e) {
                 console.error('AI 查詢錯誤:', e);
@@ -2161,7 +2183,7 @@
 
         // ================= AI 例句風格 =================
         const STYLE_KEY = 'eng_aiStyle';
-        let aiStyle = { style: 'general', level: 'mid', mixReview: true };
+        let aiStyle = { style: 'daily', level: 'mid', mixReview: true };
         try { Object.assign(aiStyle, JSON.parse(localStorage.getItem(STYLE_KEY)) || {}); } catch (e) {}
         const STYLE_NAME = { general: '一般', daily: '生活口語', toeic: '多益題型' };
         const LEVEL_NAME = { mid: '中級', upper: '中高級' };
@@ -2227,9 +2249,9 @@ review_sentence 的規則（非常重要）：
         }
         function styleInstruction() {
             const s = {
-                general: '例句要自然、實用。',
-                daily: '例句要生活化、口語化，像朋友、家人或同事之間日常對話會說的話，可以使用常見的口語用法。',
-                toeic: '例句要符合多益（TOEIC）考題的風格，情境以職場、商務、會議、電子郵件、客戶服務、出差旅遊、採購與人事等為主，語氣正式。'
+                general: '例句要自然、實用，用字以母語人士日常慣用的說法為優先，避免生硬、過度正式或少見的字。',
+                daily: '例句要生活化、口語化，像朋友、家人或同事之間日常對話會說的話，多用母語人士慣用的口語說法、片語動詞與常見搭配（例如 put off、figure out），避免生硬或過度正式的字。',
+                toeic: '例句要符合多益（TOEIC）考題的風格，情境以職場、商務、會議、電子郵件、客戶服務、出差旅遊、採購與人事等為主，語氣正式，但用字以商務場合實際慣用的說法為優先。'
             }[aiStyle.style];
             const l = {
                 mid: '程度為中級（約 CEFR B1、多益 550–750 分）：用字常見、句型清楚，句子約 10–15 個英文字。',
@@ -2443,13 +2465,15 @@ review_sentence 的規則（非常重要）：
         let lvTarget = null;
         function cefrBadge(sub, taskId) {
             const lv = CEFR.includes(sub.cefr) ? sub.cefr : '';
-            return `<span class="lv-badge ${lv ? 'lv-' + lv : 'lv-none'}" title="難易度（點一下修改）" onclick="event.stopPropagation(); openLevelPicker(${taskId}, ${sub.id})">${lv || 'Lv'}</span>`;
+            const u = USAGE[sub.usage];
+            return `<span class="lv-badge ${lv ? 'lv-' + lv : 'lv-none'}" title="難易度（點一下修改）" onclick="event.stopPropagation(); openLevelPicker(${taskId}, ${sub.id})">${lv || 'Lv'}</span>${u && u.badge ? `<span class="us-badge us-${sub.usage}" title="${u.desc}（點一下修改）" onclick="event.stopPropagation(); openLevelPicker(${taskId}, ${sub.id})">${u.badge}</span>` : ''}`;
         }
         function openLevelPicker(taskId, subId) {
             const sub = findSub(taskId, subId); if (!sub) return;
             lvTarget = { taskId, subId };
             document.getElementById('lvWord').textContent = sub.text;
             document.querySelectorAll('#lvGrid button').forEach(b => b.classList.toggle('on', b.dataset.v === sub.cefr));
+            document.querySelectorAll('#usGrid button').forEach(b => b.classList.toggle('on', b.dataset.v === sub.usage));
             document.getElementById('lvPicker').style.display = 'flex';
         }
         function closeLevelPicker() { document.getElementById('lvPicker').style.display = 'none'; }
@@ -2457,6 +2481,13 @@ review_sentence 的規則（非常重要）：
             const sub = lvTarget && findSub(lvTarget.taskId, lvTarget.subId); if (!sub) return;
             if (lv) sub.cefr = lv; else delete sub.cefr;
             closeLevelPicker(); saveData();
+        }
+        function setUsage(u) {
+            const sub = lvTarget && findSub(lvTarget.taskId, lvTarget.subId); if (!sub) return;
+            if (USAGE[u]) sub.usage = u; else delete sub.usage;
+            if (!['formal', 'rare'].includes(sub.usage)) delete sub.common;
+            closeLevelPicker(); saveData();
+            if (['formal', 'rare'].includes(sub.usage) && !(sub.common && sub.common.length)) showToast('可從 ⋮ →「📖 一鍵補齊…」讓 AI 補上更常用的說法', 3000);
         }
         async function aiLevelOne() {
             const sub = lvTarget && findSub(lvTarget.taskId, lvTarget.subId); if (!sub) return;
@@ -2889,7 +2920,7 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
                 if (hit(t.text)) out.push({ type: 'topic', text: t.text, topic: t, path: '' });
                 t.subtasks.forEach(s => {
                     if (hit(s.text)) out.push({ type: 'word', text: s.text, topic: t, sub: s, path: t.text });
-                    else if ((s.definition || s.synonyms) && hit(`${s.definition || ''} ${(s.synonyms || []).join(' ')}`)) out.push({ type: 'def', text: `${s.definition || ''}${s.synonyms && s.synonyms.length ? `　≈ ${s.synonyms.join('、')}` : ''}`, topic: t, sub: s, path: `${t.text} › ${s.text}` });
+                    else if ((s.definition || s.synonyms) && hit(`${s.definition || ''} ${(s.synonyms || []).join(' ')} ${(s.common || []).join(' ')} ${(s.collocations || []).join(' ')}`)) out.push({ type: 'def', text: `${s.definition || ''}${s.synonyms && s.synonyms.length ? `　≈ ${s.synonyms.join('、')}` : ''}${s.common && s.common.length ? `　🗣️ ${s.common.join('、')}` : ''}${s.collocations && s.collocations.length ? `　🔗 ${s.collocations.join(' · ')}` : ''}`, topic: t, sub: s, path: `${t.text} › ${s.text}` });
                     s.grandtasks.forEach(g => { if (hit(g.text)) out.push({ type: 'ex', text: g.text, topic: t, sub: s, g, path: `${t.text} › ${s.text}` }); });
                 });
             });
@@ -2975,52 +3006,91 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
             showToast(`✅ 已新增主題「${text.trim()}」\n按主題右邊的 ＋ 開始加入單字`);
         }
 
-        // ================= 補齊缺少的釋義／同義字 =================
+        // ================= 補齊釋義／同義字／常用度／常見搭配 =================
+        const USAGE = {
+            spoken: { badge: '🗣️ 口語', desc: '日常口語很常用' },
+            neutral: { badge: '', desc: '口語、書面都常用' },
+            formal: { badge: '📄 書面', desc: '偏正式／書面，日常口語較少用' },
+            rare: { badge: '⚠️ 少用', desc: '母語人士日常很少用' }
+        };
+        const ENRICH_RULES = `（synonyms 為 1～2 個意思最接近、可以替換使用的英文同義字，日常最常用的排在前面；片語請給同義的單字或片語；真的沒有就給空陣列）
+（usage 為這個單字／片語在母語人士日常生活中的常用度，請依實際使用頻率判斷，而不是難易度：
+  spoken＝日常口語很常用；neutral＝口語、書面都常用；formal＝偏正式／書面，日常說話較少用；rare＝不常見，母語人士日常很少用）
+（common：只有 usage 為 formal 或 rare 時，給 1～2 個意思相同、日常更常用的說法（例如 postpone → put off、push back；purchase → buy）；其他情況給空陣列）
+（collocations 為 2～3 個母語人士最常用的搭配或固定說法，必須包含這個單字／片語，例如 agenda → set the agenda、on the agenda；每個不超過 5 個字）`;
         const BAD_DEFS = () => [MANUAL_DEF_TEXT, LOADING_TEXT, '(無法解析定義)', '(點擊下方「✏️ 編輯釋義」手動填寫)', '(點擊下方「編輯釋義」手動填寫)'];
         function cleanSynonyms(list, word) {
             if (!Array.isArray(list)) return [];
             const w = String(word || '').toLowerCase().trim();
             return [...new Set(list.map(x => String(x || '').replace(/[()（）]/g, '').trim()).filter(x => x && /[a-z]/i.test(x) && x.toLowerCase() !== w))].slice(0, 2);
         }
-        const needsDefinition = s => !s.isLoading && !s.pendingAI && clozeTarget(s.text) && (!s.definition || !s.definition.trim() || BAD_DEFS().includes(s.definition.trim()));
-        const needsSynonyms = s => !s.isLoading && !s.pendingAI && clozeTarget(s.text) && !(Array.isArray(s.synonyms) && s.synonyms.length) && !s.noSynonyms;
+        function cleanUsageFields(r, word) {
+            const usage = String(r.usage || '').toLowerCase().trim();
+            const out = {};
+            if (USAGE[usage]) out.usage = usage;
+            if (Array.isArray(r.collocations)) out.collocations = [...new Set(r.collocations.map(x => String(x || '').trim()).filter(x => x && /[a-z]/i.test(x) && x.split(/\s+/).length <= 6))].slice(0, 3);
+            if (Array.isArray(r.common)) out.common = ['formal', 'rare'].includes(out.usage) ? cleanSynonyms(r.common, word) : [];
+            return out;
+        }
+        // 只補上缺少的欄位，不覆蓋使用者已有／手動修改的內容
+        function applyUsageFields(sub, r) {
+            let n = 0;
+            if (r.usage && !USAGE[sub.usage]) { sub.usage = r.usage; n++; }
+            if (Array.isArray(r.collocations) && !Array.isArray(sub.collocations)) { sub.collocations = r.collocations; if (r.collocations.length) n++; }
+            if (['formal', 'rare'].includes(sub.usage) && !Array.isArray(sub.common) && Array.isArray(r.common) && sub.usage === r.usage) { sub.common = r.common; if (r.common.length) n++; }
+            return n;
+        }
+        const enrichable = s => !s.isLoading && !s.pendingAI && clozeTarget(s.text);
+        const needsDefinition = s => enrichable(s) && (!s.definition || !s.definition.trim() || BAD_DEFS().includes(s.definition.trim()));
+        const needsSynonyms = s => enrichable(s) && !(Array.isArray(s.synonyms) && s.synonyms.length) && !s.noSynonyms;
+        const needsUsage = s => enrichable(s) && (!USAGE[s.usage] || !Array.isArray(s.collocations) || (['formal', 'rare'].includes(s.usage) && !Array.isArray(s.common)));
+        const needsExtra = s => needsSynonyms(s) || needsUsage(s) || !CEFR.includes(s.cefr);
         let fillingDefs = false;
         async function fillMissingDefinitions() {
             if (fillingDefs) return;
             const all = []; tasks.forEach(t => t.subtasks.forEach(s => all.push(s)));
             const noDef = all.filter(needsDefinition);
-            const noSyn = all.filter(s => !needsDefinition(s) && needsSynonyms(s));
-            if (!noDef.length && !noSyn.length) return showToast('每個單字都有釋義和同義字了 👍');
+            const noExtra = all.filter(s => !needsDefinition(s) && needsExtra(s));
+            if (!noDef.length && !noExtra.length) return showToast('每個單字的釋義、同義字、常用度和常見搭配都齊全了 👍');
             if (!navigator.onLine) return showToast('📴 目前離線，連上網路後再試');
             if (!hasTextKey()) return openKeyModal();
+            const extraMsg = n => `有 ${n} 個之前建立的單字還缺少以下資料：\n• 同義字：${noExtra.filter(needsSynonyms).length} 個\n• 常用度／日常說法／常見搭配：${noExtra.filter(needsUsage).length} 個\n• 難易度：${noExtra.filter(s => !CEFR.includes(s.cefr)).length} 個\n\n要用 AI 一鍵補上嗎？（只補缺少的部分，原本的釋義、例句和你修改過的內容都不會改變）`;
             let targets = [];
             if (noDef.length) {
-                if (!confirm(`有 ${noDef.length} 個單字缺少釋義（被刪除、空白或查詢失敗），要用 AI 重新建立釋義（含同義字）嗎？`)) return;
+                if (!confirm(`有 ${noDef.length} 個單字缺少釋義（被刪除、空白或查詢失敗），要用 AI 重新建立釋義（含同義字、常用度、常見搭配）嗎？`)) return;
                 targets = noDef.map(s => ({ s, def: true }));
-                if (noSyn.length && confirm(`另外有 ${noSyn.length} 個單字還沒有同義字，要一起補上嗎？（原本的釋義不會改變）`)) targets = targets.concat(noSyn.map(s => ({ s, def: false })));
+                if (noExtra.length && confirm('另外，' + extraMsg(noExtra.length))) targets = targets.concat(noExtra.map(s => ({ s, def: false })));
             } else {
-                if (!confirm(`所有單字都有釋義。\n有 ${noSyn.length} 個單字還沒有同義字，要用 AI 補上嗎？（原本的釋義不會改變）`)) return;
-                targets = noSyn.map(s => ({ s, def: false }));
+                if (!confirm('所有單字都有釋義。\n' + extraMsg(noExtra.length))) return;
+                targets = noExtra.map(s => ({ s, def: false }));
             }
             fillingDefs = true;
-            let defDone = 0, synDone = 0, stop = '';
-            for (let i = 0; i < targets.length; i += 10) {
-                const chunk = targets.slice(i, i + 10);
-                showToast(`📖 AI 建立釋義中… ${Math.min(i + 10, targets.length)} / ${targets.length}`, 60000);
+            let defDone = 0, synDone = 0, usageDone = 0, stop = '';
+            for (let i = 0; i < targets.length; i += 8) {
+                const chunk = targets.slice(i, i + 8);
+                showToast(`📖 AI 補齊資料中… ${Math.min(i + 8, targets.length)} / ${targets.length}`, 60000);
                 const words = chunk.map(x => clozeTarget(x.s.text));
                 try {
-                    const r = await aiJSON(`請為下列英文單字或片語各提供：
-1. definition：簡短的英文定義，開頭標示詞性，例如 "(noun) a list of items to be discussed at a meeting."
-2. synonyms：1～2 個意思最接近、可以替換使用的英文同義字（片語請給同義的單字或片語；真的沒有就給空陣列）
+                    const r = await aiJSON(`請為下列英文單字或片語各提供以下資料：
+- definition：簡短的英文定義，開頭標示詞性，例如 "(noun) a list of items to be discussed at a meeting."
+- cefr：最常見意思的 CEFR 難易度（A1、A2、B1、B2、C1、C2 其中之一）
+- synonyms、usage、common、collocations：規則如下
+${ENRICH_RULES}
+
+單字清單：
 ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
-請嚴格只回傳 JSON，格式：{"items": [{"definition": "...", "synonyms": ["...", "..."]}, ...]}，陣列順序與數量要和上面的清單完全一致。`);
+
+請嚴格只回傳 JSON，格式：{"items": [{"definition": "...", "cefr": "B1", "synonyms": ["..."], "usage": "neutral", "common": [], "collocations": ["...", "..."]}, ...]}，陣列順序與數量要和上面的清單完全一致。`);
                     const items = Array.isArray(r.items) ? r.items : [];
                     chunk.forEach((x, k) => {
                         const it = items[k] || {}, sub = findSubAnywhere(x.s.id); if (!sub) return;
                         if (x.def && it.definition && String(it.definition).trim()) { sub.definition = String(it.definition).trim(); sub.showDef = true; defDone++; }
+                        const lv = String(it.cefr || '').toUpperCase().trim();
+                        if (CEFR.includes(lv) && !CEFR.includes(sub.cefr)) sub.cefr = lv;
                         const syn = cleanSynonyms(it.synonyms, words[k]);
                         if (syn.length && !(sub.synonyms && sub.synonyms.length)) { sub.synonyms = syn; synDone++; }
-                        else if (!syn.length && !x.def) sub.noSynonyms = true;   // AI 認為沒有合適的同義字，下次不再詢問
+                        else if (!syn.length && Array.isArray(it.synonyms) && !(sub.synonyms && sub.synonyms.length)) sub.noSynonyms = true;   // AI 認為沒有合適的同義字，下次不再詢問
+                        if (applyUsageFields(sub, cleanUsageFields(it, words[k]))) usageDone++;
                     });
                     saveData();
                 } catch (e) {
@@ -3032,7 +3102,7 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
             }
             fillingDefs = false;
             if (isHideDef && defDone) toggleHideDef();
-            showToast(`✅ 已建立 ${defDone} 個釋義、補上 ${synDone} 組同義字${stop ? `\n部分失敗：${stop}` : ''}`, 4000);
+            showToast(`✅ 已建立 ${defDone} 個釋義、補上 ${synDone} 組同義字、${usageDone} 個單字的常用度／搭配${stop ? `\n部分失敗：${stop}` : ''}`, 4500);
         }
 
         // --- 4. 選單切換 ---
@@ -3109,10 +3179,18 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
             const sub = findSub(mainTaskId, subTaskId);
             if (sub) {
                 const newDef = prompt("請修改英文定義/註釋：", sub.definition || "");
-                if (newDef !== null) { sub.definition = newDef.trim(); saveData(); if (!sub.definition) showToast('釋義已清空。之後可從 ⋮ →「📖 補齊缺少的釋義／同義字」一鍵重建', 3500); }
+                if (newDef !== null) { sub.definition = newDef.trim(); saveData(); if (!sub.definition) showToast('釋義已清空。之後可從 ⋮ →「📖 一鍵補齊…」重建', 3500); }
             }
         }
 
+        function editListField(subTaskId, mainTaskId, field) {
+            const sub = findSub(mainTaskId, subTaskId); if (!sub) return;
+            const name = { common: '日常更常用的說法', collocations: '常見搭配' }[field];
+            const v = prompt(`請修改${name}（用逗號分開，清空即刪除）：`, (sub[field] || []).join(', '));
+            if (v === null) return;
+            sub[field] = v.split(/[,，、;；]/).map(x => x.trim()).filter(Boolean).slice(0, 5);
+            saveData();
+        }
         function editSynonyms(subTaskId, mainTaskId) {
             const sub = findSub(mainTaskId, subTaskId); if (!sub) return;
             const v = prompt("請修改同義字（用逗號分開，清空即刪除）：", (sub.synonyms || []).join(', '));
@@ -3346,6 +3424,7 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
             sub.showDef = true;
             if (result.cefr && !CEFR.includes(sub.cefr)) sub.cefr = result.cefr;
             if (result.synonyms && result.synonyms.length && !(sub.synonyms && sub.synonyms.length)) sub.synonyms = result.synonyms;
+            applyUsageFields(sub, result);
             if (result.sentence) sub.grandtasks.unshift({ id: newId(), text: result.sentence, checked: false, createdAt: Date.now(), ...(result.reviewWords && result.reviewWords.length ? { reviewWords: result.reviewWords } : {}) });
             delete sub.pendingAI;
         }
@@ -3561,7 +3640,9 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
                         </div>
                     `;
                     const syn = Array.isArray(sub.synonyms) && sub.synonyms.length ? sub.synonyms : null;
-                    if (sub.definition || syn) html += `<div class="definition-box" title="點一下可修改釋義" onclick="editDefinition(${sub.id}, ${task.id})">${sub.definition ? `<div class="def-content">${escapeHtml(sub.definition)}</div>` : ''}${syn ? `<div class="def-syn" title="點一下修改同義字" onclick="event.stopPropagation(); editSynonyms(${sub.id}, ${task.id})">≈ ${syn.map(w => `<b>${escapeHtml(w)}</b>`).join('、')}</div>` : ''}</div>`;
+                    const cmn = ['formal', 'rare'].includes(sub.usage) && Array.isArray(sub.common) && sub.common.length ? sub.common : null;
+                    const col = Array.isArray(sub.collocations) && sub.collocations.length ? sub.collocations : null;
+                    if (sub.definition || syn || cmn || col) html += `<div class="definition-box" title="點一下可修改釋義" onclick="editDefinition(${sub.id}, ${task.id})">${sub.definition ? `<div class="def-content">${escapeHtml(sub.definition)}</div>` : ''}${syn ? `<div class="def-syn" title="點一下修改同義字" onclick="event.stopPropagation(); editSynonyms(${sub.id}, ${task.id})">≈ ${syn.map(w => `<b>${escapeHtml(w)}</b>`).join('、')}</div>` : ''}${cmn ? `<div class="def-common" title="點一下修改" onclick="event.stopPropagation(); editListField(${sub.id}, ${task.id}, 'common')">🗣️ 日常更常說：${cmn.map(w => `<b>${escapeHtml(w)}</b>`).join('、')}</div>` : ''}${col ? `<div class="def-col" title="點一下修改常見搭配" onclick="event.stopPropagation(); editListField(${sub.id}, ${task.id}, 'collocations')">🔗 常見搭配：${col.map(w => `<i>${escapeHtml(w)}</i>`).join(' · ')}</div>` : ''}</div>`;
                     
                     html += `<div class="grandtask-container">`;
                     sub.grandtasks.forEach(grand => {
