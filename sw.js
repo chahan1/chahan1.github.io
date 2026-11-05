@@ -1,6 +1,6 @@
 // 英語學習筆記本 - Service Worker（讓 App 可離線開啟）
 // 更新程式後，把版本號改掉，使用者下次開啟就會拿到新版
-const CACHE_NAME = 'eng-notebook-v2.5.0';
+const CACHE_NAME = 'eng-notebook-v2.5.1';
 const APP_FILES = [
   './',
   './index.html',
@@ -41,7 +41,9 @@ self.addEventListener('fetch', event => {
   if (req.mode === 'navigate' || url.pathname.endsWith('.html')) {
     // 網頁本體：優先連網拿最新版，沒網路時用快取
     event.respondWith(
-      fetch(req).then(res => {
+      // cache: 'no-cache' → 每次都向 GitHub 確認是否有新版，不使用瀏覽器暫存的舊網頁
+      fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' }).then(res => {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
         const copy = res.clone();
         caches.open(CACHE_NAME).then(c => c.put(req, copy));
         return res;
