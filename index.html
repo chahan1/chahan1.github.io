@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.8.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.9.0 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -88,6 +88,9 @@
         .definition-box:active { background: var(--green-light); }
         body.hide-def .definition-box { display: none !important; }
         .etym-box { display: block; font-size: 12px; color: #6d4c1f; background: #fdf7ec; border-left: 2px solid #e3a33b; padding: 4px 8px; margin: 0 4px 5px 30px; border-radius: 0 6px 6px 0; cursor: pointer; line-height: 1.5; }
+        .etym-src { font-size: 9.5px; margin-left: 6px; padding: 0 5px; border-radius: 4px; background: #f1f3f4; color: #80868b; white-space: nowrap; font-weight: 600; vertical-align: 1px; }
+        .etym-src.ok { background: #e6f4ea; color: #137333; }
+        .uv-badge { display: inline-block; font-size: 9.5px; font-weight: 600; border-radius: 5px; padding: 0 5px; margin-left: 5px; line-height: 15px; background: #fef7e0; color: #b06000; cursor: pointer; white-space: nowrap; vertical-align: 1px; font-style: normal; }
         .etym-tag { font-size: 10.5px; font-weight: 700; color: #b06d00; margin-right: 6px; white-space: nowrap; }
         body.hide-etym .etym-box { display: none !important; }
         .completed-sub .etym-box { opacity: 0.6; }
@@ -464,7 +467,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.8.0</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.9.0</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -479,6 +482,7 @@
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-label">AI 工具</div>
                     <div class="dropdown-item" onclick="proofAll()">🩺 <span>一鍵檢查並修正例句與單字</span></div>
+                    <div class="dropdown-item" onclick="reverifyEtymology()">🔎 <span>用維基詞典查證全部字源</span></div>
                     <div class="dropdown-item" id="itemUndoProof" style="display:none" onclick="undoProof()">↩ <span>復原上次的 AI 修正</span></div>
                     <div class="dropdown-item" onclick="fillMissingDefinitions()">📖 <span>一鍵補齊釋義／同義字／常用度／搭配／字源</span></div>
                     <div class="dropdown-item" onclick="fillMissingExamples()">🧩 <span>替沒有例句的單字補例句</span></div>
@@ -748,7 +752,9 @@
                 <button data-v="on" onclick="setAiStyle('mixReview', true)">開啟</button>
                 <button data-v="off" onclick="setAiStyle('mixReview', false)">關閉</button>
             </div>
-            <div class="pm-hint">開啟後，AI 會試著把 1 個已學過的單字（優先挑同一主題、未熟記、較少複習的）放進新例句；句子會再經過 AI 審核自然度，不自然就改用一般例句，不會硬湊。</div>
+            <div class="pm-hint">開啟後，AI 會試著把 1 個已學過的單字（優先挑同一主題、未熟記、較少複習的）放進新例句，幫助複習。<b>預設關閉</b>：這類句子比較容易不自然，雖然會經過交叉檢查，仍建議多留意。</div>
+            <div class="pm-label">內容品質（交叉檢查）</div>
+            <div class="pm-hint" id="stQuality"></div>
             <div class="pm-label">例句範例</div>
             <div class="st-example" id="stExample"></div>
             <button class="btn-primary pm-start" onclick="closeStyleModal()">完成</button>
@@ -1178,28 +1184,38 @@
   "usage": "neutral",
   "common": [],
   "collocations": ["...", "..."],
-  "etymology": "...",
   "corrected_word": ""
 }
 （cefr 為這個單字／片語最常見意思的 CEFR 難易度：A1、A2、B1、B2、C1、C2 其中之一）
 ${ENRICH_RULES}
-${ETYM_RULE}
 （corrected_word：如果 "${cleanWord}" 拼錯了，或不是正確的英文寫法（例如片語的介系詞錯誤），請填正確寫法，並且 definition、sentence 等全部都以正確寫法為準；如果寫法正確就留空字串）`;
             try {
                 const result = await aiJSON(promptText);
+                const gen = result.__engine;
                 const fixedWord = String(result.corrected_word || '').trim();
                 const correctedWord = fixedWord && /^[a-z][a-z '.\-]*$/i.test(fixedWord) && fixedWord.toLowerCase() !== cleanWord.toLowerCase() ? fixedWord : '';
-                const pick = await chooseSentence(result, correctedWord || cleanWord, rvWords);
-                return {
+                const word = correctedWord || cleanWord;
+                const entry = {
                     definition: result.definition || '(無法解析定義)',
+                    cefr: CEFR.includes(String(result.cefr || '').toUpperCase().trim()) ? String(result.cefr).toUpperCase().trim() : '',
+                    synonyms: cleanSynonyms(result.synonyms, word),
+                    ...cleanUsageFields(result, word)
+                };
+                // 例句交叉檢查、詞條交叉檢查、維基詞典字源，同時進行
+                const [pick, ev, et] = await Promise.all([
+                    chooseSentence(result, word, rvWords, gen),
+                    verifyEntry(word, entry, gen),
+                    fetchEtymology(word).catch(() => ({ etym: '', src: '' }))
+                ]);
+                return {
+                    ...entry,
                     sentence: pick.sentence ? `🤖 ${pick.sentence}` : null,
-                    proofed: !!pick.proofed,
+                    proofed: !!pick.proofed, unverified: !!pick.unverified, uvReason: pick.reason || '',
                     reviewWords: pick.reviewWords,
                     correctedWord, originalWord: cleanWord,
-                    cefr: CEFR.includes(String(result.cefr || '').toUpperCase().trim()) ? String(result.cefr).toUpperCase().trim() : '',
-                    synonyms: cleanSynonyms(result.synonyms, cleanWord),
-                    etymology: cleanEtym(result.etymology),
-                    ...cleanUsageFields(result, cleanWord)
+                    etymology: et.etym, etymSrc: et.src,
+                    spellWarn: et.exists === false && !correctedWord && !/\s/.test(word),
+                    entryVerified: ev.verified, aiModel: gen ? gen.name : ''
                 };
             } catch (e) {
                 console.error('AI 查詢錯誤:', e);
@@ -2318,16 +2334,18 @@ ${ETYM_RULE}
 
         // ================= AI 例句風格 =================
         const STYLE_KEY = 'eng_aiStyle';
-        let aiStyle = { style: 'daily', level: 'mid', mixReview: true };
+        let aiStyle = { style: 'daily', level: 'mid', mixReview: false };
         try { Object.assign(aiStyle, JSON.parse(localStorage.getItem(STYLE_KEY)) || {}); } catch (e) {}
+        // v2.9.0：複習字混搭的例句錯誤率較高，升級時預設改為關閉（之後可自行開啟）
+        if (!localStorage.getItem('eng_mig290')) { aiStyle.mixReview = false; try { localStorage.setItem(STYLE_KEY, JSON.stringify(aiStyle)); localStorage.setItem('eng_mig290', '1'); } catch (e) {} }
         const STYLE_NAME = { general: '一般', daily: '生活口語', toeic: '多益題型' };
         const LEVEL_NAME = { mid: '中級', upper: '中高級' };
-        function styleLabel() { return `${STYLE_NAME[aiStyle.style]}・${LEVEL_NAME[aiStyle.level]}${aiStyle.mixReview !== false ? '・搭配已學單字' : ''}`; }
+        function styleLabel() { return `${STYLE_NAME[aiStyle.style]}・${LEVEL_NAME[aiStyle.level]}${aiStyle.mixReview === true ? '・搭配已學單字' : ''}`; }
 
         // 從筆記中挑出適合複習的已學單字／片語
         // 優先：同一個主題（比較容易自然搭配）→ 未熟記 → 較少播放 → 較久沒複習
         function pickReviewWords(currentWord, n = 5, topicId = null) {
-            if (aiStyle.mixReview === false) return [];
+            if (aiStyle.mixReview !== true) return [];
             const cur = clozeTarget(currentWord || '');
             const seen = new Set([cur]), pool = [];
             tasks.forEach(t => t.subtasks.forEach(s => {
@@ -2362,17 +2380,17 @@ review_sentence 的規則（非常重要）：
             return !parts.length || wordsIn(sentenceText, parts).length > 0;
         }
         // 請 AI 以母語老師的標準替句子的自然度打分（4 分以上才採用）
-        async function checkNatural(sentenceText) {
+        async function checkNatural(sentenceText, gen = null) {
             try {
                 const r = await aiJSON(`你是非常嚴格的英語母語老師。請評估下面這個英文例句是否完全合乎文法、自然、合乎邏輯、語意通順，像母語人士在真實情境中會說的話（而不是為了塞進單字而拼湊出來的句子）：
 "${cleanForSpeech(sentenceText)}"
 評分 1～5 分：5＝非常自然；4＝自然；3＝勉強、有拼湊感；2 以下＝不自然或不合邏輯。
-請只回傳 JSON：{"score": 分數, "reason": "簡短的繁體中文理由"}`);
+請只回傳 JSON：{"score": 分數, "reason": "簡短的繁體中文理由"}`, gen ? { avoid: gen, temperature: 0.2 } : { temperature: 0.2 });
                 return Number(r.score) >= 4;
             } catch (e) { return false; }   // 無法確認時，寧可不用
         }
         // 決定最後採用哪一句：複習句要同時通過「格式檢查」與「自然度審核」，否則用一般例句
-        async function chooseSentence(result, word, rvWords) {
+        async function chooseSentence(result, word, rvWords, gen = result.__engine) {
             const base = String(result.sentence || '').trim();
             const rs = String(result.review_sentence || '').trim();
             const fallback = { sentence: base || rs, reviewWords: [] };
@@ -2380,20 +2398,79 @@ review_sentence 的規則（非常重要）：
             if (rs && rvWords.length) {
                 const used = wordsIn(rs, rvWords);
                 const len = cleanForSpeech(rs).split(/\s+/).length;
-                if (used.length === 1 && hasTarget(rs, word) && len <= 26 && await checkNatural(rs)) pick = { sentence: rs, reviewWords: used };
+                if (used.length === 1 && hasTarget(rs, word) && len <= 26 && await checkNatural(rs, gen)) pick = { sentence: rs, reviewWords: used };
             }
-            return await proofPick(pick, word);
+            return await proofPick(pick, word, gen);
         }
-        // 每一句新例句都再請 AI 以母語編輯的標準校對一次；有錯就採用修正後的句子
-        async function proofPick(pick, word) {
+        // ---- 交叉檢查：產生例句的模型不能自己檢查自己 ----
+        // 流程：A 產生 → B 檢查；B 認為有錯就由 B 修正（或重新產生）→ 再由另一個模型檢查；最多三輪
+        // 都沒通過就標「⚠️ 待確認」，不假裝正確
+        async function proofPick(pick, word, gen = null) {
             if (!pick.sentence) return pick;
+            const target = clozeTarget(word) || word;
+            let cand = { sentence: pick.sentence, reviewWords: pick.reviewWords || [] }, producer = gen, reason = '';
+            for (let round = 0; round < 3; round++) {
+                let r, checker;
+                try {
+                    const out = await proofSentences([{ word: target, text: cand.sentence }], producer ? { avoid: producer } : {});
+                    r = out[0]; checker = out.engine;
+                } catch (e) {
+                    return { ...cand, unverified: true, reason: e.kind === 'noverifier' ? e.message : '交叉檢查失敗（' + e.message + '）', engine: producer };
+                }
+                if (r.ok) return { ...cand, proofed: true, engine: producer, checker };
+                reason = r.reason || reason;
+                if (round === 2) break;
+                if (r.corrected && hasTarget(r.corrected, word)) {
+                    cand = { sentence: r.corrected, reviewWords: wordsIn(r.corrected, cand.reviewWords) }; producer = checker;
+                } else {
+                    const re = await regenerateSentence(target, cand.sentence, reason).catch(() => null);
+                    if (!re || !hasTarget(re.sentence, word)) break;
+                    cand = { sentence: re.sentence, reviewWords: [] }; producer = re.engine;
+                }
+            }
+            return { ...cand, unverified: true, reason: reason || '沒有通過交叉檢查', engine: producer };
+        }
+        async function regenerateSentence(word, bad, reason) {
+            const { data, engine } = await aiCall(`下面這個用來示範 "${word}" 的英文例句有問題：
+"${proofKey(bad)}"
+問題：${reason || '不自然或不合文法'}
+請重新寫一句全新的例句，必須包含 "${word}"（可依文法變化詞形）。
+例句格式為：英文句子後面加上括號內的繁體中文翻譯，例如 "Let's stick to the plan. (我們照計畫進行吧。)"
+例句風格與程度：${styleInstruction()}
+請只回傳 JSON：{"sentence": "..."}`);
+            const sentence = String(data.sentence || '').trim();
+            if (!sentence) throw new Error('沒有回傳例句');
+            return { sentence, engine };
+        }
+        // 新例句要存的檢查資訊（只記英文內容的 key，使用者修改句子後標記自動失效）
+        function sentMeta(r, text) {
+            const k = proofKey(text), m = {};
+            if (r.proofed) m.proofed = k;
+            if (r.unverified) { m.unverified = k; if (r.reason || r.uvReason) m.uvReason = r.reason || r.uvReason; }
+            if (r.engine && r.engine.name) m.aiModel = r.engine.name;
+            return m;
+        }
+        // 詞條（釋義、同義字、搭配、常用度、難易度）交給另一個模型檢查；有錯直接採用檢查者的修正
+        async function verifyEntry(word, entry, gen) {
             try {
-                const [r] = await proofSentences([{ word: clozeTarget(word) || word, text: pick.sentence }]);
-                if (!r) return pick;
-                if (r.ok) return { ...pick, proofed: true };
-                if (r.corrected && hasTarget(r.corrected, word)) return { sentence: r.corrected, reviewWords: wordsIn(r.corrected, pick.reviewWords || []), proofed: true, fixed: true };
-            } catch (e) { /* 校對失敗時保留原句，之後可用「一鍵檢查並修正」再檢查 */ }
-            return pick;
+                const r = await aiJSON(`你是嚴格的英語老師兼字典編輯。另一位老師為學生寫了下面這個詞條，請逐項檢查是否正確：
+單字／片語：${word}
+- definition：${entry.definition}
+- synonyms：${JSON.stringify(entry.synonyms || [])}
+- collocations：${JSON.stringify(entry.collocations || [])}
+- usage（日常常用度：spoken／neutral／formal／rare）：${entry.usage || ''}
+- cefr：${entry.cefr || ''}
+檢查重點：釋義與詞性是否正確；同義字是否真的意思相近、可以替換；搭配是否為母語人士常用的說法並且包含這個詞；常用度與 CEFR 是否合理。
+正確的項目就留空（字串給 ""、陣列給 []），只有錯的才給修正後的內容。
+只回傳 JSON：{"definition": "", "synonyms": [], "collocations": [], "usage": "", "cefr": "", "reason": "有修正時用繁體中文簡短說明"}`, gen ? { avoid: gen, temperature: 0.2 } : { temperature: 0.2 });
+                if (r.definition && String(r.definition).trim().length > 8) entry.definition = String(r.definition).trim();
+                const syn = cleanSynonyms(r.synonyms, word); if (syn.length) entry.synonyms = syn;
+                const u = cleanUsageFields({ usage: r.usage || entry.usage, collocations: r.collocations, common: entry.common }, word);
+                if (r.collocations && r.collocations.length && u.collocations && u.collocations.length) entry.collocations = u.collocations;
+                if (USAGE[String(r.usage || '').toLowerCase()]) { entry.usage = String(r.usage).toLowerCase(); if (!['formal', 'rare'].includes(entry.usage)) entry.common = []; }
+                const lv = String(r.cefr || '').toUpperCase().trim(); if (CEFR.includes(lv)) entry.cefr = lv;
+                return { verified: true, reason: r.reason || '' };
+            } catch (e) { return { verified: false }; }
         }
         const QUALITY_RULES = `
 例句品質要求（最重要）：
@@ -2401,6 +2478,13 @@ review_sentence 的規則（非常重要）：
 - 必須是英語母語人士在真實情境中真的會說的一句完整、通順、合乎邏輯的話；不可以有拼湊感或中式英文。
 - 目標單字／片語的意思和用法要正確、自然。
 - 括號內的繁體中文翻譯要準確、通順。`;
+        function qualityText() {
+            const st = strongEngines(), all = availEngines();
+            if (!all.length) return '⚠️ 尚未設定 AI 金鑰。';
+            if (!st.length) return '<span style="color:#b3261e">⚠️ 目前只有 Free.ai 小模型，錯誤率較高，也無法交叉檢查。強烈建議到「AI 金鑰設定」填入 Groq 金鑰（免費）。</span>';
+            if (st.length === 1) return `⚠️ 目前只有一個大模型（${st[0].name}），無法交叉檢查，新內容會標「⚠️ 待確認」。建議再設定 ${st[0].provider === 'gemini' ? 'Groq' : 'Gemini'} 金鑰。`;
+            return `✅ 已啟用交叉檢查：內容由 <b>${st[0].name}</b> 產生，再由另一個模型（${st.slice(1).map(e => e.name).join('、')}）檢查；字源先查維基詞典。沒有通過檢查的例句會標「⚠️ 待確認」。`;
+        }
         function styleInstruction() {
             const s = {
                 general: '例句要自然、實用，用字以母語人士日常慣用的說法為優先，避免生硬、過度正式或少見的字。',
@@ -2419,7 +2503,8 @@ review_sentence 的規則（非常重要）：
         function refreshStyleModal() {
             document.querySelectorAll('#stStyle button').forEach(b => b.classList.toggle('on', b.dataset.v === aiStyle.style));
             document.querySelectorAll('#stLevel button').forEach(b => b.classList.toggle('on', b.dataset.v === aiStyle.level));
-            document.querySelectorAll('#stMix button').forEach(b => b.classList.toggle('on', (b.dataset.v === 'on') === (aiStyle.mixReview !== false)));
+            document.getElementById('stQuality').innerHTML = qualityText();
+            document.querySelectorAll('#stMix button').forEach(b => b.classList.toggle('on', (b.dataset.v === 'on') === (aiStyle.mixReview === true)));
             document.getElementById('stExample').textContent = {
                 'general-mid': 'We need to finish the report before Friday.',
                 'general-upper': 'Despite the tight schedule, the team managed to deliver the report ahead of the deadline.',
@@ -2502,17 +2587,51 @@ review_sentence 的規則（非常重要）：
             throw last;
         }
 
-        // 依序嘗試有填金鑰的服務；一家失敗就換下一家
-        async function aiJSON(prompt) {
-            const order = TEXT_ORDER.filter(p => getKey(p));
-            if (!order.length) { const e = new Error('尚未設定任何 AI 金鑰'); e.status = 401; e.kind = 'key'; throw e; }
+        // ---- 模型清單：內容一律優先用大模型；Free.ai 小模型只在沒有其他選擇時才用 ----
+        const ENGINES = [
+            { id: 'groq:oss', provider: 'groq', model: 'openai/gpt-oss-120b', name: 'Groq GPT-OSS 120B', strong: true },
+            { id: 'gemini', provider: 'gemini', name: 'Gemini', strong: true },
+            { id: 'groq:llama', provider: 'groq', model: 'llama-3.3-70b-versatile', name: 'Groq Llama 3.3 70B', strong: true },
+            { id: 'freeai', provider: 'freeai', name: 'Free.ai Qwen 7B（小模型）', strong: false }
+        ];
+        const availEngines = () => ENGINES.filter(e => getKey(e.provider));
+        const strongEngines = () => availEngines().filter(e => e.strong);
+        async function callEngine(e, prompt, temperature) {
+            if (e.provider === 'groq') {
+                const res = await postBearer('https://api.groq.com/openai/v1/chat/completions', getKey('groq'), {
+                    model: e.model, temperature, messages: [{ role: 'system', content: SYS_PROMPT }, { role: 'user', content: prompt }]
+                });
+                return extractJSON(chatText(await res.json()));
+            }
+            if (e.provider === 'gemini') return chatGemini(prompt);
+            return chatFreeAI(prompt);
+        }
+        let weakWarned = false;
+        // avoid：交叉檢查時傳入「產生內容的模型」，一定改用另一個模型（優先換另一家）
+        async function aiCall(prompt, { avoid = null, temperature = 0.7, allowWeak = true } = {}) {
+            const all = availEngines();
+            if (!all.length) { const e = new Error('尚未設定任何 AI 金鑰'); e.status = 401; e.kind = 'key'; throw e; }
             if (!navigator.onLine) { const e = new TypeError('目前沒有網路'); e.kind = 'offline'; throw e; }
-            const errs = [];
-            for (const p of order) {
-                try { return await ({ groq: chatGroq, freeai: chatFreeAI, gemini: chatGemini })[p](prompt); }
-                catch (e) {
+            let list;
+            if (avoid) {
+                const others = all.filter(e => e.strong && e.id !== avoid.id);
+                list = [...others.filter(e => e.provider !== avoid.provider), ...others.filter(e => e.provider === avoid.provider)];
+                if (!list.length) { const e = new Error(all.some(x => x.strong) ? '只有一個大模型，無法交叉檢查' : '只有 Free.ai 小模型，無法交叉檢查'); e.kind = 'noverifier'; throw e; }
+            } else {
+                list = [...all.filter(e => e.strong), ...(allowWeak ? all.filter(e => !e.strong) : [])];
+            }
+            const errs = [], deadProvider = new Set();
+            for (const eng of list) {
+                if (deadProvider.has(eng.provider)) continue;
+                try {
+                    const data = await callEngine(eng, prompt, temperature);
+                    if (!eng.strong && !weakWarned) { weakWarned = true; setTimeout(() => showToast('⚠️ 目前是用 Free.ai 小模型產生內容，錯誤率較高。\n建議到「AI 金鑰設定」填入 Groq 金鑰（免費）', 5000), 800); }
+                    return { data, engine: eng };
+                } catch (e) {
                     if (e instanceof TypeError && navigator.onLine) e.message = '無法連線（網路不穩，或此服務不允許網頁直接連線）';
-                    e.provider = p; errs.push(e);
+                    e.provider = eng.provider; errs.push(e);
+                    const k = classifyError(e);
+                    if (k === 'key' || (k === 'offline' && eng.provider !== 'groq')) deadProvider.add(eng.provider);
                     if (!navigator.onLine) break;
                 }
             }
@@ -2522,6 +2641,12 @@ review_sentence 的規則（非常重要）：
             e.kind = kind; e.status = kind === 'key' ? 401 : kind === 'quota' ? 429 : 0;
             if (kind === 'offline') { const t = new TypeError(e.message); t.kind = 'offline'; throw t; }
             throw e;
+        }
+        // 舊介面：只要資料；用了哪個模型記在不會被存檔的 __engine 上
+        async function aiJSON(prompt, opts) {
+            const r = await aiCall(prompt, opts);
+            try { Object.defineProperty(r.data, '__engine', { value: r.engine, enumerable: false }); } catch (e) {}
+            return r.data;
         }
 
         // ---- Free.ai 語音（Kokoro）----
@@ -2617,10 +2742,30 @@ review_sentence 的規則（非常重要）：
         const CEFR = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
         const CEFR_DESC = { A1: '入門', A2: '基礎', B1: '中級', B2: '中高級', C1: '高級', C2: '精通' };
         let lvTarget = null;
+        function spellInfo(taskId, subId) {
+            const s = findSub(taskId, subId); if (!s) return;
+            if (confirm(`維基詞典查不到「${clozeTarget(s.text)}」這個字，可能是拼錯了。\n\n請確認拼字；如果確定沒錯（例如專有名詞或新詞），按「確定」移除這個提醒。`)) { delete s.spellWarn; saveData(); }
+        }
+        async function uvInfo(taskId, subId, gid) {
+            const s = findSub(taskId, subId); const g = s && s.grandtasks.find(x => x.id === gid); if (!g) return;
+            const ans = confirm(`這句例句沒有通過 AI 交叉檢查，可能有文法或用法問題。${g.uvReason ? `\n原因：${g.uvReason}` : ''}\n\n按「確定」讓 AI 重新產生並檢查一句來取代它；\n按「取消」保留（你也可以點句子自己修改，修改後提醒會自動消失）。`);
+            if (!ans) return;
+            if (!navigator.onLine) return showToast('📴 目前離線，連上網路後再試');
+            showToast('🤖 重新產生並交叉檢查中…', 30000);
+            try {
+                const r = await fetchExtraSentence(s.text, s.grandtasks.filter(x => x !== g).map(x => cleanForSpeech(x.text)), taskId);
+                const text = `🤖 ${r.sentence}`;
+                ['proofed', 'unverified', 'uvReason', 'aiModel', 'reviewWords'].forEach(k => delete g[k]);
+                Object.assign(g, { text, fixedAt: Date.now() }, sentMeta(r, r.sentence), r.reviewWords && r.reviewWords.length ? { reviewWords: r.reviewWords } : {});
+                saveData();
+                showToast(r.unverified ? '⚠️ 新的句子仍沒有通過檢查，請自行確認' : '✅ 已換成通過交叉檢查的新例句', 3500);
+            } catch (e) { showToast('重新產生失敗：' + e.message, 4000); }
+        }
         function cefrBadge(sub, taskId) {
             const lv = CEFR.includes(sub.cefr) ? sub.cefr : '';
             const u = USAGE[sub.usage];
-            return `<span class="lv-badge ${lv ? 'lv-' + lv : 'lv-none'}" title="難易度（點一下修改）" onclick="event.stopPropagation(); openLevelPicker(${taskId}, ${sub.id})">${lv || 'Lv'}</span>${u && u.badge ? `<span class="us-badge us-${sub.usage}" title="${u.desc}（點一下修改）" onclick="event.stopPropagation(); openLevelPicker(${taskId}, ${sub.id})">${u.badge}</span>` : ''}`;
+            const sw = sub.spellWarn && sub.spellWarn === sub.text ? `<span class="uv-badge" title="維基詞典查無此字" onclick="event.stopPropagation(); spellInfo(${taskId}, ${sub.id})">⚠️ 拼字？</span>` : '';
+            return sw + `<span class="lv-badge ${lv ? 'lv-' + lv : 'lv-none'}" title="難易度（點一下修改）" onclick="event.stopPropagation(); openLevelPicker(${taskId}, ${sub.id})">${lv || 'Lv'}</span>${u && u.badge ? `<span class="us-badge us-${sub.usage}" title="${u.desc}（點一下修改）" onclick="event.stopPropagation(); openLevelPicker(${taskId}, ${sub.id})">${u.badge}</span>` : ''}`;
         }
         function openLevelPicker(taskId, subId) {
             const sub = findSub(taskId, subId); if (!sub) return;
@@ -2709,7 +2854,7 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
                 try {
                     const r = await fetchExtraSentence(sub.text, [], topicId);
                     const s2 = findSubAnywhere(id);
-                    if (s2) s2.grandtasks.unshift({ id: newId(), text: `🤖 ${r.sentence}`, checked: false, createdAt: Date.now(), ...(r.proofed ? { proofed: proofKey(r.sentence) } : {}), ...(r.reviewWords.length ? { reviewWords: r.reviewWords } : {}) });
+                    if (s2) s2.grandtasks.unshift({ id: newId(), text: `🤖 ${r.sentence}`, checked: false, createdAt: Date.now(), ...sentMeta(r, r.sentence), ...(r.reviewWords && r.reviewWords.length ? { reviewWords: r.reviewWords } : {}) });
                     done++;
                 } catch (e) {
                     fail++;
@@ -3174,6 +3319,103 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
 （common：只有 usage 為 formal 或 rare 時，給 1～2 個意思相同、日常更常用的說法（例如 postpone → put off、push back；purchase → buy）；其他情況給空陣列）
 （collocations 為 2～3 個母語人士最常用的搭配或固定說法，必須包含這個單字／片語，例如 agenda → set the agenda、on the agenda；每個不超過 5 個字）`;
         const ETYM_RULE = `（etymology：用繁體中文簡短說明字源，幫助記憶，40 字以內。拆解字首、字根、字尾並說明各部分的意思，再用箭頭帶到現在的意思，例如 postpone → "post-（在…之後）＋ pon（放置，拉丁文）→ 放到後面 → 延後"；片語則說明組成字的意思與引申，例如 put off → "put（放）＋ off（離開）→ 放到一邊 → 延後"；沒有可拆解的字根時，簡短說明來源，例如 "來自古英文 cnawan（知道）"。不確定的部分不要編造，真的不清楚就寫 "字源不明"）`;
+        // ---- 字源查證：維基詞典（Wiktionary）原文 → AI 只負責翻成中文摘要 ----
+        const WK_API = 'https://en.wiktionary.org/w/api.php';
+        const wkCache = new Map();
+        async function wkWikitext(title) {
+            if (wkCache.has(title)) return wkCache.get(title);
+            const url = `${WK_API}?action=parse&page=${encodeURIComponent(title)}&prop=wikitext&format=json&formatversion=2&redirects=1&origin=*`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('維基詞典 HTTP ' + res.status);
+            const j = await res.json();
+            const wt = j.error ? null : (j.parse && j.parse.wikitext) || '';   // null＝查無此頁
+            wkCache.set(title, wt);
+            return wt;
+        }
+        function wkEnglish(wt) {
+            const re = /^==\s*([^=]+?)\s*==\s*$/gm; let m, start = -1, end = wt.length;
+            while ((m = re.exec(wt))) { if (start < 0) { if (m[1] === 'English') start = re.lastIndex; } else { end = m.index; break; } }
+            return start < 0 ? '' : wt.slice(start, end);
+        }
+        function wkEtymText(en) {
+            const m = /^===+\s*Etymology[^=]*===+\s*$/m.exec(en); if (!m) return '';
+            const rest = en.slice(m.index + m[0].length);
+            const n = /^===/m.exec(rest);
+            return (n ? rest.slice(0, n.index) : rest)
+                .replace(/<ref[\s\S]*?<\/ref>|<ref[^>]*\/>/g, '').replace(/<!--[\s\S]*?-->/g, '')
+                .replace(/\[\[(?:[^\]|]*\|)?([^\]]+)\]\]/g, '$1').replace(/\{\{(?:rfe|etystub|unk|rfv-etym|was wotd|cln)[^}]*\}\}/gi, '')
+                .replace(/\n{2,}/g, '\n').trim().slice(0, 1500);
+        }
+        const LEMMA_RE = /\{\{(?:inflection of|infl of|past participle of|present participle of|plural of|en-past of|en-simple past of|en-third-person singular of|en-ing form of|alternative form of|alt form|comparative of|superlative of|en-comparative of|en-superlative of)\|en\|([^|}]+)/i;
+        // 查一個詞的英文字源原文；變化形（例如 contaminated）會自動改查原形
+        async function wkLookup(title) {
+            const wt = await wkWikitext(title);
+            if (wt === null) return { exists: false };
+            const en = wkEnglish(wt);
+            if (!en) return { exists: false };
+            let etym = wkEtymText(en), used = title;
+            if (!etym || etym.length < 12) {
+                const lm = LEMMA_RE.exec(en);
+                if (lm && lm[1] && lm[1].toLowerCase() !== title) {
+                    const wt2 = await wkWikitext(lm[1]);
+                    const e2 = wt2 ? wkEtymText(wkEnglish(wt2)) : '';
+                    if (e2) { etym = e2; used = lm[1]; }
+                }
+            }
+            return { exists: true, etym: etym && etym.length >= 12 ? etym : '', title: used };
+        }
+        function etymHeadword(word) {
+            const w = String(word || '').toLowerCase().replace(/[^a-z' -]/g, ' ').replace(/\s+/g, ' ').trim();
+            if (/\b(vs|versus)\b|;/.test(word.toLowerCase())) return { phrase: '', key: w.split(' ').filter(x => x.length >= 3 && !STOP_WORDS.has(x)).sort((a, b) => b.length - a.length)[0] || '' };
+            const phrase = w.replace(/^(to|the|a|an) /, '');
+            const key = phrase.split(' ').filter(x => x.length >= 3 && !STOP_WORDS.has(x)).sort((a, b) => b.length - a.length)[0] || phrase;
+            return { phrase, key };
+        }
+        // 回傳 { etym, src: 'wiktionary' | 'ai', exists }
+        async function fetchEtymology(word) {
+            const { phrase, key } = etymHeadword(word);
+            let found = null, exists;
+            try {
+                if (phrase && phrase !== key) { const r = await wkLookup(phrase); if (r.exists && r.etym) found = r; }
+                if (!found && key) { const r = await wkLookup(key); exists = phrase === key ? r.exists : undefined; if (r.exists && r.etym) found = r; }
+            } catch (e) { /* 連不上維基詞典時改用 AI 推測，並清楚標示 */ }
+            if (found) {
+                const isCore = found.title !== phrase;
+                const r = await aiJSON(`以下是維基詞典（Wiktionary）上 "${found.title}" 的字源原文（wikitext 格式；{{…}} 是範本，例如 {{inh|en|enm|postponen}} 表示繼承自中古英文 postponen，{{der|en|la|postpono}} 表示源自拉丁文 postpono，{{prefix|en|un|do}} 表示 un- 字首＋ do，{{suffix|en|kind|ness}} 表示 kind＋ -ness 字尾）：
+---
+${found.etym}
+---
+請「只根據上面的原文」，用繁體中文寫出幫助記憶的簡短字源（50 字以內）：拆出字首／字根／字尾（或組成的字）並說明各自意思，再用箭頭帶到現在的意思，例如 "post-（在…之後）＋ ponere（放置，拉丁文）→ 放到後面 → 延後"。${isCore ? `這是片語「${word}」中的核心字 ${found.title}，開頭請寫「${found.title}：」。` : ''}
+不可以加入原文沒有的資訊；如果原文沒有實質的字源資訊，etymology 回傳空字串。
+只回傳 JSON：{"etymology": "..."}`, { temperature: 0.2 });
+                const et = cleanEtym(r.etymology);
+                if (et) return { etym: et, src: 'wiktionary', exists: exists !== undefined ? exists : true };
+            }
+            const r = await aiJSON(`請為英文單字／片語 "${word}" 寫字源。只回傳 JSON：{"etymology": "..."}
+${ETYM_RULE}`, { temperature: 0.2 });
+            return { etym: cleanEtym(r.etymology), src: 'ai', exists };
+        }
+        async function reverifyEtymology() {
+            const subs = tasks.flatMap(t => t.subtasks).filter(s => clozeTarget(s.text) && s.etymSrc !== 'wiktionary' && !s.isLoading && !s.pendingAI);
+            if (!subs.length) return showToast('所有字源都已用維基詞典查證過 👍');
+            if (!navigator.onLine) return showToast('📴 目前離線，連上網路後再試');
+            if (!hasTextKey()) return openKeyModal();
+            if (!confirm(`要用維基詞典重新查證 ${subs.length} 個單字的字源嗎？\n\n查得到的會改成「✓ 維基詞典」版本；查不到的保留原本內容。每個單字大約用 1 次 AI。`)) return;
+            let ok = 0, miss = 0, stop = '';
+            for (let i = 0; i < subs.length; i++) {
+                const s = subs[i];
+                showToast(`🔎 查證字源中… ${i + 1} / ${subs.length}`, 60000);
+                try {
+                    const { phrase, key } = etymHeadword(clozeTarget(s.text));
+                    let found = false;
+                    for (const t of [phrase, key]) { if (!t || found) continue; const r = await wkLookup(t); if (r.exists && r.etym) found = true; }
+                    if (!found) { miss++; continue; }
+                    const et = await fetchEtymology(clozeTarget(s.text));
+                    if (et.src === 'wiktionary' && et.etym) { s.etym = et.etym; s.etymSrc = 'wiktionary'; ok++; saveData(); } else miss++;
+                } catch (e) { const k = e.kind || classifyError(e); if (k === 'key' || k === 'offline' || k === 'quota') { stop = e.message; break; } miss++; }
+            }
+            showToast(`✅ 已用維基詞典查證 ${ok} 個字源${miss ? `\n${miss} 個查不到，保留原本內容` : ''}${stop ? `\n（中斷：${stop}）` : ''}`, 5000);
+        }
         const BAD_DEFS = () => [MANUAL_DEF_TEXT, LOADING_TEXT, '(無法解析定義)', '(點擊下方「✏️ 編輯釋義」手動填寫)', '(點擊下方「編輯釋義」手動填寫)'];
         function cleanSynonyms(list, word) {
             if (!Array.isArray(list)) return [];
@@ -3248,18 +3490,21 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
                     const r = await aiJSON(`請為下列英文單字或片語各提供以下資料：
 - definition：簡短的英文定義，開頭標示詞性，例如 "(noun) a list of items to be discussed at a meeting."
 - cefr：最常見意思的 CEFR 難易度（A1、A2、B1、B2、C1、C2 其中之一）
-- synonyms、usage、common、collocations、etymology：規則如下
+- synonyms、usage、common、collocations：規則如下
 ${ENRICH_RULES}
-${ETYM_RULE}
 
 單字清單：
-${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
+${words.map((w, k) => `#${k + 1} ${w}`).join('\n')}
 
-請嚴格只回傳 JSON，格式：{"items": [{"definition": "...", "cefr": "B1", "synonyms": ["..."], "usage": "neutral", "common": [], "collocations": ["...", "..."], "etymology": "..."}, ...]}，陣列順序與數量要和上面的清單完全一致。`);
-                    const items = Array.isArray(r.items) ? r.items : [];
-                    if (chunk.length > 1 && items.length !== chunk.length) throw new Error('AI 回傳數量不符');
+請嚴格只回傳 JSON：{"items": [{"n": 1, "word": "（原樣抄上單字）", "definition": "...", "cefr": "B1", "synonyms": ["..."], "usage": "neutral", "common": [], "collocations": ["...", "..."]}, ...]}，每個單字都要回傳，n 是上面的編號（#後面的數字），word 要和清單上的單字完全相同。`);
+                    const byN = pickByNumber(r.items, chunk.length, words);
+                    const norm = w => String(w || '').toLowerCase().replace(/[^a-z]/g, '');
+                    const miss = [];
                     chunk.forEach((x, k) => {
-                        const it = items[k] || {}, sub = findSubAnywhere(x.s.id); if (!sub) return;
+                        const it = byN[k];
+                        // 編號和單字都要對得上才採用，否則改成單獨重查
+                        if (!it || (it.word && norm(it.word) !== norm(words[k]))) { miss.push(x); return; }
+                        const sub = findSubAnywhere(x.s.id); if (!sub) return;
                         if (x.def && it.definition && String(it.definition).trim()) { sub.definition = String(it.definition).trim(); sub.showDef = true; defDone++; }
                         const lv = String(it.cefr || '').toUpperCase().trim();
                         if (CEFR.includes(lv) && !CEFR.includes(sub.cefr)) sub.cefr = lv;
@@ -3267,10 +3512,9 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
                         if (syn.length && !(sub.synonyms && sub.synonyms.length)) { sub.synonyms = syn; synDone++; }
                         else if (!syn.length && Array.isArray(it.synonyms) && !(sub.synonyms && sub.synonyms.length)) sub.noSynonyms = true;   // AI 認為沒有合適的同義字，下次不再詢問
                         if (applyUsageFields(sub, cleanUsageFields(it, words[k]))) usageDone++;
-                        const et = cleanEtym(it.etymology);
-                        if (et && !sub.etym) { sub.etym = et; etymDone++; }
                     });
-                    saveData(); doneCount += chunk.length;
+                    if (miss.length && chunk.length > 1) chunks.unshift(...miss.map(x => [x]));
+                    saveData(); doneCount += chunk.length - (chunk.length > 1 ? miss.length : 0);
                 } catch (e) {
                     const k = e.kind || classifyError(e);
                     if (k === 'key' || k === 'offline' || k === 'quota') { stop = e.message; fatal = true; break; }
@@ -3279,13 +3523,25 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
                 }
                 await sleep(300);
             }
+            // 字源：逐字查維基詞典，再請 AI 只根據原文寫中文摘要
+            if (!fatal) {
+                const etTargets = targets.map(x => findSubAnywhere(x.s.id)).filter(s => s && !s.etym && clozeTarget(s.text));
+                for (let i = 0; i < etTargets.length; i++) {
+                    const sub = etTargets[i];
+                    showToast(`🌱 查證字源中… ${i + 1} / ${etTargets.length}`, 60000);
+                    try {
+                        const et = await fetchEtymology(clozeTarget(sub.text));
+                        if (et.etym && !sub.etym) { sub.etym = et.etym; sub.etymSrc = et.src; etymDone++; saveData(); }
+                    } catch (e) { const k = e.kind || classifyError(e); if (k === 'key' || k === 'offline' || k === 'quota') { stop = e.message; break; } }
+                }
+            }
             return { defDone, synDone, usageDone, etymDone, stop };
         }
 
         // ================= 檢查並修正例句與單字（文法、自然度、拼字） =================
         const proofKey = t => String(t || '').replace(/🤖/g, '').replace(/\s+/g, ' ').trim();
         // 一次校對多句：items = [{ word, text }]，回傳 [{ ok, corrected, reason }]
-        async function proofSentences(items) {
+        async function proofSentences(items, opts = {}) {
             const r = await aiJSON(`你是非常嚴格、專業的英語母語編輯。下列每一句都是英文學習筆記裡，用來示範某個單字／片語用法的例句。請逐句檢查：
 1. 英文是否完全合乎文法（時態、主詞動詞一致、冠詞、介系詞、詞性、單複數、標點）
 2. 是否語意通順、合乎邏輯，是英語母語人士在真實情境中真的會說的話（不是拼湊或中式英文）
@@ -3297,14 +3553,29 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
 
 ${items.map((x, i) => `#${i + 1} 【${x.word}】 ${proofKey(x.text)}`).join('\n')}
 
-請嚴格只回傳 JSON：{"items": [{"ok": true, "corrected": "", "reason": ""}, ...]}，陣列順序與數量要和上面完全一致。`);
-            const out = Array.isArray(r.items) ? r.items : [];
-            if (out.length !== items.length) throw new Error('AI 回傳數量不符');
-            return out.map((x, i) => {
+請嚴格只回傳 JSON：{"items": [{"n": 1, "ok": true, "corrected": "", "reason": ""}, ...]}，每一句都要回傳，n 是上面句子的編號（#後面的數字）。`, { temperature: 0.2, ...opts });
+            const byN = pickByNumber(r.items, items.length);
+            const res = items.map((it, i) => {
+                const x = byN[i];
+                if (!x) throw new Error('AI 漏掉了第 ' + (i + 1) + ' 句');
                 const corrected = proofKey(x.corrected);
-                const ok = x.ok === true || x.ok === 'true' || !corrected || corrected === proofKey(items[i].text);
+                const said = x.ok === true || x.ok === 'true' ? true : x.ok === false || x.ok === 'false' ? false : null;
+                // 檢查者說「有錯」卻沒給修正 → 仍算沒通過（之後會重新產生），不能當成正確
+                const ok = said === true || (said === null && !corrected) || (!!corrected && corrected === proofKey(it.text));
                 return { ok, corrected: ok ? '' : corrected, reason: String(x.reason || '').trim() };
             });
+            res.engine = r.__engine;
+            return res;
+        }
+        // 批次結果一律依「編號」對回原本的項目，不依回傳順序（避免 AI 漏一筆就整排錯位）
+        function pickByNumber(list, n, keys = null) {
+            const arr = Array.isArray(list) ? list : [], out = new Array(n).fill(null);
+            const norm = w => String(w || '').toLowerCase().replace(/[^a-z]/g, '');
+            arr.forEach(x => { const k = parseInt(x && (x.n ?? x.id ?? x.no), 10); if (k >= 1 && k <= n && !out[k - 1]) out[k - 1] = x; });
+            // 沒有編號時：有附單字就依單字對；完全沒編號且數量剛好相同，才依順序
+            if (keys) arr.forEach(x => { if (!x || x.n != null) return; const i = keys.findIndex((w, j) => !out[j] && norm(w) === norm(x.word)); if (i >= 0) out[i] = x; });
+            if (arr.length === n && arr.every(x => x && x.n == null && !x.word)) arr.forEach((x, i) => { if (!out[i]) out[i] = x; });
+            return out;
         }
         async function proofWords(items) {
             const r = await aiJSON(`你是嚴格的英語老師。下列是學生登錄在筆記本中的英文單字或片語，有些後面附有詞性或中文意思。請逐項檢查：
@@ -3316,10 +3587,10 @@ ${items.map((x, i) => `#${i + 1} 【${x.word}】 ${proofKey(x.text)}`).join('\n'
 
 ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
 
-請嚴格只回傳 JSON：{"items": [{"ok": true, "corrected": "", "reason": ""}, ...]}，陣列順序與數量要和上面完全一致。`);
-            const out = Array.isArray(r.items) ? r.items : [];
-            if (out.length !== items.length) throw new Error('AI 回傳數量不符');
-            return out.map((x, i) => {
+請嚴格只回傳 JSON：{"items": [{"n": 1, "ok": true, "corrected": "", "reason": ""}, ...]}，每一項都要回傳，n 是上面的編號（#後面的數字）。`, { temperature: 0.2 });
+            const byN = pickByNumber(r.items, items.length);
+            if (byN.some(x => !x)) throw new Error('AI 回傳的項目不完整');
+            return byN.map((x, i) => {
                 const corrected = String(x.corrected || '').trim();
                 const ok = x.ok === true || x.ok === 'true' || !corrected || corrected.replace(/\s+/g, ' ').toLowerCase() === items[i].text.replace(/\s+/g, ' ').toLowerCase();
                 return { ok, corrected: ok ? '' : corrected, reason: String(x.reason || '').trim() };
@@ -3377,7 +3648,8 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
                 stop = sr.stop || stop;
                 sr.results.forEach((r, x) => {
                     if (!r) return;
-                    if (r.ok) { x.g.proofed = proofKey(x.text); return; }
+                    if (r.ok) { x.g.proofed = proofKey(x.text); delete x.g.unverified; return; }
+                    if (!r.corrected) { x.g.unverified = proofKey(x.text); x.g.uvReason = r.reason || '檢查沒有通過'; return; }   // 沒有修正建議：標「待確認」，可點一下重新產生
                     const keepBot = /🤖/.test(x.text);
                     fixes.push({ kind: 'sent', x, from: x.text, to: (keepBot ? '🤖 ' : '') + r.corrected, reason: r.reason, on: true });
                 });
@@ -3827,12 +4099,15 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             if (result.cefr && !CEFR.includes(sub.cefr)) sub.cefr = result.cefr;
             if (result.synonyms && result.synonyms.length && !(sub.synonyms && sub.synonyms.length)) sub.synonyms = result.synonyms;
             applyUsageFields(sub, result);
-            if (result.etymology && !sub.etym) sub.etym = result.etymology;
+            if (result.etymology && !sub.etym) { sub.etym = result.etymology; if (result.etymSrc) sub.etymSrc = result.etymSrc; }
+            if (result.aiModel) sub.aiModel = result.aiModel;
+            if (result.entryVerified) sub.entryVerified = true;
             if (result.correctedWord && result.originalWord && sub.text.includes(result.originalWord)) {
                 sub.text = sub.text.replace(result.originalWord, result.correctedWord);
                 setTimeout(() => showToast(`✏️ 拼字已自動修正：${result.originalWord} → ${result.correctedWord}`, 4000), 600);
             }
-            if (result.sentence) sub.grandtasks.unshift({ id: newId(), text: result.sentence, checked: false, createdAt: Date.now(), ...(result.proofed ? { proofed: proofKey(result.sentence) } : {}), ...(result.reviewWords && result.reviewWords.length ? { reviewWords: result.reviewWords } : {}) });
+            if (result.spellWarn) sub.spellWarn = sub.text;
+            if (result.sentence) sub.grandtasks.unshift({ id: newId(), text: result.sentence, checked: false, createdAt: Date.now(), ...sentMeta(result, result.sentence), ...(result.reviewWords && result.reviewWords.length ? { reviewWords: result.reviewWords } : {}) });
             delete sub.pendingAI;
         }
 
@@ -3916,10 +4191,11 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             if (!hasTextKey()) { openKeyModal(); return; }
             sub.genEx = true; renderTasks();
             try {
-                const { sentence, reviewWords, proofed } = await fetchExtraSentence(sub.text, sub.grandtasks.map(g => cleanForSpeech(g.text)), mainTaskId);
+                const ex = await fetchExtraSentence(sub.text, sub.grandtasks.map(g => cleanForSpeech(g.text)), mainTaskId);
+                const { sentence, reviewWords = [] } = ex;
                 const s2 = findSubAnywhere(subTaskId);
                 if (s2) {
-                    s2.grandtasks.unshift({ id: newId(), text: `🤖 ${sentence}`, checked: false, createdAt: Date.now(), ...(proofed ? { proofed: proofKey(sentence) } : {}), ...(reviewWords.length ? { reviewWords } : {}) });
+                    s2.grandtasks.unshift({ id: newId(), text: `🤖 ${sentence}`, checked: false, createdAt: Date.now(), ...sentMeta(ex, sentence), ...(reviewWords.length ? { reviewWords } : {}) });
                     const rv = reviewWords.length ? `\n🔁 複習了：${reviewWords.join('、')}` : '';
                     showToast((isHideEx ? '✅ 已新增一句例句\n（目前例句為隱藏狀態，可在選單開啟）' : '✅ 已新增一句 AI 例句') + rv, 3000);
                 }
@@ -4046,7 +4322,7 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
                             </div>
                         </div>
                     `;
-                    const etymHtml = sub.etym ? `<div class="etym-box" title="點一下可修改字源" onclick="editEtym(${sub.id}, ${task.id})"><span class="etym-tag">🌱 字源</span>${escapeHtml(sub.etym)}</div>` : '';
+                    const etymHtml = sub.etym ? `<div class="etym-box" title="點一下可修改字源" onclick="editEtym(${sub.id}, ${task.id})"><span class="etym-tag">🌱 字源</span>${escapeHtml(sub.etym)}${sub.etymSrc === 'wiktionary' ? '<span class="etym-src ok" title="根據維基詞典的字源原文整理">✓ 維基詞典</span>' : sub.etymSrc === 'ai' ? '<span class="etym-src" title="維基詞典查不到，這是 AI 推測的字源，可能不準確">AI 推測</span>' : ''}</div>` : '';
                     const syn = Array.isArray(sub.synonyms) && sub.synonyms.length ? sub.synonyms : null;
                     const cmn = ['formal', 'rare'].includes(sub.usage) && Array.isArray(sub.common) && sub.common.length ? sub.common : null;
                     const col = Array.isArray(sub.collocations) && sub.collocations.length ? sub.collocations : null;
@@ -4060,7 +4336,7 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
                                 <div class="drag-handle grand-handle">☰</div>
                                 <input type="checkbox" ${grand.checked ? 'checked' : ''} onchange="toggleCheck(${grand.id}, 'grand', ${sub.id}, ${task.id})">
                                 <div class="task-text grand-task-text ${grand.checked ? 'completed' : ''}" onclick="editTask(${grand.id}, 'grand', ${sub.id}, ${task.id})">
-                                    ${formatTextWithCn(grand.text)}<span class="st-badges">${statBadgeHtml(grand)}</span> ${getTimeBadgeHtml(grand)}
+                                    ${formatTextWithCn(grand.text)}<span class="st-badges">${statBadgeHtml(grand)}</span>${grand.unverified && grand.unverified === proofKey(grand.text) ? `<span class="uv-badge" title="沒有通過 AI 交叉檢查" onclick="event.stopPropagation(); uvInfo(${task.id}, ${sub.id}, ${grand.id})">⚠️ 待確認</span>` : ''} ${getTimeBadgeHtml(grand)}
                                 </div>
                                 <div class="row-actions">
                                     <button class="icon-btn speak" title="朗讀" data-speak="${escapeAttr(grand.text)}" onclick="speakText(this.dataset.speak, ${grand.id})">${ICON.speak}</button>
