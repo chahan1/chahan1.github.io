@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.9.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.10.0 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -30,6 +30,9 @@
         .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         .header-container h2 { margin: 0; color: var(--green); font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px; letter-spacing: 0.3px; }
         .header-container h2 img { width: 20px; height: 20px; border-radius: 5px; }
+        .ks-tier { margin-top: 8px; font-size: 13px; }
+        .ks-tier select { font-size: 13px; padding: 4px 6px; border-radius: 6px; border: 1px solid #ccc; }
+        .ks-tier-note { font-size: 11.5px; color: #777; margin-top: 4px; }
         .version-tag { font-size: 9px; background: var(--green-light); color: var(--green); padding: 1px 4px; border-radius: 3px; font-weight: 600; letter-spacing: 0; }
 
         .menu-wrapper { position: relative; }
@@ -467,7 +470,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.9.0</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.10.0</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -765,27 +768,34 @@
     <div id="keyModal" class="modal-overlay play-modal" onclick="if(event.target===this) closeKeyModal()">
         <div class="modal-content">
             <div class="pm-title"><h3>🔑 AI 金鑰設定</h3><button class="pm-close" onclick="closeKeyModal()">×</button></div>
-            <div class="pm-hint">至少填一組即可。查單字、產生例句會依序使用 <b>Groq → Free.ai → Gemini</b>，一家不能用就自動換下一家。金鑰只存在這支手機。</div>
+            <div class="pm-hint"><b>Gemini 是主要服務</b>（付費，品質最好，資料不會被拿去訓練）；Groq 和 Free.ai 是<b>免費備用</b>。查單字、例句、AI 語音、朗讀評分都會先用 Gemini，失敗或額度用完時自動改用備用服務。金鑰只存在這支手機。</div>
 
             <div class="ks-row">
-                <div class="ks-head"><b>Groq</b><span class="ks-tag">免費・查單字首選</span><a href="https://console.groq.com/keys" target="_blank" rel="noopener">申請 ›</a></div>
+                <div class="ks-head"><b>Gemini</b><span class="ks-tag">主要・付費</span><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">申請 ›</a></div>
+                <div class="ks-input"><input type="password" id="ks_gemini" placeholder="AIza…" autocomplete="off" spellcheck="false" oninput="saveKey('gemini')">
+                    <button class="ks-eye" onclick="toggleKeyVisible('gemini')">👁</button><button class="ks-test" onclick="testProvider('gemini')">測試</button></div>
+                <div class="ks-st" id="ks_gemini_st"></div>
+                <div class="ks-tier">Gemini 模型：
+                    <select id="ks_tier" onchange="setGeminiTier(this.value)">
+                        <option value="standard">標準（Flash，品質最好）</option>
+                        <option value="economy">省錢（Flash-Lite，費用約 1/3）</option>
+                    </select>
+                    <div class="ks-tier-note">2027 年 1 月起 Flash 的價格會加倍，若費用太高可改成「省錢」。這個設定和口說轉譯器共用。</div>
+                </div>
+            </div>
+
+            <div class="ks-row">
+                <div class="ks-head"><b>Groq</b><span class="ks-tag">備用・免費・語音辨識</span><a href="https://console.groq.com/keys" target="_blank" rel="noopener">申請 ›</a></div>
                 <div class="ks-input"><input type="password" id="ks_groq" placeholder="gsk_…" autocomplete="off" spellcheck="false" oninput="saveKey('groq')">
                     <button class="ks-eye" onclick="toggleKeyVisible('groq')">👁</button><button class="ks-test" onclick="testProvider('groq')">測試</button></div>
                 <div class="ks-st" id="ks_groq_st"></div>
             </div>
 
             <div class="ks-row">
-                <div class="ks-head"><b>Free.ai</b><span class="ks-tag">免費・AI 語音＋查單字</span><a href="https://free.ai" target="_blank" rel="noopener">申請 ›</a></div>
+                <div class="ks-head"><b>Free.ai</b><span class="ks-tag">備用・免費・AI 語音</span><a href="https://free.ai" target="_blank" rel="noopener">申請 ›</a></div>
                 <div class="ks-input"><input type="password" id="ks_freeai" placeholder="sk-free-…" autocomplete="off" spellcheck="false" oninput="saveKey('freeai')">
                     <button class="ks-eye" onclick="toggleKeyVisible('freeai')">👁</button><button class="ks-test" onclick="testProvider('freeai')">測試</button></div>
                 <div class="ks-st" id="ks_freeai_st"></div>
-            </div>
-
-            <div class="ks-row">
-                <div class="ks-head"><b>Gemini</b><span class="ks-tag">Google・可能收費</span><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">申請 ›</a></div>
-                <div class="ks-input"><input type="password" id="ks_gemini" placeholder="AIza…" autocomplete="off" spellcheck="false" oninput="saveKey('gemini')">
-                    <button class="ks-eye" onclick="toggleKeyVisible('gemini')">👁</button><button class="ks-test" onclick="testProvider('gemini')">測試</button></div>
-                <div class="ks-st" id="ks_gemini_st"></div>
             </div>
 
             <button class="btn-primary pm-start" onclick="closeKeyModal()">完成</button>
@@ -965,7 +975,13 @@
 
         // 【修正】gemini-1.5-flash 已被 Google 停用（會回傳 404）。
         // 依序嘗試以下模型，前一個不可用時自動換下一個。
-        const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite'];
+        // v2.10.0：Gemini 改為主要（付費）服務。模型分「標準」與「省錢」兩組，設定存在 ai_gemini_tier（和口說轉譯器共用）
+        const GEMINI_TIERS = {
+            standard: ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'],
+            economy: ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-3.8-flash']
+        };
+        const geminiTier = () => localStorage.getItem('ai_gemini_tier') === 'economy' ? 'economy' : 'standard';
+        const geminiModels = () => GEMINI_TIERS[geminiTier()];
 
         const defaultData = [{
             id: 101, text: "📁 職場開會常用語 (Business Meetings)", checked: false, collapsed: false, createdAt: Date.now(),
@@ -1294,6 +1310,11 @@ ${ENRICH_RULES}
         let playSettings = { speed: 0, engine: 'ai', voice: 'Kore', fvoice: 'af_heart', scope: 'all', repeat: 2, rate: 0.9, gap: 1.2, dateMode: 'all', day: '', order: 'seq', limit: 20, curve: [1, 3, 7], curveCatch: false };
         const CURVE_DAYS = [0, 1, 2, 3, 4, 5, 7, 10, 14, 15, 21, 30, 45, 60, 90, 180];
         try { Object.assign(playSettings, JSON.parse(localStorage.getItem(PLAY_KEY)) || {}); } catch (e) {}
+        // v2.10.0：Gemini 改為主要語音。之前選「免費 AI 語音」且已有 Gemini 金鑰的，升級時改成 Gemini 一次（Free.ai 會自動當備用）
+        if (!localStorage.getItem('eng_geminiPrimary')) {
+            localStorage.setItem('eng_geminiPrimary', '1');
+            if (playSettings.engine === 'freeai' && (localStorage.getItem(API_KEY_STORAGE) || '').trim()) { playSettings.engine = 'ai'; localStorage.setItem(PLAY_KEY, JSON.stringify(playSettings)); }
+        }
         if (!playSettings.speed) playSettings.speed = { 0.7: 0.8, 0.9: 1.0, 1.1: 1.2 }[playSettings.rate] || 1.0;   // 舊設定轉換
         const aiSpeed = () => Math.max(0.5, Math.min(1.5, Number(playSettings.speed) || 1));
         const phoneRate = () => Math.round(0.9 * aiSpeed() * 100) / 100;
@@ -1769,7 +1790,8 @@ ${ENRICH_RULES}
             const apiKey = localStorage.getItem(API_KEY_STORAGE);
             if (!apiKey) { const e = new Error('尚未設定 Gemini 金鑰'); e.status = 401; throw e; }
             if (!navigator.onLine) throw new TypeError('offline');
-            const tries = [...TTS_IX_MODELS.map(m => 'ix:' + m), ...TTS_GC_MODELS.map(m => 'gc:' + m)];
+            const ix = geminiTier() === 'economy' ? TTS_IX_MODELS : ['gemini-3.8-flash-tts', ...TTS_IX_MODELS.filter(m => m !== 'gemini-3.8-flash-tts')];
+            const tries = [...ix.map(m => 'ix:' + m), ...TTS_GC_MODELS.map(m => 'gc:' + m)];
             const pref = localStorage.getItem('eng_ttsModel');
             if (pref && tries.includes(pref)) { tries.splice(tries.indexOf(pref), 1); tries.unshift(pref); }
             let lastErr = null;
@@ -1788,13 +1810,30 @@ ${ENRICH_RULES}
             }
             throw lastErr || new Error('AI 語音產生失敗');
         }
-        async function getClip(text, spec) {
+        async function getClipOnce(text, spec) {
             const key = specKey(spec, text);
             const cached = await ttsGet(key);
             if (cached) return cached;
             const clip = spec.provider === 'freeai' ? await fetchFreeTTS(text, spec.voice) : await fetchTTS(text, spec.voice);
             await ttsPut(key, clip);
             return clip;
+        }
+        // v2.10.0：主要語音（Gemini）失敗時，自動改用另一家 AI 語音（Free.ai），盡量選相同性別與口音的聲音
+        const FEMALE_GEMINI = ['Kore', 'Aoede', 'Leda', 'Sulafat', 'Zephyr', 'Callirrhoe', 'Autonoe', 'Despina', 'Erinome', 'Laomedeia', 'Achernar', 'Gacrux', 'Pulcherrima', 'Vindemiatrix'];
+        function backupSpec(spec) {
+            if (spec.provider === 'gemini' && getKey('freeai')) return { provider: 'freeai', voice: FEMALE_GEMINI.includes(spec.voice) ? 'af_heart' : 'am_michael' };
+            if (spec.provider === 'freeai' && getKey('gemini')) return { provider: 'gemini', voice: /^(af|bf)_/.test(spec.voice) ? 'Kore' : 'Charon' };
+            return null;
+        }
+        async function getClip(text, spec) {
+            try { return await getClipOnce(text, spec); }
+            catch (e) {
+                const b = backupSpec(spec);
+                if (!b || classifyError(e) === 'offline') throw e;
+                const k = specKey(b, text), cached = await ttsGet(k);
+                if (cached) return cached;
+                return await getClipOnce(text, b);
+            }
         }
 
         // 把 PCM 片段組成 WAV Blob
@@ -2481,8 +2520,8 @@ review_sentence 的規則（非常重要）：
         function qualityText() {
             const st = strongEngines(), all = availEngines();
             if (!all.length) return '⚠️ 尚未設定 AI 金鑰。';
-            if (!st.length) return '<span style="color:#b3261e">⚠️ 目前只有 Free.ai 小模型，錯誤率較高，也無法交叉檢查。強烈建議到「AI 金鑰設定」填入 Groq 金鑰（免費）。</span>';
-            if (st.length === 1) return `⚠️ 目前只有一個大模型（${st[0].name}），無法交叉檢查，新內容會標「⚠️ 待確認」。建議再設定 ${st[0].provider === 'gemini' ? 'Groq' : 'Gemini'} 金鑰。`;
+            if (!st.length) return '<span style="color:#b3261e">⚠️ 目前只有 Free.ai 小模型，錯誤率較高，也無法交叉檢查。強烈建議到「AI 金鑰設定」填入 Gemini 金鑰。</span>';
+            if (st.length === 1) return `⚠️ 目前只有一個大模型（${st[0].name}），無法交叉檢查，新內容會標「⚠️ 待確認」。建議再設定 ${st[0].provider === 'gemini' ? 'Groq（免費）' : 'Gemini'} 金鑰。`;
             return `✅ 已啟用交叉檢查：內容由 <b>${st[0].name}</b> 產生，再由另一個模型（${st.slice(1).map(e => e.name).join('、')}）檢查；字源先查維基詞典。沒有通過檢查的例句會標「⚠️ 待確認」。`;
         }
         function styleInstruction() {
@@ -2518,7 +2557,7 @@ review_sentence 的規則（非常重要）：
         // ================= 多家 AI 服務（Groq / Free.ai / Gemini）=================
         const KEY_STORE = { gemini: API_KEY_STORAGE, groq: 'user_groq_api_key', freeai: 'user_freeai_api_key' };
         const PROVIDER_NAME = { groq: 'Groq', freeai: 'Free.ai', gemini: 'Gemini' };
-        const TEXT_ORDER = ['groq', 'freeai', 'gemini'];            // 查單字、例句的使用順序
+        const TEXT_ORDER = ['gemini', 'groq', 'freeai'];            // 查單字、例句的使用順序（v2.10.0：Gemini 為主要，免費服務為備用）
         const getKey = p => (localStorage.getItem(KEY_STORE[p]) || '').trim();
         const hasTextKey = () => TEXT_ORDER.some(p => getKey(p));
         const GROQ_MODELS = ['openai/gpt-oss-120b', 'llama-3.3-70b-versatile'];
@@ -2578,23 +2617,23 @@ review_sentence 的規則（非常重要）：
         }
         async function chatGemini(prompt) {
             const key = getKey('gemini'); let last = null;
-            for (const model of GEMINI_MODELS) {
+            for (const model of geminiModels()) {
                 try {
                     const data = await callGemini(model, key, prompt);
                     return extractJSON(data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '');
-                } catch (e) { last = e; const k = classifyError(e); if (k === 'key' || k === 'offline' || k === 'quota') break; }
+                } catch (e) { last = e; const k = classifyError(e); if (k === 'key' || k === 'offline') break; }
             }
             throw last;
         }
 
         // ---- 模型清單：內容一律優先用大模型；Free.ai 小模型只在沒有其他選擇時才用 ----
         const ENGINES = [
-            { id: 'groq:oss', provider: 'groq', model: 'openai/gpt-oss-120b', name: 'Groq GPT-OSS 120B', strong: true },
             { id: 'gemini', provider: 'gemini', name: 'Gemini', strong: true },
+            { id: 'groq:oss', provider: 'groq', model: 'openai/gpt-oss-120b', name: 'Groq GPT-OSS 120B', strong: true },
             { id: 'groq:llama', provider: 'groq', model: 'llama-3.3-70b-versatile', name: 'Groq Llama 3.3 70B', strong: true },
             { id: 'freeai', provider: 'freeai', name: 'Free.ai Qwen 7B（小模型）', strong: false }
         ];
-        const availEngines = () => ENGINES.filter(e => getKey(e.provider));
+        const availEngines = () => ENGINES.filter(e => getKey(e.provider)).map(e => e.provider === 'gemini' ? Object.assign({}, e, { name: geminiTier() === 'economy' ? 'Gemini Flash-Lite' : 'Gemini Flash' }) : e);
         const strongEngines = () => availEngines().filter(e => e.strong);
         async function callEngine(e, prompt, temperature) {
             if (e.provider === 'groq') {
@@ -2625,7 +2664,7 @@ review_sentence 的規則（非常重要）：
                 if (deadProvider.has(eng.provider)) continue;
                 try {
                     const data = await callEngine(eng, prompt, temperature);
-                    if (!eng.strong && !weakWarned) { weakWarned = true; setTimeout(() => showToast('⚠️ 目前是用 Free.ai 小模型產生內容，錯誤率較高。\n建議到「AI 金鑰設定」填入 Groq 金鑰（免費）', 5000), 800); }
+                    if (!eng.strong && !weakWarned) { weakWarned = true; setTimeout(() => showToast('⚠️ 目前是用 Free.ai 小模型產生內容，錯誤率較高。\n建議到「AI 金鑰設定」填入 Gemini 金鑰', 5000), 800); }
                     return { data, engine: eng };
                 } catch (e) {
                     if (e instanceof TypeError && navigator.onLine) e.message = '無法連線（網路不穩，或此服務不允許網頁直接連線）';
@@ -2709,6 +2748,7 @@ review_sentence 的規則（非常重要）：
                 document.getElementById('ks_' + p + '_st').textContent = getKey(p) ? '已設定' : '尚未設定';
                 document.getElementById('ks_' + p + '_st').className = 'ks-st';
             });
+            document.getElementById('ks_tier').value = geminiTier();
             document.getElementById('keyModal').style.display = 'flex';
         }
         function closeKeyModal() {
@@ -2720,6 +2760,10 @@ review_sentence 的規則（非常重要）：
             if (v) localStorage.setItem(KEY_STORE[p], v); else localStorage.removeItem(KEY_STORE[p]);
         }
         function toggleKeyVisible(p) { const el = document.getElementById('ks_' + p); el.type = el.type === 'password' ? 'text' : 'password'; }
+        function setGeminiTier(v) {
+            localStorage.setItem('ai_gemini_tier', v === 'economy' ? 'economy' : 'standard');
+            showToast(v === 'economy' ? '已改用省錢模式（Gemini Flash-Lite）' : '已改用標準模式（Gemini Flash）');
+        }
         async function testProvider(p) {
             saveKey(p);
             const st = document.getElementById('ks_' + p + '_st');
@@ -2730,6 +2774,10 @@ review_sentence 的規則（非常重要）：
             const lines = [];
             try { await ({ groq: chatGroq, freeai: chatFreeAI, gemini: chatGemini })[p](q); lines.push('✅ 查單字／例句：可以使用'); }
             catch (e) { lines.push('❌ 查單字／例句：' + why(e)); }
+            if (p === 'gemini') {
+                try { const c = await fetchTTS('Hello! This is a test.', 'Kore'); lines.push(c.pcm.byteLength ? '✅ AI 語音：可以使用' : '❌ AI 語音：沒有聲音'); }
+                catch (e) { lines.push('❌ AI 語音：' + why(e)); }
+            }
             if (p === 'freeai') {
                 try { const c = await fetchFreeTTS('Hello! This is a test.', 'af_heart'); lines.push(c.pcm.byteLength ? '✅ AI 語音：可以使用' : '❌ AI 語音：沒有聲音'); }
                 catch (e) { lines.push('❌ AI 語音：' + why(e)); }
@@ -3091,7 +3139,7 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
 請只回傳 JSON（說明都用繁體中文）：
 {"transcript": "你實際聽到的英文", "score": 0到100的總分, "pronunciation": 0到100, "fluency": 0到100, "summary": "一句話總評", "issues": [{"word": "有問題的英文字", "tip": "具體怎麼改進"}], "suggestions": ["其他建議"], "encouragement": "一句鼓勵"}
 issues 最多 4 項；如果念得很好，issues 可以是空陣列，並給進階建議（如連音、語調）。`;
-            for (const model of GEMINI_MODELS) {
+            for (const model of geminiModels()) {
                 try {
                     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
@@ -3100,7 +3148,7 @@ issues 最多 4 項；如果念得很好，issues 可以是空陣列，並給進
                     if (!r.ok) { let m = 'HTTP ' + r.status; try { m = (await r.json()).error.message || m; } catch (e) {} const e = new Error(m); e.status = r.status; throw e; }
                     const j = await r.json();
                     return extractJSON((j?.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join(''));
-                } catch (e) { last = e; const k = classifyError(e); if (k === 'key' || k === 'offline' || k === 'quota') break; }
+                } catch (e) { last = e; const k = classifyError(e); if (k === 'key' || k === 'offline') break; }
             }
             throw last;
         }
@@ -3123,7 +3171,7 @@ issues 最多 4 項；如果念得很好，issues 可以是空陣列，並給進
             let transcript = '', via = '';
             if (getKey('groq')) { try { transcript = await groqTranscribe(clip); via = 'Groq 語音辨識'; } catch (e) { if (!getKey('freeai')) throw e; } }
             if (!via && getKey('freeai')) { transcript = await freeTranscribe(clip); via = 'Free.ai 語音辨識'; }
-            if (!via) throw new Error('沒有可用的語音辨識服務，請在「AI 金鑰設定」填入 Groq 金鑰');
+            if (!via) throw new Error('沒有可用的語音辨識服務，請在「AI 金鑰設定」填入 Gemini（或免費的 Groq）金鑰');
             const diff = wordDiff(target, transcript), acc = Math.round(diff.accuracy * 100);
             let tips = {};
             try {
