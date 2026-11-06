@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.6.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.7.0 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -87,6 +87,10 @@
         .definition-box { display: block; font-size: 12px; color: #555a5f; background: #f7f9f8; border-left: 2px solid var(--green); padding: 4px 8px; margin: 0 4px 5px 30px; border-radius: 0 6px 6px 0; cursor: pointer; }
         .definition-box:active { background: var(--green-light); }
         body.hide-def .definition-box { display: none !important; }
+        .etym-box { display: block; font-size: 12px; color: #6d4c1f; background: #fdf7ec; border-left: 2px solid #e3a33b; padding: 4px 8px; margin: 0 4px 5px 30px; border-radius: 0 6px 6px 0; cursor: pointer; line-height: 1.5; }
+        .etym-tag { font-size: 10.5px; font-weight: 700; color: #b06d00; margin-right: 6px; white-space: nowrap; }
+        body.hide-etym .etym-box { display: none !important; }
+        .completed-sub .etym-box { opacity: 0.6; }
         .def-content { font-style: italic; margin-bottom: 1px; word-break: break-word; line-height: 1.4; }
         .def-edit-btn { font-size: 10.5px; color: var(--green); background: none; border: none; padding: 1px 0; cursor: pointer; }
 
@@ -142,6 +146,19 @@
         .play-fab svg { width: 18px; height: 18px; fill: currentColor; margin-left: 2px; }
         .play-fab:active { transform: scale(0.94); }
         body.player-open .play-fab { display: none; }
+        .add-fab { position: fixed; right: max(16px, calc(50% - 324px)); bottom: 18px; width: 52px; height: 52px; border-radius: 50%; border: none; background: var(--green); color: white; box-shadow: 0 4px 12px rgba(16,124,65,0.4); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 800; }
+        .add-fab svg { width: 26px; height: 26px; fill: currentColor; }
+        .add-fab:active { transform: scale(0.94); }
+        body.player-open .add-fab { bottom: 150px; }
+        #taskList { padding-bottom: 76px; }
+        .ap-modal { max-width: 340px; }
+        .ap-main { width: 100%; text-align: left; border: 1.5px solid var(--green); background: #eef7f1; color: #0b5c30; border-radius: 10px; padding: 10px 12px; font-size: 14.5px; font-weight: 600; margin: 8px 0 4px; cursor: pointer; line-height: 1.35; }
+        .ap-main small { display: block; font-weight: 400; color: #5f6368; font-size: 11.5px; margin-bottom: 2px; }
+        .ap-others-title { font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+        .ap-list { max-height: 40vh; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+        .ap-list button { text-align: left; border: 1px solid #e3e3e3; background: white; border-radius: 8px; padding: 8px 10px; font-size: 13.5px; cursor: pointer; display: flex; justify-content: space-between; gap: 8px; }
+        .ap-list button span { color: var(--muted); font-size: 11.5px; white-space: nowrap; }
+        .ap-new { width: 100%; margin-top: 10px; }
 
         /* 播放視窗（下方彈出） */
         .player-sheet { display: none; position: fixed; left: 50%; transform: translateX(-50%); bottom: 0; width: 100%; max-width: 680px; background: white; border-radius: 16px 16px 0 0; box-shadow: 0 -4px 20px rgba(0,0,0,0.15); padding: 8px 14px 14px; z-index: 900; }
@@ -432,7 +449,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.6.0</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.7.0</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -448,7 +465,7 @@
                     <div class="dropdown-label">AI 工具</div>
                     <div class="dropdown-item" onclick="proofAll()">🩺 <span>一鍵檢查並修正例句與單字</span></div>
                     <div class="dropdown-item" id="itemUndoProof" style="display:none" onclick="undoProof()">↩ <span>復原上次的 AI 修正</span></div>
-                    <div class="dropdown-item" onclick="fillMissingDefinitions()">📖 <span>一鍵補齊釋義／同義字／常用度／搭配</span></div>
+                    <div class="dropdown-item" onclick="fillMissingDefinitions()">📖 <span>一鍵補齊釋義／同義字／常用度／搭配／字源</span></div>
                     <div class="dropdown-item" onclick="fillMissingExamples()">🧩 <span>替沒有例句的單字補例句</span></div>
                     <div class="dropdown-item" onclick="openLevelModal()">🏷️ <span>單字難易度 A1–C2</span></div>
                     <div class="dropdown-item" onclick="processPendingAI({ manual: true })">🤖 <span>立即補齊 AI 釋義</span></div>
@@ -457,6 +474,7 @@
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-label">顯示</div>
                     <div class="dropdown-item" id="itemHideDef" onclick="toggleHideDef()">📖 <span>隱藏釋義</span></div>
+                    <div class="dropdown-item" id="itemHideEtym" onclick="toggleHideEtym()">🌱 <span>隱藏字源</span></div>
                     <div class="dropdown-item" id="itemHideEx" onclick="toggleHideEx()">📝 <span>隱藏例句</span></div>
                     <div class="dropdown-item" id="itemHideExCn" onclick="toggleHideExCn()">💬 <span>顯示例句中文</span></div>
                     <div class="dropdown-item" id="itemTime" onclick="toggleTime()">🕒 <span>顯示時間</span></div>
@@ -494,6 +512,17 @@
     <div id="taskList"></div>
 
     <!-- 左下角小播放鍵 -->
+    <button class="add-fab" title="新增單字" onclick="openAddPicker()" aria-label="新增單字"><svg viewBox="0 0 24 24"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg></button>
+    <div id="addPicker" class="modal-overlay play-modal" onclick="if(event.target===this) closeAddPicker()">
+        <div class="modal-content ap-modal">
+            <div class="pm-title"><h3>＋ 新增單字／片語</h3><button class="pm-close" onclick="closeAddPicker()">×</button></div>
+            <div class="pm-hint">要加到哪個主題？</div>
+            <button class="ap-main" id="apMain" onclick="addFromPicker(+this.dataset.id)"></button>
+            <div class="ap-others-title" id="apOthersTitle">其他主題</div>
+            <div class="ap-list" id="apList"></div>
+            <button class="btn-outline ap-new" onclick="closeAddPicker(); addMainTaskPrompt()">📁 新增主題</button>
+        </div>
+    </div>
     <button class="play-fab cz-fab" title="克漏字練習" onclick="openClozeSetup()">✍️</button>
     <button class="play-fab" title="播放例句" onclick="openPlayModal()"><svg viewBox="0 0 24 24"><path d="M7 5v14l12-7z"/></svg></button>
 
@@ -955,6 +984,7 @@
         // 例句中文預設隱藏（除非使用者曾選擇顯示）
         let isHideExCn = localStorage.getItem('eng_hideExCn') !== 'false';
         let isHideDef = localStorage.getItem('eng_hideDef') === 'true';   // 釋義：預設顯示
+        let isHideEtym = localStorage.getItem('eng_hideEtym') === 'true'; // 字源：預設顯示
         let isHideEx = localStorage.getItem('eng_hideEx') === 'true';     // 例句：預設顯示
         let isEditMode = false;
 
@@ -1121,10 +1151,12 @@
   "usage": "neutral",
   "common": [],
   "collocations": ["...", "..."],
+  "etymology": "...",
   "corrected_word": ""
 }
 （cefr 為這個單字／片語最常見意思的 CEFR 難易度：A1、A2、B1、B2、C1、C2 其中之一）
 ${ENRICH_RULES}
+${ETYM_RULE}
 （corrected_word：如果 "${cleanWord}" 拼錯了，或不是正確的英文寫法（例如片語的介系詞錯誤），請填正確寫法，並且 definition、sentence 等全部都以正確寫法為準；如果寫法正確就留空字串）`;
             try {
                 const result = await aiJSON(promptText);
@@ -1139,6 +1171,7 @@ ${ENRICH_RULES}
                     correctedWord, originalWord: cleanWord,
                     cefr: CEFR.includes(String(result.cefr || '').toUpperCase().trim()) ? String(result.cefr).toUpperCase().trim() : '',
                     synonyms: cleanSynonyms(result.synonyms, cleanWord),
+                    etymology: cleanEtym(result.etymology),
                     ...cleanUsageFields(result, cleanWord)
                 };
             } catch (e) {
@@ -2969,7 +3002,7 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
                 if (hit(t.text)) out.push({ type: 'topic', text: t.text, topic: t, path: '' });
                 t.subtasks.forEach(s => {
                     if (hit(s.text)) out.push({ type: 'word', text: s.text, topic: t, sub: s, path: t.text });
-                    else if ((s.definition || s.synonyms) && hit(`${s.definition || ''} ${(s.synonyms || []).join(' ')} ${(s.common || []).join(' ')} ${(s.collocations || []).join(' ')}`)) out.push({ type: 'def', text: `${s.definition || ''}${s.synonyms && s.synonyms.length ? `　≈ ${s.synonyms.join('、')}` : ''}${s.common && s.common.length ? `　🗣️ ${s.common.join('、')}` : ''}${s.collocations && s.collocations.length ? `　🔗 ${s.collocations.join(' · ')}` : ''}`, topic: t, sub: s, path: `${t.text} › ${s.text}` });
+                    else if ((s.definition || s.synonyms) && hit(`${s.definition || ''} ${(s.synonyms || []).join(' ')} ${(s.common || []).join(' ')} ${(s.collocations || []).join(' ')} ${s.etym || ''}`)) out.push({ type: 'def', text: `${s.definition || ''}${s.synonyms && s.synonyms.length ? `　≈ ${s.synonyms.join('、')}` : ''}${s.common && s.common.length ? `　🗣️ ${s.common.join('、')}` : ''}${s.collocations && s.collocations.length ? `　🔗 ${s.collocations.join(' · ')}` : ''}${s.etym ? `　🌱 ${s.etym}` : ''}`, topic: t, sub: s, path: `${t.text} › ${s.text}` });
                     s.grandtasks.forEach(g => { if (hit(g.text)) out.push({ type: 'ex', text: g.text, topic: t, sub: s, g, path: `${t.text} › ${s.text}` }); });
                 });
             });
@@ -3029,6 +3062,7 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
             if (hiddenByDone) { toggleCompleted(); showToast('已暫時顯示熟記項目'); }
             if (r.type === 'ex' && isHideEx) { toggleHideEx(); }
             if (r.type === 'def' && isHideDef) { toggleHideDef(); }
+            if (r.type === 'def' && isHideEtym && r.sub && r.sub.etym) { toggleHideEtym(); }
             if (changed) saveData();
             const sel = r.type === 'topic' ? `.task-card[data-id="${r.topic.id}"]`
                       : r.type === 'ex' ? `.grandtask-row[data-id="${r.g.id}"]`
@@ -3067,11 +3101,16 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
   spoken＝日常口語很常用；neutral＝口語、書面都常用；formal＝偏正式／書面，日常說話較少用；rare＝不常見，母語人士日常很少用）
 （common：只有 usage 為 formal 或 rare 時，給 1～2 個意思相同、日常更常用的說法（例如 postpone → put off、push back；purchase → buy）；其他情況給空陣列）
 （collocations 為 2～3 個母語人士最常用的搭配或固定說法，必須包含這個單字／片語，例如 agenda → set the agenda、on the agenda；每個不超過 5 個字）`;
+        const ETYM_RULE = `（etymology：用繁體中文簡短說明字源，幫助記憶，40 字以內。拆解字首、字根、字尾並說明各部分的意思，再用箭頭帶到現在的意思，例如 postpone → "post-（在…之後）＋ pon（放置，拉丁文）→ 放到後面 → 延後"；片語則說明組成字的意思與引申，例如 put off → "put（放）＋ off（離開）→ 放到一邊 → 延後"；沒有可拆解的字根時，簡短說明來源，例如 "來自古英文 cnawan（知道）"。不確定的部分不要編造，真的不清楚就寫 "字源不明"）`;
         const BAD_DEFS = () => [MANUAL_DEF_TEXT, LOADING_TEXT, '(無法解析定義)', '(點擊下方「✏️ 編輯釋義」手動填寫)', '(點擊下方「編輯釋義」手動填寫)'];
         function cleanSynonyms(list, word) {
             if (!Array.isArray(list)) return [];
             const w = String(word || '').toLowerCase().trim();
             return [...new Set(list.map(x => String(x || '').replace(/[()（）]/g, '').trim()).filter(x => x && /[a-z]/i.test(x) && x.toLowerCase() !== w))].slice(0, 2);
+        }
+        function cleanEtym(t) {
+            const v = String(t || '').replace(/\s+/g, ' ').trim();
+            return v && v.length <= 120 ? v : (v ? v.slice(0, 120) + '…' : '');
         }
         function cleanUsageFields(r, word) {
             const usage = String(r.usage || '').toLowerCase().trim();
@@ -3093,7 +3132,8 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
         const needsDefinition = s => enrichable(s) && (!s.definition || !s.definition.trim() || BAD_DEFS().includes(s.definition.trim()));
         const needsSynonyms = s => enrichable(s) && !(Array.isArray(s.synonyms) && s.synonyms.length) && !s.noSynonyms;
         const needsUsage = s => enrichable(s) && (!USAGE[s.usage] || !Array.isArray(s.collocations) || (['formal', 'rare'].includes(s.usage) && !Array.isArray(s.common)));
-        const needsExtra = s => needsSynonyms(s) || needsUsage(s) || !CEFR.includes(s.cefr);
+        const needsEtym = s => enrichable(s) && !s.etym;
+        const needsExtra = s => needsSynonyms(s) || needsUsage(s) || needsEtym(s) || !CEFR.includes(s.cefr);
         let fillingDefs = false;
         async function fillMissingDefinitions() {
             if (fillingDefs) return;
@@ -3103,7 +3143,7 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
             if (!noDef.length && !noExtra.length) return showToast('每個單字的釋義、同義字、常用度和常見搭配都齊全了 👍');
             if (!navigator.onLine) return showToast('📴 目前離線，連上網路後再試');
             if (!hasTextKey()) return openKeyModal();
-            const extraMsg = n => `有 ${n} 個之前建立的單字還缺少以下資料：\n• 同義字：${noExtra.filter(needsSynonyms).length} 個\n• 常用度／日常說法／常見搭配：${noExtra.filter(needsUsage).length} 個\n• 難易度：${noExtra.filter(s => !CEFR.includes(s.cefr)).length} 個\n\n要用 AI 一鍵補上嗎？（只補缺少的部分，原本的釋義、例句和你修改過的內容都不會改變）`;
+            const extraMsg = n => `有 ${n} 個之前建立的單字還缺少以下資料：\n• 同義字：${noExtra.filter(needsSynonyms).length} 個\n• 常用度／日常說法／常見搭配：${noExtra.filter(needsUsage).length} 個\n• 字源：${noExtra.filter(needsEtym).length} 個\n• 難易度：${noExtra.filter(s => !CEFR.includes(s.cefr)).length} 個\n\n要用 AI 一鍵補上嗎？（只補缺少的部分，原本的釋義、例句和你修改過的內容都不會改變）`;
             let targets = [];
             if (noDef.length) {
                 if (!confirm(`有 ${noDef.length} 個單字缺少釋義（被刪除、空白或查詢失敗），要用 AI 重新建立釋義（含同義字、常用度、常見搭配）嗎？`)) return;
@@ -3118,13 +3158,13 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
             fillingDefs = false;
             if (isHideDef && st.defDone) toggleHideDef();
             renderTasks();
-            const left = targets.map(x => findSubAnywhere(x.s.id)).filter(s => s && (needsDefinition(s) || needsUsage(s) || !CEFR.includes(s.cefr)));
+            const left = targets.map(x => findSubAnywhere(x.s.id)).filter(s => s && (needsDefinition(s) || needsUsage(s) || needsEtym(s) || !CEFR.includes(s.cefr)));
             const names = left.slice(0, 5).map(s => clozeTarget(s.text)).join('、') + (left.length > 5 ? ` 等 ${left.length} 個` : '');
-            showToast(`✅ 已建立 ${st.defDone} 個釋義、補上 ${st.synDone} 組同義字、${st.usageDone} 個單字的常用度／搭配${left.length ? `\n⚠️ 還有未補齊的：${names}，可再按一次重試` : '\n點單字旁的難易度標籤可查看或修改難易度與常用度'}${st.stop ? `\n（${st.stop}）` : ''}`, 6000);
+            showToast(`✅ 已建立 ${st.defDone} 個釋義、補上 ${st.synDone} 組同義字、${st.usageDone} 個單字的常用度／搭配、${st.etymDone} 個字源${left.length ? `\n⚠️ 還有未補齊的：${names}，可再按一次重試` : '\n點單字旁的難易度標籤可查看或修改難易度與常用度'}${st.stop ? `\n（${st.stop}）` : ''}`, 6000);
         }
         // 依清單請 AI 補資料（def:true 代表連釋義一起重建）
         async function runEnrich(targets, label = '📖 AI 補齊資料中…') {
-            let defDone = 0, synDone = 0, usageDone = 0, stop = '', fatal = false;
+            let defDone = 0, synDone = 0, usageDone = 0, etymDone = 0, stop = '', fatal = false;
             const chunks = [];
             for (let i = 0; i < targets.length; i += 8) chunks.push(targets.slice(i, i + 8));
             let doneCount = 0;
@@ -3136,13 +3176,14 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
                     const r = await aiJSON(`請為下列英文單字或片語各提供以下資料：
 - definition：簡短的英文定義，開頭標示詞性，例如 "(noun) a list of items to be discussed at a meeting."
 - cefr：最常見意思的 CEFR 難易度（A1、A2、B1、B2、C1、C2 其中之一）
-- synonyms、usage、common、collocations：規則如下
+- synonyms、usage、common、collocations、etymology：規則如下
 ${ENRICH_RULES}
+${ETYM_RULE}
 
 單字清單：
 ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
 
-請嚴格只回傳 JSON，格式：{"items": [{"definition": "...", "cefr": "B1", "synonyms": ["..."], "usage": "neutral", "common": [], "collocations": ["...", "..."]}, ...]}，陣列順序與數量要和上面的清單完全一致。`);
+請嚴格只回傳 JSON，格式：{"items": [{"definition": "...", "cefr": "B1", "synonyms": ["..."], "usage": "neutral", "common": [], "collocations": ["...", "..."], "etymology": "..."}, ...]}，陣列順序與數量要和上面的清單完全一致。`);
                     const items = Array.isArray(r.items) ? r.items : [];
                     if (chunk.length > 1 && items.length !== chunk.length) throw new Error('AI 回傳數量不符');
                     chunk.forEach((x, k) => {
@@ -3154,6 +3195,8 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
                         if (syn.length && !(sub.synonyms && sub.synonyms.length)) { sub.synonyms = syn; synDone++; }
                         else if (!syn.length && Array.isArray(it.synonyms) && !(sub.synonyms && sub.synonyms.length)) sub.noSynonyms = true;   // AI 認為沒有合適的同義字，下次不再詢問
                         if (applyUsageFields(sub, cleanUsageFields(it, words[k]))) usageDone++;
+                        const et = cleanEtym(it.etymology);
+                        if (et && !sub.etym) { sub.etym = et; etymDone++; }
                     });
                     saveData(); doneCount += chunk.length;
                 } catch (e) {
@@ -3164,7 +3207,7 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
                 }
                 await sleep(300);
             }
-            return { defDone, synDone, usageDone, stop };
+            return { defDone, synDone, usageDone, etymDone, stop };
         }
 
         // ================= 檢查並修正例句與單字（文法、自然度、拼字） =================
@@ -3313,7 +3356,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
                     const changedWord = clozeTarget(f.from) !== clozeTarget(f.to);
                     s.text = f.to; s.proofed = f.to;
                     if (changedWord) {   // 英文寫法改了：釋義、同義字等要依正確的字重新建立
-                        s.definition = ''; ['synonyms', 'usage', 'common', 'collocations', 'cefr', 'noSynonyms'].forEach(k => delete s[k]);
+                        s.definition = ''; ['synonyms', 'usage', 'common', 'collocations', 'cefr', 'noSynonyms', 'etym'].forEach(k => delete s[k]);
                         reEnrich.push({ s, def: true });
                     }
                 } else {
@@ -3356,6 +3399,10 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             isHideDef = !isHideDef; localStorage.setItem('eng_hideDef', isHideDef); initViewToggles();
             showToast(isHideDef ? '📖 已隱藏全部釋義' : '📖 已顯示全部釋義', 1500);
         }
+        function toggleHideEtym() {
+            isHideEtym = !isHideEtym; localStorage.setItem('eng_hideEtym', isHideEtym); initViewToggles();
+            showToast(isHideEtym ? '🌱 已隱藏全部字源' : '🌱 已顯示全部字源', 1500);
+        }
         function toggleHideEx() {
             isHideEx = !isHideEx; localStorage.setItem('eng_hideEx', isHideEx); initViewToggles();
             showToast(isHideEx ? '📝 已隱藏全部例句' : '📝 已顯示全部例句', 1500);
@@ -3363,6 +3410,8 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
         function initViewToggles() {
             document.body.classList.toggle('hide-def', isHideDef);
             document.body.classList.toggle('hide-ex', isHideEx);
+            document.body.classList.toggle('hide-etym', isHideEtym);
+            document.getElementById('itemHideEtym').innerHTML = isHideEtym ? '🌱 <span>顯示字源</span>' : '🌱 <span>隱藏字源</span>';
             document.getElementById('itemHideDef').innerHTML = isHideDef ? '📖 <span>顯示釋義</span>' : '📖 <span>隱藏釋義</span>';
             document.getElementById('itemHideEx').innerHTML = isHideEx ? '📝 <span>顯示例句</span>' : '📝 <span>隱藏例句</span>';
         }
@@ -3423,6 +3472,13 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             }
         }
 
+        function editEtym(subTaskId, mainTaskId) {
+            const sub = findSub(mainTaskId, subTaskId); if (!sub) return;
+            const v = prompt('請修改字源（清空即刪除）：', sub.etym || '');
+            if (v === null) return;
+            if (v.trim()) sub.etym = v.trim(); else delete sub.etym;
+            saveData();
+        }
         function editListField(subTaskId, mainTaskId, field) {
             const sub = findSub(mainTaskId, subTaskId); if (!sub) return;
             const name = { common: '日常更常用的說法', collocations: '常見搭配' }[field];
@@ -3598,7 +3654,41 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
         // --- 7. 新增 / 編輯 / 刪除 ---
         function addMainTask() { addMainTaskPrompt(); }
 
-        async function addSubTask(mainTaskId) {
+        // 浮動「＋」按鈕：預設加到目前畫面上正在看的主題
+        function currentTopicId() {
+            const cards = [...document.querySelectorAll('#taskList .task-card')].filter(c => c.offsetParent !== null);
+            if (!cards.length) return null;
+            const line = window.innerHeight * 0.35;
+            let cur = cards[0];
+            for (const c of cards) { if (c.getBoundingClientRect().top <= line) cur = c; else break; }
+            return +cur.dataset.id;
+        }
+        function openAddPicker() {
+            if (!tasks.length) return addMainTaskPrompt();
+            const curId = currentTopicId() || lastAddTopic || tasks[0].id;
+            const cur = findMain(curId) || tasks[0];
+            const main = document.getElementById('apMain');
+            main.dataset.id = cur.id;
+            main.innerHTML = `<small>目前所在的主題</small>${topicLabel(cur)}`;
+            const others = tasks.filter(t => t.id !== cur.id);
+            document.getElementById('apOthersTitle').style.display = others.length ? '' : 'none';
+            document.getElementById('apList').innerHTML = others.map(t => `<button onclick="addFromPicker(${t.id})">${topicLabel(t)}<span>${t.subtasks.length} 個</span></button>`).join('');
+            document.getElementById('addPicker').style.display = 'flex';
+        }
+        const topicLabel = t => (/^\p{Extended_Pictographic}/u.test(t.text.trim()) ? '' : '📁 ') + escapeHtml(t.text);
+        function closeAddPicker() { document.getElementById('addPicker').style.display = 'none'; }
+        let lastAddTopic = null;
+        function addFromPicker(id) { closeAddPicker(); lastAddTopic = id; addSubTask(id, { scroll: true }); }
+        function flashSub(subId) {
+            requestAnimationFrame(() => {
+                const el = document.querySelector(`.subtask-item[data-id="${subId}"] .subtask-row`); if (!el) return;
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+                setTimeout(() => el.classList.remove('flash'), 2200);
+            });
+        }
+
+        async function addSubTask(mainTaskId, opts = {}) {
             const task = findMain(mainTaskId);
             if (!task) return;
 
@@ -3627,13 +3717,13 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             // 離線：先存起來，標記為「待補齊」，上線後自動查詢
             if (!navigator.onLine) {
                 task.subtasks.unshift({ id: subId, text: text, definition: PENDING_DEF_TEXT, checked: false, collapsed: false, showDef: false, pendingAI: true, createdAt: Date.now(), grandtasks: [] });
-                task.collapsed = false; saveData();
+                task.collapsed = false; saveData(); if (opts.scroll) flashSub(subId);
                 showToast("📴 目前離線，已先存下單字\n上線後會自動補上釋義與例句");
                 return;
             }
 
             task.subtasks.unshift({ id: subId, text: text, definition: LOADING_TEXT, checked: false, collapsed: false, showDef: false, isLoading: true, createdAt: Date.now(), grandtasks: [] });
-            task.collapsed = false; saveData();
+            task.collapsed = false; saveData(); if (opts.scroll) flashSub(subId);
 
             let result = null, failKind = null;
             try { result = await fetchDefinitionAndSentence(text, { topicId: mainTaskId }); }
@@ -3665,6 +3755,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             if (result.cefr && !CEFR.includes(sub.cefr)) sub.cefr = result.cefr;
             if (result.synonyms && result.synonyms.length && !(sub.synonyms && sub.synonyms.length)) sub.synonyms = result.synonyms;
             applyUsageFields(sub, result);
+            if (result.etymology && !sub.etym) sub.etym = result.etymology;
             if (result.correctedWord && result.originalWord && sub.text.includes(result.originalWord)) {
                 sub.text = sub.text.replace(result.originalWord, result.correctedWord);
                 setTimeout(() => showToast(`✏️ 拼字已自動修正：${result.originalWord} → ${result.correctedWord}`, 4000), 600);
@@ -3883,10 +3974,12 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
                             </div>
                         </div>
                     `;
+                    const etymHtml = sub.etym ? `<div class="etym-box" title="點一下可修改字源" onclick="editEtym(${sub.id}, ${task.id})"><span class="etym-tag">🌱 字源</span>${escapeHtml(sub.etym)}</div>` : '';
                     const syn = Array.isArray(sub.synonyms) && sub.synonyms.length ? sub.synonyms : null;
                     const cmn = ['formal', 'rare'].includes(sub.usage) && Array.isArray(sub.common) && sub.common.length ? sub.common : null;
                     const col = Array.isArray(sub.collocations) && sub.collocations.length ? sub.collocations : null;
                     if (sub.definition || syn || cmn || col) html += `<div class="definition-box" title="點一下可修改釋義" onclick="editDefinition(${sub.id}, ${task.id})">${sub.definition ? `<div class="def-content">${escapeHtml(sub.definition)}</div>` : ''}${syn ? `<div class="def-syn" title="點一下修改同義字" onclick="event.stopPropagation(); editSynonyms(${sub.id}, ${task.id})">≈ ${syn.map(w => `<b>${escapeHtml(w)}</b>`).join('、')}</div>` : ''}${cmn ? `<div class="def-common" title="點一下修改" onclick="event.stopPropagation(); editListField(${sub.id}, ${task.id}, 'common')">🗣️ 日常更常說：${cmn.map(w => `<b>${escapeHtml(w)}</b>`).join('、')}</div>` : ''}${col ? `<div class="def-col" title="點一下修改常見搭配" onclick="event.stopPropagation(); editListField(${sub.id}, ${task.id}, 'collocations')">🔗 常見搭配：${col.map(w => `<i>${escapeHtml(w)}</i>`).join(' · ')}</div>` : ''}</div>`;
+                    html += etymHtml;
                     
                     html += `<div class="grandtask-container">`;
                     sub.grandtasks.forEach(grand => {
