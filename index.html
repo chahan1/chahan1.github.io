@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.7.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.8.0 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -133,6 +133,21 @@
         .seg { display: flex; background: #f1f3f4; border-radius: 10px; padding: 3px; gap: 3px; }
         .seg button { flex: 1; border: none; background: transparent; padding: 8px 2px; border-radius: 8px; font-size: 12.5px; color: #5f6368; cursor: pointer; }
         .seg button.on { background: white; color: var(--green); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+        .curve-btn { width: 100%; margin-top: 6px; border: 1px dashed #b7d9c4; background: white; color: #0b5c30; border-radius: 10px; padding: 8px; font-size: 13px; cursor: pointer; }
+        .curve-btn.on { border: 1.5px solid var(--green); background: #eef7f1; font-weight: 600; }
+        .curve-box { margin-top: 6px; background: #f7faf8; border: 1px solid #e0eee5; border-radius: 10px; padding: 8px 10px; }
+        .curve-hint { font-size: 11.5px; color: #5f6368; line-height: 1.5; }
+        .curve-presets { display: flex; flex-wrap: wrap; gap: 4px; margin: 7px 0 6px; }
+        .curve-presets button { border: 1px solid #cfe7d7; background: white; color: #0b5c30; border-radius: 14px; padding: 3px 9px; font-size: 11.5px; cursor: pointer; }
+        .curve-chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+        .curve-chips button { border: 1px solid #dadce0; background: white; border-radius: 8px; padding: 5px 2px; font-size: 12.5px; color: #3c4043; cursor: pointer; line-height: 1.25; }
+        .curve-chips button small { display: block; font-size: 10px; color: #9aa0a6; }
+        .curve-chips button.on { border-color: var(--green); background: var(--green); color: white; font-weight: 600; }
+        .curve-chips button.on small { color: #d7f0e0; }
+        .curve-chips button.zero:not(.on) { opacity: .55; }
+        .curve-opt { display: flex; gap: 6px; align-items: flex-start; font-size: 11.5px; color: #5f6368; margin-top: 7px; line-height: 1.45; }
+        .curve-opt input { margin-top: 2px; accent-color: var(--green); }
+        .curve-sum { font-size: 12.5px; color: #0b5c30; margin-top: 6px; font-weight: 600; }
         .pm-select { width: 100%; margin-top: 6px; height: 36px; border: 1px solid #dadce0; border-radius: 8px; padding: 0 8px; font-size: 13px; background: white; color: var(--text); }
         .stepper { display: flex; align-items: center; gap: 10px; }
         .stepper button { width: 34px; height: 34px; border-radius: 50%; border: 1px solid #dadce0; background: white; font-size: 18px; color: var(--green); cursor: pointer; }
@@ -449,7 +464,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.7.0</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.8.0</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -556,7 +571,19 @@
                 <button data-v="7d" onclick="setPlayOpt('dateMode','7d')">最近7天</button>
                 <button data-v="day" onclick="setPlayOpt('dateMode','day')">指定日期</button>
             </div>
+            <button class="curve-btn" id="pmCurveBtn" onclick="setPlayOpt('dateMode','curve')">🧠 依遺忘曲線複習</button>
             <select class="pm-select" id="pmDay" onchange="setPlayOpt('day', this.value)" style="display:none"></select>
+            <div class="curve-box" id="pmCurve" style="display:none">
+                <div class="curve-hint">依遺忘曲線，挑出在「幾天前」加入的例句來複習，可以複選。例如勾 1、3、7，就會播放昨天、3 天前、7 天前加入的例句。</div>
+                <div class="curve-presets">
+                    <button onclick="setCurvePreset([1,3,7])">簡易 1·3·7</button>
+                    <button onclick="setCurvePreset([1,2,4,7,15,30])">經典 1·2·4·7·15·30</button>
+                    <button onclick="setCurvePreset([1,3,7,14,30,60])">長期 1·3·7·14·30·60</button>
+                </div>
+                <div class="curve-chips" id="pmCurveChips"></div>
+                <label class="curve-opt"><input type="checkbox" id="pmCurveCatch" onchange="setPlayOpt('curveCatch', this.checked)"> 補複習：沒有每天複習時使用，間隔之間的天數也一起加入（例如選 1、3、7，就播放 1～7 天前的全部例句）</label>
+                <div class="curve-sum" id="pmCurveSum"></div>
+            </div>
             <div class="pm-label">播放順序</div>
             <div class="seg" id="pmOrder">
                 <button data-v="seq" onclick="setPlayOpt('order','seq')">依序播放</button>
@@ -1248,7 +1275,8 @@ ${ETYM_RULE}
 
         // --- 例句連續播放 ---
         const PLAY_KEY = 'eng_playSettings';
-        let playSettings = { speed: 0, engine: 'ai', voice: 'Kore', fvoice: 'af_heart', scope: 'all', repeat: 2, rate: 0.9, gap: 1.2, dateMode: 'all', day: '', order: 'seq', limit: 20 };
+        let playSettings = { speed: 0, engine: 'ai', voice: 'Kore', fvoice: 'af_heart', scope: 'all', repeat: 2, rate: 0.9, gap: 1.2, dateMode: 'all', day: '', order: 'seq', limit: 20, curve: [1, 3, 7], curveCatch: false };
+        const CURVE_DAYS = [0, 1, 2, 3, 4, 5, 7, 10, 14, 15, 21, 30, 45, 60, 90, 180];
         try { Object.assign(playSettings, JSON.parse(localStorage.getItem(PLAY_KEY)) || {}); } catch (e) {}
         if (!playSettings.speed) playSettings.speed = { 0.7: 0.8, 0.9: 1.0, 1.1: 1.2 }[playSettings.rate] || 1.0;   // 舊設定轉換
         const aiSpeed = () => Math.max(0.5, Math.min(1.5, Number(playSettings.speed) || 1));
@@ -1288,6 +1316,7 @@ ${ETYM_RULE}
         function getPlaylist(opts = playSettings, ignoreDate = false) {
             const today = dayKey(Date.now());
             const weekAgo = new Date(); weekAgo.setHours(0, 0, 0, 0); weekAgo.setDate(weekAgo.getDate() - 6);
+            const curveSet = opts.dateMode === 'curve' ? curveAcceptDays(opts) : null;
             const list = [];
             tasks.forEach(t => t.subtasks.forEach(s => s.grandtasks.forEach(g => {
                 if (opts.scope === 'done' && !g.checked) return;
@@ -1297,11 +1326,53 @@ ${ETYM_RULE}
                     if (opts.dateMode === 'today' && k !== today) return;
                     if (opts.dateMode === '7d' && (g.createdAt || 0) < weekAgo.getTime()) return;
                     if (opts.dateMode === 'day' && k !== opts.day) return;
+                    if (curveSet && !curveSet.has(daysAgo(g.createdAt))) return;
                 }
                 const en = cleanForSpeech(g.text);
-                if (en) list.push({ id: g.id, en, cn: extractCn(g.text), word: s.text, day: dayKey(g.createdAt) });
+                if (en) list.push({ id: g.id, en, cn: extractCn(g.text), word: s.text, day: dayKey(g.createdAt), ago: daysAgo(g.createdAt) });
             })));
             return list;
+        }
+
+        // ---- 遺忘曲線 ----
+        // 例句是「幾天前」加入的（以日曆日計算：今天＝0、昨天＝1）
+        function daysAgo(ts) {
+            const a = new Date(ts || 0); a.setHours(0, 0, 0, 0);
+            const b = new Date(); b.setHours(0, 0, 0, 0);
+            return Math.round((b - a) / 86400000);
+        }
+        // 勾選的間隔天數 → 要播放的「幾天前」集合；補複習時，涵蓋到前一個間隔之間的天數
+        function curveAcceptDays(opts) {
+            const sel = [...new Set((opts.curve || []).map(Number))].sort((a, b) => a - b);
+            const set = new Set();
+            sel.forEach((d, i) => {
+                if (!opts.curveCatch || d === 0) { set.add(d); return; }
+                const prev = i > 0 ? sel[i - 1] : 0;
+                for (let x = Math.max(prev + 1, 1); x <= d; x++) set.add(x);
+            });
+            return set;
+        }
+        function toggleCurveDay(d) {
+            const cur = new Set((playSettings.curve || []).map(Number));
+            cur.has(d) ? cur.delete(d) : cur.add(d);
+            setPlayOpt('curve', [...cur].sort((a, b) => a - b));
+        }
+        function setCurvePreset(arr) { playSettings.dateMode = 'curve'; setPlayOpt('curve', arr); }
+        function refreshCurveBox() {
+            const on = playSettings.dateMode === 'curve';
+            document.getElementById('pmCurveBtn').classList.toggle('on', on);
+            document.getElementById('pmCurve').style.display = on ? 'block' : 'none';
+            if (!on) return;
+            const counts = {};
+            getPlaylist(playSettings, true).forEach(it => { counts[it.ago] = (counts[it.ago] || 0) + 1; });
+            const sel = new Set((playSettings.curve || []).map(Number));
+            document.getElementById('pmCurveChips').innerHTML = CURVE_DAYS.map(d => `<button class="${sel.has(d) ? 'on' : ''} ${counts[d] ? '' : 'zero'}" onclick="toggleCurveDay(${d})">${d === 0 ? '今天' : d + ' 天前'}<small>${counts[d] || 0} 句</small></button>`).join('');
+            document.getElementById('pmCurveCatch').checked = !!playSettings.curveCatch;
+            const list = getPlaylist(playSettings);
+            const by = {}; list.forEach(it => { by[it.ago] = (by[it.ago] || 0) + 1; });
+            const parts = Object.keys(by).map(Number).sort((a, b) => a - b).map(d => `${d === 0 ? '今天' : d + '天前'} ${by[d]}`);
+            document.getElementById('pmCurveSum').textContent = !sel.size ? '請至少選一個間隔天數'
+                : list.length ? `📋 共 ${list.length} 句（${parts.join('、')}）` : '📭 選的日子沒有加入例句，試試其他天數或勾選「補複習」';
         }
 
         // 依「播放順序」整理：隨機時打亂並取前 N 句
@@ -1356,6 +1427,7 @@ ${ETYM_RULE}
             refreshAICacheInfo();
             document.querySelectorAll('#pmScope button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.scope));
             document.querySelectorAll('#pmDate button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.dateMode));
+            refreshCurveBox();
             document.querySelectorAll('#pmRate button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === aiSpeed()));
             updateSpeedView();
             document.getElementById('pmRepeat').textContent = `${playSettings.repeat} 次`;
