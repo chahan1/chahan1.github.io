@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.12.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.14.0 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -499,6 +499,17 @@
         body.hide-ex-cn .ps-cn { display: none; }
         .ps-progress { height: 3px; background: #eef0f2; border-radius: 2px; margin: 12px 0 4px; overflow: hidden; }
         .ps-progress div { height: 100%; width: 0; background: var(--green); transition: width 0.3s; }
+        .ps-fam { display: flex; align-items: center; gap: 8px; margin: 8px 0 2px; }
+        .ps-fam-label { font-size: 11px; color: var(--muted); white-space: nowrap; line-height: 1.2; text-align: center; }
+        .ps-fam-label small { display: block; font-size: 9.5px; color: #b0b5ba; }
+        .ps-fam-btns { flex: 1; display: flex; gap: 5px; }
+        .ps-fam-btns button { flex: 1; height: 38px; border: 1.5px solid #e3e6e8; background: #fafbfc; border-radius: 10px; cursor: pointer; font-size: 15px; font-weight: 700; color: #5f6368; line-height: 1.05; padding: 0; transition: transform .1s; }
+        .ps-fam-btns button small { display: block; font-size: 9px; font-weight: 400; }
+        .ps-fam-btns button:active { transform: scale(.93); }
+        .ps-fam-btns button.on { color: white; border-color: transparent; background: var(--sc); box-shadow: 0 2px 6px rgba(0,0,0,.15); }
+        .ps-fam-btns button.flash { animation: famFlash .5s ease-out; }
+        @keyframes famFlash { 0% { transform: scale(1.18); } 100% { transform: scale(1); } }
+        .ps-fam.hide { display: none; }
         .ps-meta { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--muted); }
         .ps-controls { display: flex; align-items: center; justify-content: center; gap: 22px; margin-top: 6px; }
         .pb-btn { width: 36px; height: 36px; border-radius: 50%; border: none; background: transparent; color: #5f6368; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
@@ -529,51 +540,117 @@
             .header-container h2 { font-size: 17px; }
             .main-task-text { font-size: 15px; } .sub-task-text { font-size: 14.5px; } .grand-task-text { font-size: 13.5px; }
         }
+
+        /* ================= v2.14.0 版面美化（集中覆寫，保持原本的緊湊密度） ================= */
+        :root { --bg: #f3f5f7; --card: #ffffff; --radius: 14px; --shadow: 0 1px 3px rgba(16,24,40,.06), 0 1px 2px rgba(16,24,40,.04); }
+        body { background-color: var(--bg); }
+        .sticky-top-bar { background: rgba(243,245,247,.92); -webkit-backdrop-filter: saturate(160%) blur(10px); backdrop-filter: saturate(160%) blur(10px); }
+        .header-container h2 { font-size: 16px; }
+        .header-container h2 img { width: 22px; height: 22px; border-radius: 6px; }
+        .version-tag { border-radius: 5px; padding: 1px 5px; }
+        .three-dots-btn { width: 34px; height: 34px; }
+        .three-dots-btn:hover { background: #e8eaed; }
+        .search-box input[type="search"], #searchInput { box-shadow: var(--shadow); }
+        .btn-voice { box-shadow: var(--shadow); }
+
+        /* 選單 */
+        .dropdown-menu { width: 236px; border-radius: 14px; padding: 6px; box-shadow: 0 12px 32px rgba(16,24,40,.18), 0 2px 6px rgba(16,24,40,.08); top: 38px; }
+        .dropdown-item { border-radius: 9px; padding: 9px 10px; font-size: 13.5px; gap: 10px; }
+        .dropdown-item i { font-style: normal; width: 20px; text-align: center; font-size: 15px; flex-shrink: 0; }
+        .dropdown-item span { flex: 1; }
+        .dropdown-label { font-size: 10.5px; font-weight: 700; letter-spacing: .5px; color: #a0a6ab; padding: 8px 10px 3px; }
+        .dropdown-divider { margin: 5px 4px; }
+        .dd-badge { min-width: 18px; height: 18px; border-radius: 9px; background: #d93025; color: white; font-size: 10.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; padding: 0 5px; }
+
+        /* 筆記卡片 */
+        .task-card { border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 10px; padding: 4px 8px 6px 4px; }
+        .main-row { padding: 7px 0 6px; }
+        .subtask-container { margin-left: 13px; border-left-color: #d9ede0; }
+        .definition-box, .etym-box { border-radius: 0 8px 8px 0; }
+        .grandtask-row { border-radius: 8px; }
+
+        /* 浮動按鈕 */
+        .play-fab { width: 48px; height: 48px; box-shadow: 0 4px 14px rgba(16,124,65,.35); }
+        .play-fab.cz-fab { width: 40px; height: 40px; bottom: 74px; left: max(18px, calc(50% - 322px)); border: none; box-shadow: 0 3px 10px rgba(16,24,40,.14); }
+        .add-fab { width: 54px; height: 54px; box-shadow: 0 6px 16px rgba(16,124,65,.38); }
+
+        /* 對話框 */
+        .modal-overlay { background: rgba(32,33,36,.45); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+        .modal-content { border-radius: 20px; padding: 18px 16px 16px; box-shadow: 0 20px 48px rgba(16,24,40,.22); }
+        .play-modal .modal-content { max-width: 380px; }
+        .pm-title { margin-bottom: 8px; }
+        .pm-title h3 { font-size: 16px; }
+        .pm-close { width: 32px; height: 32px; border-radius: 50%; }
+        .pm-close:hover { background: #f1f3f4; }
+        .pm-label { font-size: 11.5px; font-weight: 700; color: #80868b; letter-spacing: .3px; margin: 14px 0 6px; }
+        .pm-hint { line-height: 1.55; }
+        .seg { border-radius: 12px; }
+        .seg button { border-radius: 9px; }
+        .btn-primary { border-radius: 19px; }
+        .pm-start { height: 42px; border-radius: 21px; font-size: 14px; }
+
+        /* AI 工具箱 / 備份：卡片式按鈕 */
+        .tool-card { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; background: #fafbfc; border: 1px solid #e8eaed; border-radius: 14px; padding: 11px 12px; margin-top: 8px; cursor: pointer; font-family: inherit; color: inherit; }
+        .tool-card:active { background: var(--green-light); border-color: #b7dfc4; }
+        .tool-card > i { font-style: normal; font-size: 20px; width: 34px; height: 34px; border-radius: 10px; background: white; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: var(--shadow); }
+        .tool-card > span { flex: 1; min-width: 0; }
+        .tool-card b { display: block; font-size: 13.5px; color: #202124; }
+        .tool-card small { display: block; font-size: 11.5px; color: #80868b; margin-top: 2px; line-height: 1.45; }
+        .tool-card small.warn { color: #b06000; }
+        .tool-card em { font-style: normal; min-width: 24px; height: 22px; border-radius: 11px; background: #fce8e6; color: #c5221f; font-size: 11.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; padding: 0 7px; flex-shrink: 0; }
+        .tool-card em.ok { background: #e6f4ea; color: #137333; }
+        .tool-card.done { opacity: .78; }
+        .tool-card.static { cursor: default; align-items: flex-start; }
+        .tool-card .lv-stats { margin: 8px 0 6px; }
+        .tool-link { font-size: 12px; color: var(--green); font-weight: 600; cursor: pointer; }
+        .bk-status { background: #f6faf7; border: 1px solid #dcefe2; border-radius: 12px; padding: 10px 12px; font-size: 12.5px; color: #3c4043; line-height: 1.7; }
+        .bk-status b { color: var(--green); }
+        .bk-status .warn { color: #b06000; font-weight: 600; }
+
+        /* 顯示設定：開關 */
+        .sw-list { margin-top: 6px; }
+        .sw-row { display: flex; align-items: center; gap: 12px; padding: 11px 2px; border-bottom: 1px solid var(--line); cursor: pointer; }
+        .sw-row:last-child { border-bottom: none; }
+        .sw-row > i { font-style: normal; font-size: 17px; width: 24px; text-align: center; }
+        .sw-row > span { flex: 1; min-width: 0; }
+        .sw-row b { display: block; font-size: 13.5px; font-weight: 600; color: #202124; }
+        .sw-row small { display: block; font-size: 11.5px; color: #80868b; margin-top: 1px; }
+        .rp-fam-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: #5f6368; margin-bottom: 4px; }
+        .rp-fam-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+        .rp-fam-legend b { color: #202124; }
+        input.sw { appearance: none; -webkit-appearance: none; width: 42px; height: 24px; border-radius: 12px; background: #dadce0; position: relative; cursor: pointer; transition: background .2s; flex-shrink: 0; margin: 0; }
+        input.sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: white; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .2s; }
+        input.sw:checked { background: var(--green); }
+        input.sw:checked::after { transform: translateX(18px); }
     </style>
 </head>
 <body>
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.12.0</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.14.0</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
                     <div class="dropdown-label">筆記</div>
-                    <div class="dropdown-item" onclick="addMainTaskPrompt()">📁 <span>新增主題</span></div>
+                    <div class="dropdown-item" onclick="addMainTaskPrompt()"><i>📁</i><span>新增主題</span></div>
+                    <div class="dropdown-item" id="itemEditMode" onclick="toggleEditMode()"><i>✏️</i><span>開啟修改模式</span></div>
                     <div class="dropdown-divider"></div>
-                    <div class="dropdown-label">練習與複習</div>
-                    <div class="dropdown-item" onclick="openPlayModal()">▶️ <span>播放例句</span></div>
-                    <div class="dropdown-item" onclick="openRating()">⭐ <span>例句熟悉度評分</span></div>
-                    <div class="dropdown-item" onclick="openReadSetup()">📖 <span>朗讀練習</span></div>
-                    <div class="dropdown-item" onclick="openClozeSetup()">✍️ <span>克漏字練習</span></div>
-                    <div class="dropdown-item" onclick="openReport()">📊 <span>複習報表</span></div>
+                    <div class="dropdown-label">學習與複習</div>
+                    <div class="dropdown-item" onclick="openPlayModal()"><i>▶️</i><span>播放例句</span></div>
+                    <div class="dropdown-item" onclick="openRating()"><i>⭐</i><span>熟悉度評分</span></div>
+                    <div class="dropdown-item" onclick="openClozeSetup()"><i>✍️</i><span>克漏字練習</span></div>
+                    <div class="dropdown-item" onclick="openReadSetup()"><i>🎙️</i><span>朗讀練習</span></div>
+                    <div class="dropdown-item" onclick="openReport()"><i>📊</i><span>學習報表</span></div>
                     <div class="dropdown-divider"></div>
-                    <div class="dropdown-label">AI 工具</div>
-                    <div class="dropdown-item" onclick="proofAll()">🩺 <span>一鍵檢查並修正例句與單字</span></div>
-                    <div class="dropdown-item" onclick="reverifyEtymology()">🔎 <span>用維基詞典查證全部字源</span></div>
-                    <div class="dropdown-item" id="itemUndoProof" style="display:none" onclick="undoProof()">↩ <span>復原上次的 AI 修正</span></div>
-                    <div class="dropdown-item" onclick="fillMissingDefinitions()">📖 <span>一鍵補齊釋義／同義字／常用度／搭配／字源</span></div>
-                    <div class="dropdown-item" onclick="fillMissingExamples()">🧩 <span>替沒有例句的單字補例句</span></div>
-                    <div class="dropdown-item" onclick="openLevelModal()">🏷️ <span>單字難易度 A1–C2</span></div>
-                    <div class="dropdown-item" onclick="processPendingAI({ manual: true })">🤖 <span>立即補齊 AI 釋義</span></div>
-                    <div class="dropdown-item" onclick="openStyleModal()">🎨 <span>AI 例句風格</span></div>
-                    <div class="dropdown-item" onclick="openKeyModal()">🔑 <span>AI 金鑰設定</span></div>
+                    <div class="dropdown-label">AI</div>
+                    <div class="dropdown-item" onclick="openAiTools()"><i>🧰</i><span>AI 工具箱</span><b class="dd-badge" id="ddToolsBadge"></b></div>
+                    <div class="dropdown-item" onclick="openStyleModal()"><i>🎨</i><span>AI 例句風格</span></div>
+                    <div class="dropdown-item" onclick="openKeyModal()"><i>🔑</i><span>AI 金鑰設定</span></div>
                     <div class="dropdown-divider"></div>
-                    <div class="dropdown-label">顯示</div>
-                    <div class="dropdown-item" id="itemHideDef" onclick="toggleHideDef()">📖 <span>隱藏釋義</span></div>
-                    <div class="dropdown-item" id="itemHideEtym" onclick="toggleHideEtym()">🌱 <span>隱藏字源</span></div>
-                    <div class="dropdown-item" id="itemHideEx" onclick="toggleHideEx()">📝 <span>隱藏例句</span></div>
-                    <div class="dropdown-item" id="itemHideExCn" onclick="toggleHideExCn()">💬 <span>顯示例句中文</span></div>
-                    <div class="dropdown-item" id="itemTime" onclick="toggleTime()">🕒 <span>顯示時間</span></div>
-                    <div class="dropdown-item" id="itemCompleted" onclick="toggleCompleted()">👁️ <span>隱藏熟記項目</span></div>
-                    <div class="dropdown-item" id="itemEditMode" onclick="toggleEditMode()">⚙️ <span>開啟修改</span></div>
-                    <div class="dropdown-divider"></div>
-                    <div class="dropdown-label">備份</div>
-                    <div class="dropdown-item" onclick="shareBackupToDrive()">☁️ <span>備份到 Google Drive</span></div>
-                    <div class="dropdown-item" onclick="downloadBackup()">📥 <span>下載備份檔到手機</span></div>
-                    <div class="dropdown-item" onclick="openRestore()">📂 <span>從備份檔還原（可選 Drive）</span></div>
-                    <div class="dropdown-item" onclick="exportData()">📋 <span>複製筆記文字</span></div>
+                    <div class="dropdown-label">設定</div>
+                    <div class="dropdown-item" onclick="openViewModal()"><i>👀</i><span>顯示設定</span></div>
+                    <div class="dropdown-item" onclick="openBackupModal()"><i>💾</i><span>備份與還原</span></div>
                 </div>
                 <input type="file" id="importFile" accept=".json,application/json,text/plain,*/*" style="display: none;" onchange="importData(event)">
             </div>
@@ -781,9 +858,10 @@
     <div id="reportPanel" class="fs-panel">
         <div class="cz-head">
             <button class="ps-icon-btn" title="關閉" onclick="closeReport()">×</button>
-            <div class="cz-title">📊 複習報表</div>
+            <div class="cz-title">📊 學習報表</div>
         </div>
         <div class="rp-tiles" id="rpTiles"></div>
+        <div class="rp-card"><div class="rp-card-title">熟悉度分布 <a class="tool-link" style="float:right" onclick="closeReport(); openRating()">⭐ 去評分 ›</a></div><div id="rpFam"></div></div>
         <div class="rp-card"><div class="rp-card-title">最近 14 天・播放次數</div><div id="rpChartP"></div></div>
         <div class="rp-card"><div class="rp-card-title">最近 14 天・克漏字題數</div><div id="rpChartQ"></div></div>
         <div class="rp-card">
@@ -907,13 +985,32 @@
     </div>
 
     <!-- 難易度：總覽與 AI 一鍵標示 -->
-    <div id="levelModal" class="modal-overlay play-modal" onclick="if(event.target===this) closeLevelModal()">
+    <!-- AI 工具箱 -->
+    <div id="aiTools" class="modal-overlay play-modal" onclick="if(event.target===this) closeAiTools()">
         <div class="modal-content">
-            <div class="pm-title"><h3>🏷️ 單字難易度 A1–C2</h3><button class="pm-close" onclick="closeLevelModal()">×</button></div>
-            <div class="pm-hint">每個單字旁邊都有一個等級標籤，點一下就能修改；還沒標示的會顯示「Lv」。新增單字時 AI 也會自動判斷等級。</div>
-            <div class="lv-stats" id="lvStats"></div>
-            <button class="btn-primary pm-start" id="lvAiAll" onclick="lvAiAll(false)">🤖 AI 一鍵標示</button>
-            <button class="btn-outline pm-start" onclick="lvAiAll(true)">重新判斷全部單字</button>
+            <div class="pm-title"><h3>🧰 AI 工具箱</h3><button class="pm-close" onclick="closeAiTools()">×</button></div>
+            <div class="pm-hint">補齊、檢查與查證筆記內容。每一項都會先告訴你要處理幾筆，確認後才開始。</div>
+            <div id="atList"></div>
+        </div>
+    </div>
+
+    <!-- 顯示設定 -->
+    <div id="viewModal" class="modal-overlay play-modal" onclick="if(event.target===this) closeViewModal()">
+        <div class="modal-content">
+            <div class="pm-title"><h3>👀 顯示設定</h3><button class="pm-close" onclick="closeViewModal()">×</button></div>
+            <div class="pm-hint">選擇筆記畫面要顯示哪些內容，設定會自動記住。</div>
+            <div id="vwList" class="sw-list"></div>
+        </div>
+    </div>
+
+    <!-- 備份與還原 -->
+    <div id="backupModal" class="modal-overlay play-modal" onclick="if(event.target===this) closeBackupModal()">
+        <div class="modal-content">
+            <div class="pm-title"><h3>💾 備份與還原</h3><button class="pm-close" onclick="closeBackupModal()">×</button></div>
+            <div class="bk-status" id="bkStatus"></div>
+            <button class="tool-card" onclick="closeBackupModal(); shareBackupToDrive()"><i>☁️</i><span><b>備份到 Google Drive</b><small>用手機的「分享」存到雲端硬碟（建議）</small></span></button>
+            <button class="tool-card" onclick="closeBackupModal(); downloadBackup()"><i>📥</i><span><b>下載備份檔到手機</b><small>存成一個檔案，放在手機的「下載」資料夾</small></span></button>
+            <button class="tool-card" onclick="closeBackupModal(); openRestore()"><i>📂</i><span><b>從備份檔還原</b><small>可直接選 Google Drive 或手機裡的備份檔</small></span></button>
         </div>
     </div>
 
@@ -1055,24 +1152,22 @@
         <div class="ps-cn" id="psCn"></div>
         <div class="ps-progress"><div id="psBar"></div></div>
         <div class="ps-meta"><span id="psMeta"></span><span id="psRep"></span></div>
+        <div class="ps-fam" id="psFam">
+            <span class="ps-fam-label">熟悉度</span>
+            <div class="ps-fam-btns">
+                <button data-v="1" onclick="playerRate(1)">1<small>很陌生</small></button>
+                <button data-v="2" onclick="playerRate(2)">2<small>不太熟</small></button>
+                <button data-v="3" onclick="playerRate(3)">3<small>普通</small></button>
+                <button data-v="4" onclick="playerRate(4)">4<small>大致熟</small></button>
+                <button data-v="5" onclick="playerRate(5)">5<small>很熟</small></button>
+            </div>
+        </div>
         <div class="ps-controls">
             <button class="pb-btn" title="從頭開始" onclick="playerRestart()"><svg viewBox="0 0 24 24"><path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg></button>
             <button class="pb-btn" title="上一句" onclick="playerJump(-1)"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
             <button class="pb-btn main" id="psPlay" title="播放" onclick="playerTogglePlay()"></button>
             <button class="pb-btn" title="下一句" onclick="playerJump(1)"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
             <button class="pb-btn" title="停止" onclick="playerStop()"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
-        </div>
-    </div>
-
-    <div id="exportModal" class="modal-overlay">
-        <div class="modal-content">
-            <h3>📋 筆記文字</h3>
-            <div style="font-size:12px;color:#80868b;">建議改用選單中的「📥 下載備份檔」，更方便也不易出錯。</div>
-            <textarea id="exportTextarea" readonly></textarea>
-            <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                <button class="btn-primary" onclick="copyExportData()">📋 複製</button>
-                <button class="btn-outline" onclick="closeExportModal()">關閉</button>
-            </div>
         </div>
     </div>
 
@@ -1249,19 +1344,6 @@
             });
         }
 
-        function setGeminiApiKey() {
-            const currentKey = localStorage.getItem(API_KEY_STORAGE) || '';
-            const key = prompt("請輸入您的 Google Gemini API Key：\n(若要清除請留空並按確定)", currentKey);
-            if (key !== null) {
-                if (key.trim() === '') {
-                    localStorage.removeItem(API_KEY_STORAGE);
-                    alert("已清除 API 金鑰。");
-                } else {
-                    localStorage.setItem(API_KEY_STORAGE, key.trim());
-                    alert("Gemini API 金鑰已儲存！");
-                }
-            }
-        }
 
         // --- 2. Gemini API 呼叫 ---
         async function callGemini(model, apiKey, promptText) {
@@ -1360,7 +1442,8 @@ ${ENRICH_RULES}
             }
         }
 
-        function toggleDropdown(e) { e.stopPropagation(); document.getElementById('dropdownMenu').classList.toggle('show'); }
+        function toggleDropdown(e) { e.stopPropagation(); updateToolsBadge(); document.getElementById('dropdownMenu').classList.toggle('show'); }
+        function closeMenu() { const m = document.getElementById('dropdownMenu'); if (m) m.classList.remove('show'); }
         window.addEventListener('click', function() { const menu = document.getElementById('dropdownMenu'); if (menu && menu.classList.contains('show')) menu.classList.remove('show'); });
 
         // --- 3. 朗讀 ---
@@ -1789,7 +1872,9 @@ ${ENRICH_RULES}
                 $('psCn').textContent = '';
                 $('psBar').style.width = '100%';
                 $('psMeta').textContent = `${total} / ${total}`; $('psRep').textContent = '';
+                $('psFam').classList.add('hide');
             } else if (item) {
+                updatePlayerFam();
                 $('psTitle').textContent = (player.playing ? '▶️ 播放中' : '⏸ 已暫停') + (playSettings.order === 'random' ? '　🔀 隨機' : '');
                 $('psWord').textContent = item.word;
                 $('psText').textContent = item.en;
@@ -1799,6 +1884,31 @@ ${ENRICH_RULES}
                 $('psRep').textContent = `第 ${Math.min(player.rep + 1, playSettings.repeat)} / ${playSettings.repeat} 次`;
             }
             updateMediaSession();
+        }
+
+        // ---- 播放視窗的熟悉度評分：隨時評分或改分，不會中斷播放 ----
+        function updatePlayerFam(flashN) {
+            const box = document.getElementById('psFam'); if (!box) return;
+            const item = player.open && !player.finished ? player.list[player.idx] : null;
+            box.classList.toggle('hide', !item);
+            if (!item) return;
+            const g = (findGrand(item.id) || {}).g || {};
+            const left = autoLeft(g);
+            box.querySelector('.ps-fam-label').innerHTML = `熟悉度${g.fam ? '' : '<small>未評分</small>'}${left ? `<small>再${left}次升級</small>` : ''}`;
+            box.querySelectorAll('button').forEach(b => {
+                const n = +b.dataset.v;
+                b.style.setProperty('--sc', FAM_COLOR[n]);
+                b.classList.toggle('on', g.fam === n);
+                b.classList.remove('flash');
+                if (flashN === n) { void b.offsetWidth; b.classList.add('flash'); }
+            });
+        }
+        function playerRate(n) {
+            const item = player.list[player.idx]; if (!item) return;
+            const old = ((findGrand(item.id) || {}).g || {}).fam;
+            if (!setFam(item.id, n)) return;
+            updatePlayerFam(n);
+            showToast(old && old !== n ? `⭐ 已從 ${old} 分改成 ${n} 分` : `⭐ 已評為 ${n} 分（${FAM_NAME[n]}）`, 1200);
         }
 
         function highlightPlaying(scroll) {
@@ -1880,7 +1990,6 @@ ${ENRICH_RULES}
         async function ttsPut(key, val) {
             try { const db = await ttsDB(); await new Promise(res => { const tx = db.transaction('clips', 'readwrite'); tx.objectStore('clips').put(val, key); tx.oncomplete = res; tx.onerror = res; }); } catch (e) {}
         }
-        const clipKey = (voice, text) => `${voice}|${text}`;
 
         function b64ToBytes(b64) {
             const bin = atob(b64), out = new Uint8Array(bin.length);
@@ -2322,12 +2431,17 @@ ${ENRICH_RULES}
             const token = ++rt.token; recordPlay(it.id); rtRefreshCard(i);
             speakAwait(it.en, token).then(() => { if (rt.playing && rt.idx === i) { rt.waiting = true; rtRefreshCard(i); } });
         }
-        function rateCard(i, n) {
-            const it = rt.list[i]; const f = it && findGrand(it.id); if (!f) return;
+        // 設定一句例句的熟悉度（評分畫面與播放視窗共用）
+        function setFam(gid, n) {
+            const f = findGrand(gid); if (!f) return false;
             const g = f.g;
             g.fam = n; g.famAt = Date.now(); g.famBase = g.playCount || 0;   // 重新評分後，自動升級從這裡重新計算
             g.famHist = (g.famHist || []).concat({ s: n, t: g.famAt }).slice(-10);
-            saveData(false);
+            saveQuiet(); refreshBadge(gid);
+            return true;
+        }
+        function rateCard(i, n) {
+            const it = rt.list[i]; if (!it || !setFam(it.id, n)) return;
             rtRefreshCard(i);
             if (rt.playing && rt.idx === i) {
                 if (i + 1 < rt.list.length) setTimeout(() => { if (rt.playing && rt.idx === i) rtPlayCard(i + 1); }, 350);
@@ -2623,6 +2737,7 @@ ${ENRICH_RULES}
             f.g.playCount = (f.g.playCount || 0) + 1; f.g.lastPlayedAt = Date.now();
             checkAutoUpgrade(f.g);
             bumpDaily('p'); refreshBadge(id); saveQuiet();
+            if (player.open) updatePlayerFam();
         }
         function recordCloze(id, ok) {
             const f = findGrand(id); if (!f) return;
@@ -2663,6 +2778,12 @@ ${ENRICH_RULES}
                 tile('已熟記', done, total ? `佔 ${Math.round(done / total * 100)}%` : '—') +
                 tile('總播放次數', plays, `今天 ${today.p || 0} 次`) +
                 tile('克漏字正確率', czT ? `${Math.round(czR / czT * 100)}%` : '—', czT ? `共 ${czT} 題・今天 ${today.q || 0} 題` : '還沒練習過');
+            const fc = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }; items.forEach(it => fc[it.g.fam || 0]++);
+            const rated = total - fc[0];
+            document.getElementById('rpFam').innerHTML = !total ? '<div class="rp-empty">還沒有例句</div>' :
+                `<div class="rt-bar">${[5, 4, 3, 2, 1, 0].map(n => fc[n] ? `<i style="width:${fc[n] / total * 100}%;background:${FAM_COLOR[n]}"></i>` : '').join('')}</div>
+                 <div class="rp-fam-legend">${[1, 2, 3, 4, 5, 0].map(n => `<span><i style="background:${FAM_COLOR[n]}"></i>${n ? n + ' 分' : '未評'} <b>${fc[n]}</b></span>`).join('')}</div>
+                 <div class="rp-tile-sub">${rated ? `已評 ${rated} 句，平均 ${([1, 2, 3, 4, 5].reduce((a, n) => a + n * fc[n], 0) / rated).toFixed(1)} 分` : '還沒有評分，可以到「⭐ 熟悉度評分」開始'}</div>`;
             renderBars('rpChartP', 'p', '次');
             renderBars('rpChartQ', 'q', '題');
             renderReportList();
@@ -3210,21 +3331,10 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
             if (subs.length > 1) showToast(`✅ 已標示 ${done} 個單字的難易度`);
             return done;
         }
-        function openLevelModal() {
-            const all = []; tasks.forEach(t => t.subtasks.forEach(s => { if (clozeTarget(s.text)) all.push(s); }));
-            const counts = {}; CEFR.forEach(l => counts[l] = 0);
-            let none = 0; all.forEach(s => CEFR.includes(s.cefr) ? counts[s.cefr]++ : none++);
-            document.getElementById('lvStats').innerHTML = CEFR.map(l => `<div class="lv-stat"><span class="lv-badge lv-${l}">${l}</span><b>${counts[l]}</b></div>`).join('') +
-                `<div class="lv-stat"><span class="lv-badge lv-none">Lv</span><b>${none}</b></div>`;
-            document.getElementById('lvAiAll').textContent = none ? `🤖 AI 一鍵標示未標示的 ${none} 個單字` : '✅ 所有單字都已標示';
-            document.getElementById('lvAiAll').disabled = !none;
-            document.getElementById('levelModal').style.display = 'flex';
-        }
-        function closeLevelModal() { document.getElementById('levelModal').style.display = 'none'; }
         async function lvAiAll(force) {
             const all = []; tasks.forEach(t => t.subtasks.forEach(s => all.push(s)));
             if (force && !confirm(`要請 AI 重新判斷全部 ${all.length} 個單字的難易度嗎？（手動設定的等級也會被覆蓋）`)) return;
-            closeLevelModal();
+            closeAiTools();
             await aiTagLevels(all, !!force);
         }
 
@@ -4113,10 +4223,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             }
             showToast(`✅ 已修正 ${chosen.length} 處${reEnrich.length ? `\n（${reEnrich.length} 個單字已依正確寫法重建釋義）` : ''}\n如需還原，可用選單「↩ 復原上次的 AI 修正」`, 5000);
         }
-        function updateUndoProof() {
-            const el = document.getElementById('itemUndoProof');
-            if (el) el.style.display = localStorage.getItem('eng_beforeProof') ? '' : 'none';
-        }
+        function updateUndoProof() { updateToolsBadge(); }
         function undoProof() {
             let snap; try { snap = JSON.parse(localStorage.getItem('eng_beforeProof')); } catch (e) {}
             if (!snap || !Array.isArray(snap.tasks)) return showToast('沒有可以復原的修正');
@@ -4148,15 +4255,80 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             document.body.classList.toggle('hide-def', isHideDef);
             document.body.classList.toggle('hide-ex', isHideEx);
             document.body.classList.toggle('hide-etym', isHideEtym);
-            document.getElementById('itemHideEtym').innerHTML = isHideEtym ? '🌱 <span>顯示字源</span>' : '🌱 <span>隱藏字源</span>';
-            document.getElementById('itemHideDef').innerHTML = isHideDef ? '📖 <span>顯示釋義</span>' : '📖 <span>隱藏釋義</span>';
-            document.getElementById('itemHideEx').innerHTML = isHideEx ? '📝 <span>顯示例句</span>' : '📝 <span>隱藏例句</span>';
+            renderViewModal();
         }
-        function initHideExCnBtn() {
-            const item = document.getElementById('itemHideExCn');
-            document.body.classList.toggle('hide-ex-cn', isHideExCn);
-            item.innerHTML = isHideExCn ? '💬 <span>顯示例句中文</span>' : '💬 <span>隱藏例句中文</span>';
+        function initHideExCnBtn() { document.body.classList.toggle('hide-ex-cn', isHideExCn); renderViewModal(); }
+
+        // ---- 顯示設定（原本分散在選單的 6 個開關集中在這裡）----
+        function renderViewModal() {
+            const box = document.getElementById('vwList'); if (!box) return;
+            const rows = [
+                ['📖', '釋義', '單字下方的英文解釋、同義字與常見搭配', !isHideDef, 'toggleHideDef'],
+                ['🌱', '字源', '字首、字根、字尾的中文拆解', !isHideEtym, 'toggleHideEtym'],
+                ['📝', '例句', '關掉後只看單字清單，方便自我測驗', !isHideEx, 'toggleHideEx'],
+                ['💬', '例句中文翻譯', '例句後面括號裡的中文', !isHideExCn, 'toggleHideExCn'],
+                ['✅', '已熟記的項目', '已勾選熟記的單字與例句', !isHideCompleted, 'toggleCompleted'],
+                ['🕒', '建立／熟記時間', '在項目旁顯示日期時間', isShowTime, 'toggleTime']
+            ];
+            box.innerHTML = rows.map(([ic, t, d, on, fn]) => `<label class="sw-row"><i>${ic}</i><span><b>${t}</b><small>${d}</small></span><input type="checkbox" class="sw" ${on ? 'checked' : ''} onchange="${fn}(); renderViewModal()"></label>`).join('');
         }
+        function openViewModal() { closeMenu(); renderViewModal(); document.getElementById('viewModal').style.display = 'flex'; }
+        function closeViewModal() { document.getElementById('viewModal').style.display = 'none'; }
+
+        // ---- 備份與還原 ----
+        function openBackupModal() {
+            closeMenu();
+            const last = Number(localStorage.getItem('eng_lastBackupAt') || 0);
+            const days = last ? Math.floor((Date.now() - last) / 86400000) : null;
+            const n = tasks.reduce((a, t) => a + t.subtasks.length, 0), m = tasks.reduce((a, t) => a + t.subtasks.reduce((b, s) => b + s.grandtasks.length, 0), 0);
+            document.getElementById('bkStatus').innerHTML = `<div><b>${tasks.length}</b> 個主題・<b>${n}</b> 個單字・<b>${m}</b> 句例句</div><div class="${days == null || days >= 7 ? 'warn' : ''}">${last ? `上次備份：${new Date(last).toLocaleDateString()}（${days === 0 ? '今天' : days + ' 天前'}）` : '還沒有備份過，建議現在備份一份'}</div>`;
+            document.getElementById('backupModal').style.display = 'flex';
+        }
+        function closeBackupModal() { document.getElementById('backupModal').style.display = 'none'; }
+
+        // ---- AI 工具箱（原本分散在選單的 7 個 AI 功能集中在這裡）----
+        function aiToolStats() {
+            const subs = tasks.flatMap(t => t.subtasks);
+            const sents = subs.flatMap(s => s.grandtasks);
+            const words = subs.filter(s => clozeTarget(s.text));
+            const lv = {}; CEFR.forEach(l => lv[l] = 0); let lvNone = 0;
+            words.forEach(s => CEFR.includes(s.cefr) ? lv[s.cefr]++ : lvNone++);
+            return {
+                pending: subs.filter(s => s.pendingAI).length,
+                noDef: subs.filter(needsDefinition).length,
+                extra: subs.filter(s => !needsDefinition(s) && needsExtra(s)).length,
+                noEx: words.filter(s => !s.grandtasks.length && !s.isLoading && !s.pendingAI).length,
+                unproofW: words.filter(s => !s.isLoading && !s.pendingAI && s.proofed !== s.text).length,
+                unproofS: sents.filter(g => /[a-z]{2}/i.test(cleanForSpeech(g.text)) && g.proofed !== proofKey(g.text)).length,
+                uv: sents.filter(g => g.unverified && g.unverified === proofKey(g.text)).length,
+                etymTodo: words.filter(s => s.etymSrc !== 'wiktionary').length,
+                lv, lvNone, words: words.length,
+                undo: !!localStorage.getItem('eng_beforeProof')
+            };
+        }
+        function updateToolsBadge() {
+            const el = document.getElementById('ddToolsBadge'); if (!el) return;
+            try { const st = aiToolStats(); const n = st.pending + st.noDef; el.textContent = n || ''; el.style.display = n ? '' : 'none'; } catch (e) {}
+        }
+        function openAiTools() {
+            closeMenu();
+            const st = aiToolStats();
+            const card = (ic, title, desc, fn, n, extra = '') => `<button class="tool-card ${n ? '' : 'done'}" onclick="closeAiTools(); ${fn}"><i>${ic}</i><span><b>${title}</b><small>${desc}</small>${extra}</span>${n ? `<em>${n}</em>` : '<em class="ok">✓</em>'}</button>`;
+            let html = '';
+            if (st.pending) html += card('📴', '補齊離線時新增的單字', `${st.pending} 個單字在離線時新增，還在等 AI 補上釋義與例句`, 'processPendingAI({ manual: true })', st.pending);
+            html += card('📖', '一鍵補齊資料', st.noDef + st.extra ? `${st.noDef ? `${st.noDef} 個缺少釋義、` : ''}${st.extra} 個缺少同義字／常用度／搭配／字源／難易度` : '每個單字的資料都齊全了', 'fillMissingDefinitions()', st.noDef + st.extra);
+            html += card('🧩', '替沒有例句的單字補例句', st.noEx ? `${st.noEx} 個單字還沒有例句` : '每個單字都有例句了', 'fillMissingExamples()', st.noEx);
+            html += card('🩺', '檢查並修正例句與單字', st.unproofW + st.unproofS ? `${st.unproofW} 個單字、${st.unproofS} 句例句還沒檢查；列出建議後由你確認才修改` : '全部都檢查過了', 'proofAll()', st.unproofW + st.unproofS,
+                st.uv ? `<small class="warn">⚠️ ${st.uv} 句例句標示「待確認」，可在筆記中點一下重新產生</small>` : '');
+            html += card('🔎', '用維基詞典查證字源', st.etymTodo ? `${st.etymTodo} 個字源還沒用維基詞典查證` : '所有字源都查證過了', 'reverifyEtymology()', st.etymTodo);
+            html += `<div class="tool-card static"><i>🏷️</i><span><b>單字難易度分布</b><small>新增單字與「一鍵補齊」都會自動判斷；點單字旁的標籤可手動修改</small>
+                <div class="lv-stats">${CEFR.map(l => `<div class="lv-stat"><span class="lv-badge lv-${l}">${l}</span><b>${st.lv[l]}</b></div>`).join('')}<div class="lv-stat"><span class="lv-badge lv-none">Lv</span><b>${st.lvNone}</b></div></div>
+                <a class="tool-link" onclick="lvAiAll(true)">🤖 讓 AI 重新判斷全部 ${st.words} 個單字</a></span></div>`;
+            if (st.undo) html += `<button class="tool-card done" onclick="closeAiTools(); undoProof()"><i>↩</i><span><b>復原上次的 AI 修正</b><small>把筆記還原到上次套用「檢查並修正」之前</small></span></button>`;
+            document.getElementById('atList').innerHTML = html;
+            document.getElementById('aiTools').style.display = 'flex';
+        }
+        function closeAiTools() { document.getElementById('aiTools').style.display = 'none'; updateToolsBadge(); }
 
 
         function formatTime(timestamp) {
@@ -4165,29 +4337,23 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
         }
 
         function toggleTime() { isShowTime = !isShowTime; localStorage.setItem('eng_showTime', isShowTime); initTimeBtn(); }
-        function initTimeBtn() {
-            const item = document.getElementById('itemTime');
-            if (isShowTime) { document.body.classList.add('show-time'); item.innerHTML = '🕒 <span>隱藏時間</span>'; }
-            else { document.body.classList.remove('show-time'); item.innerHTML = '🕒 <span>顯示時間</span>'; }
-        }
+        function initTimeBtn() { document.body.classList.toggle('show-time', isShowTime); renderViewModal(); }
 
         function toggleEditMode() {
             isEditMode = !isEditMode; const item = document.getElementById('itemEditMode');
-            if (isEditMode) { document.body.classList.add('edit-mode'); item.innerHTML = '✅ <span>完成修改</span>'; }
-            else { document.body.classList.remove('edit-mode'); item.innerHTML = '⚙️ <span>開啟修改</span>'; }
+            document.body.classList.toggle('edit-mode', isEditMode);
+            item.innerHTML = isEditMode ? '<i>✅</i><span>完成修改</span>' : '<i>✏️</i><span>開啟修改模式</span>';
+            closeMenu();
+            showToast(isEditMode ? '✏️ 修改模式：每一列會出現編輯與刪除按鈕' : '已關閉修改模式', 2000);
         }
 
         function toggleCompleted() { isHideCompleted = !isHideCompleted; localStorage.setItem('eng_hideCompleted', isHideCompleted); initToggleBtn(); }
-        function initToggleBtn() {
-            const item = document.getElementById('itemCompleted');
-            if (isHideCompleted) { document.body.classList.add('hide-completed'); item.innerHTML = '👁️ <span>顯示熟記項目</span>'; }
-            else { document.body.classList.remove('hide-completed'); item.innerHTML = '👁️ <span>隱藏熟記項目</span>'; }
-        }
+        function initToggleBtn() { document.body.classList.toggle('hide-completed', isHideCompleted); renderViewModal(); }
 
         function saveData() {
             try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
             catch (e) { alert("儲存失敗（瀏覽器儲存空間可能已滿）"); }
-            renderTasks();
+            renderTasks(); updateToolsBadge();
         }
 
         function toggleSubtasks(id, level, parentId = null) {
@@ -4196,10 +4362,6 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             saveData();
         }
 
-        function toggleDefinition(subTaskId, mainTaskId) {
-            const sub = findSub(mainTaskId, subTaskId);
-            if (sub) { sub.showDef = !sub.showDef; saveData(); }
-        }
 
         function editDefinition(subTaskId, mainTaskId) {
             const sub = findSub(mainTaskId, subTaskId);
@@ -4318,22 +4480,6 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             if (show) document.getElementById('backupBannerText').textContent = last ? `已經 ${days} 天沒有備份筆記了` : '還沒備份過筆記，建議備份一份';
         }
 
-        // （保留）以文字方式匯出
-        function exportData() {
-            if (tasks.length === 0) return alert("沒有筆記可匯出！");
-            document.getElementById('exportTextarea').value = JSON.stringify(tasks, null, 2);
-            document.getElementById('exportModal').style.display = 'flex';
-        }
-        async function copyExportData() {
-            const ta = document.getElementById('exportTextarea');
-            try {
-                await navigator.clipboard.writeText(ta.value);
-            } catch (e) {
-                ta.select(); document.execCommand('copy');
-            }
-            alert('複製成功！');
-        }
-        function closeExportModal() { document.getElementById('exportModal').style.display = 'none'; }
 
         function importData(event) {
             const file = event.target.files[0]; if (!file) return;
@@ -4389,7 +4535,6 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
         }
 
         // --- 7. 新增 / 編輯 / 刪除 ---
-        function addMainTask() { addMainTaskPrompt(); }
 
         // 浮動「＋」按鈕：預設加到目前畫面上正在看的主題
         function currentTopicId() {
