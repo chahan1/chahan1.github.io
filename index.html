@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.10.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.11.0 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -139,6 +139,17 @@
         .seg { display: flex; background: #f1f3f4; border-radius: 10px; padding: 3px; gap: 3px; }
         .seg button { flex: 1; border: none; background: transparent; padding: 8px 2px; border-radius: 8px; font-size: 12.5px; color: #5f6368; cursor: pointer; }
         .seg button.on { background: white; color: var(--green); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+        .wt-box { margin-top: 6px; background: #fffaf0; border: 1px solid #f3e3c0; border-radius: 10px; padding: 8px 10px; }
+        .wt-rows { display: flex; flex-direction: column; gap: 4px; }
+        .wt-row { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+        .wt-row .wt-name { flex: 1; color: #3c4043; }
+        .wt-row small { color: #9aa0a6; min-width: 38px; text-align: right; }
+        .wt-row button { width: 26px; height: 26px; border-radius: 13px; border: 1px solid #dadce0; background: white; font-size: 14px; cursor: pointer; line-height: 1; }
+        .wt-row b { min-width: 26px; text-align: center; color: #b06000; }
+        .fam-badge { display: inline-block; font-size: 10.5px; font-weight: 700; border-radius: 5px; padding: 0 5px; line-height: 17px; min-width: 44px; text-align: center; white-space: nowrap; }
+        .fam-0 { background: #f1f3f4; color: #80868b; } .fam-1 { background: #fce8e6; color: #c5221f; } .fam-2 { background: #feefe3; color: #c26401; }
+        .fam-3 { background: #fef7e0; color: #b06000; } .fam-4 { background: #e6f4ea; color: #188038; } .fam-5 { background: #ceead6; color: #0d652d; }
+        .st-badge.fam { min-width: 0; }
         .curve-btn { width: 100%; margin-top: 6px; border: 1px dashed #b7d9c4; background: white; color: #0b5c30; border-radius: 10px; padding: 8px; font-size: 13px; cursor: pointer; }
         .curve-btn.on { border: 1.5px solid var(--green); background: #eef7f1; font-weight: 600; }
         .curve-box { margin-top: 6px; background: #f7faf8; border: 1px solid #e0eee5; border-radius: 10px; padding: 8px 10px; }
@@ -333,6 +344,36 @@
         .ps-speed span { min-width: 36px; text-align: center; font-size: 12px; font-weight: 600; color: var(--text); }
         /* ---- 朗讀練習 ---- */
         body.read-open #readPanel { display: block; }
+        body.rate-open #ratePanel { display: block; }
+        body.rate-open { overflow: hidden; }
+        .rt-hint { font-size: 12px; color: var(--muted); margin: 4px 0 6px; line-height: 1.5; }
+        .rt-filters { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+        .rt-filters button:not(.cz-tool) { border: 1px solid #dadce0; background: white; border-radius: 15px; padding: 4px 11px; font-size: 12.5px; color: #3c4043; cursor: pointer; }
+        .rt-filters button.on { background: var(--green); border-color: var(--green); color: white; }
+        .rt-filters select { flex: 1; min-width: 0; height: 32px; border: 1px solid #dadce0; border-radius: 8px; background: white; font-size: 12.5px; padding: 0 6px; }
+        .rt-filters .cz-tool { flex: 0 0 auto; padding: 0 12px; height: 32px; }
+        .rt-filters .cz-tool.on { background: #e8f0fe; color: #1967d2; border-color: #aecbfa; }
+        .rt-play { display: flex; align-items: center; gap: 10px; margin: 10px 0 4px; position: sticky; top: -8px; background: #f5f7f8; padding: 6px 0; z-index: 2; }
+        .rt-play .btn-primary { height: 38px; padding: 0 18px; border-radius: 19px; font-size: 14px; }
+        .rt-play span { font-size: 12.5px; color: #b06000; font-weight: 600; }
+        .rt-card { background: white; border-radius: 12px; padding: 12px 12px 10px; margin-top: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); border: 2px solid transparent; transition: border-color .2s; }
+        .rt-card.active { border-color: var(--green); }
+        .rt-card.waiting { border-color: #f9ab00; box-shadow: 0 0 0 3px rgba(249,171,0,.18); }
+        .rt-top { display: flex; gap: 8px; align-items: flex-start; }
+        .rt-no { font-size: 11px; color: #9aa0a6; min-width: 18px; padding-top: 3px; }
+        .rt-text { flex: 1; min-width: 0; }
+        .rt-en { font-size: 15.5px; line-height: 1.5; color: #202124; }
+        .rt-cn { font-size: 13px; color: #5f6368; margin-top: 2px; }
+        .rt-word { font-size: 11px; color: #9aa0a6; margin-top: 3px; }
+        .rt-stars { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 9px; }
+        .rt-stars button { border: 1px solid #dadce0; background: white; border-radius: 9px; padding: 5px 0 4px; cursor: pointer; font-size: 15px; font-weight: 700; color: #5f6368; line-height: 1.15; }
+        .rt-stars button small { display: block; font-size: 9.5px; font-weight: 400; }
+        .rt-stars button.on.s1 { background: #fce8e6; border-color: #c5221f; color: #c5221f; }
+        .rt-stars button.on.s2 { background: #feefe3; border-color: #c26401; color: #c26401; }
+        .rt-stars button.on.s3 { background: #fef7e0; border-color: #b06000; color: #b06000; }
+        .rt-stars button.on.s4 { background: #e6f4ea; border-color: #188038; color: #188038; }
+        .rt-stars button.on.s5 { background: #ceead6; border-color: #0d652d; color: #0d652d; }
+        .rt-meta { font-size: 10.5px; color: #9aa0a6; margin-top: 5px; text-align: right; }
         body.read-open { overflow: hidden; }
         .rd-tools { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
         .rd-tools .cz-tool { flex: 1 1 auto; min-width: 54px; }
@@ -470,7 +511,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.10.0</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.11.0</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -479,6 +520,7 @@
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-label">練習與複習</div>
                     <div class="dropdown-item" onclick="openPlayModal()">▶️ <span>播放例句</span></div>
+                    <div class="dropdown-item" onclick="openRating()">⭐ <span>例句熟悉度評分</span></div>
                     <div class="dropdown-item" onclick="openReadSetup()">📖 <span>朗讀練習</span></div>
                     <div class="dropdown-item" onclick="openClozeSetup()">✍️ <span>克漏字練習</span></div>
                     <div class="dropdown-item" onclick="openReport()">📊 <span>複習報表</span></div>
@@ -595,6 +637,17 @@
             <div class="seg" id="pmOrder">
                 <button data-v="seq" onclick="setPlayOpt('order','seq')">依序播放</button>
                 <button data-v="random" onclick="setPlayOpt('order','random')">🔀 隨機播放</button>
+                <button data-v="weighted" onclick="setPlayOpt('order','weighted')">⭐ 依熟悉度</button>
+            </div>
+            <div class="wt-box" id="pmWeight" style="display:none">
+                <div class="curve-hint">依「⭐ 熟悉度評分」的分數決定被選中的機會：權重越高，越常被排進播放清單；權重 0 表示不播放。</div>
+                <div class="curve-presets">
+                    <button onclick="setWeightPreset('weak')">加強不熟 5·4·3·2·1</button>
+                    <button onclick="setWeightPreset('only')">只練不熟 3·2·1·0·0</button>
+                    <button onclick="setWeightPreset('even')">平均 1·1·1·1·1</button>
+                </div>
+                <div class="wt-rows" id="pmWeightRows"></div>
+                <div class="curve-sum" id="pmWeightSum"></div>
             </div>
             <div class="seg" id="pmLimit" style="margin-top:6px">
                 <button data-v="10" onclick="setPlayOpt('limit',10)">10 句</button>
@@ -885,6 +938,40 @@
             <div class="pm-count" id="rdCountText"></div>
             <button class="btn-primary pm-start" id="rdStart" onclick="startReading()">開始朗讀</button>
         </div>
+    </div>
+
+    <!-- 例句熟悉度評分 -->
+    <div id="ratePanel" class="fs-panel">
+        <div class="cz-head">
+            <button class="ps-icon-btn" title="結束" onclick="closeRating()">×</button>
+            <div class="cz-title">⭐ 熟悉度評分</div>
+            <div class="cz-score" id="rtProgress"></div>
+        </div>
+        <div class="rt-hint">1＝很陌生，5＝很熟。可以按「▶ 依序播放」一句一句聽完再評分，也可以直接在任何一張卡片上評分。</div>
+        <div class="rt-filters" id="rtScope">
+            <button data-v="all" onclick="rtSet('scope','all')">全部</button>
+            <button data-v="none" onclick="rtSet('scope','none')">未評分</button>
+            <button data-v="low" onclick="rtSet('scope','low')">1–2 分</button>
+            <button data-v="mid" onclick="rtSet('scope','mid')">3 分</button>
+            <button data-v="high" onclick="rtSet('scope','high')">4–5 分</button>
+        </div>
+        <div class="rt-filters">
+            <select id="rtOrder" onchange="rtSet('order', this.value)">
+                <option value="seq">依筆記順序</option>
+                <option value="random">隨機順序</option>
+                <option value="low">分數低的優先</option>
+                <option value="old">最久沒評的優先</option>
+            </select>
+            <select id="rtRepeat" onchange="rtSet('repeat', +this.value)">
+                <option value="1">每句念 1 次</option><option value="2">每句念 2 次</option><option value="3">每句念 3 次</option>
+            </select>
+            <button class="cz-tool" id="rtCnBtn" onclick="rtSet('showCn', !rtSettings.showCn)">中 中文</button>
+        </div>
+        <div class="rt-play">
+            <button class="btn-primary" id="rtPlayBtn" onclick="rtTogglePlay()">▶ 依序播放</button>
+            <span id="rtState"></span>
+        </div>
+        <div id="rtList"></div>
     </div>
 
     <!-- 朗讀練習：畫面 -->
@@ -1307,7 +1394,7 @@ ${ENRICH_RULES}
 
         // --- 例句連續播放 ---
         const PLAY_KEY = 'eng_playSettings';
-        let playSettings = { speed: 0, engine: 'ai', voice: 'Kore', fvoice: 'af_heart', scope: 'all', repeat: 2, rate: 0.9, gap: 1.2, dateMode: 'all', day: '', order: 'seq', limit: 20, curve: [1, 3, 7], curveCatch: false };
+        let playSettings = { speed: 0, engine: 'ai', voice: 'Kore', fvoice: 'af_heart', scope: 'all', repeat: 2, rate: 0.9, gap: 1.2, dateMode: 'all', day: '', order: 'seq', limit: 20, curve: [1, 3, 7], curveCatch: false, weights: { 1: 5, 2: 4, 3: 3, 4: 2, 5: 1, 0: 3 } };
         const CURVE_DAYS = [0, 1, 2, 3, 4, 5, 7, 10, 14, 15, 21, 30, 45, 60, 90, 180];
         try { Object.assign(playSettings, JSON.parse(localStorage.getItem(PLAY_KEY)) || {}); } catch (e) {}
         // v2.10.0：Gemini 改為主要語音。之前選「免費 AI 語音」且已有 Gemini 金鑰的，升級時改成 Gemini 一次（Free.ai 會自動當備用）
@@ -1366,7 +1453,7 @@ ${ENRICH_RULES}
                     if (curveSet && !curveSet.has(daysAgo(g.createdAt))) return;
                 }
                 const en = cleanForSpeech(g.text);
-                if (en) list.push({ id: g.id, en, cn: extractCn(g.text), word: s.text, day: dayKey(g.createdAt), ago: daysAgo(g.createdAt) });
+                if (en) list.push({ id: g.id, en, cn: extractCn(g.text), word: s.text, day: dayKey(g.createdAt), ago: daysAgo(g.createdAt), fam: g.fam || 0 });
             })));
             return list;
         }
@@ -1412,9 +1499,41 @@ ${ENRICH_RULES}
                 : list.length ? `📋 共 ${list.length} 句（${parts.join('、')}）` : '📭 選的日子沒有加入例句，試試其他天數或勾選「補複習」';
         }
 
-        // 依「播放順序」整理：隨機時打亂並取前 N 句
+        // ---- 依熟悉度加權 ----
+        const FAM_NAME = { 1: '很陌生', 2: '不太熟', 3: '普通', 4: '大致熟', 5: '很熟' };
+        const WEIGHT_PRESETS = { weak: { 1: 5, 2: 4, 3: 3, 4: 2, 5: 1, 0: 3 }, only: { 1: 3, 2: 2, 3: 1, 4: 0, 5: 0, 0: 2 }, even: { 1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 0: 1 } };
+        const famWeight = f => { const w = (playSettings.weights || {})[f || 0]; return w == null ? 1 : Number(w); };
+        // 加權隨機抽樣（不重複）：權重越高越容易被選到、也越容易排在前面
+        function weightedPick(list, limit) {
+            const keyed = list.map(it => ({ it, w: famWeight(it.fam) })).filter(x => x.w > 0)
+                .map(x => ({ it: x.it, k: Math.pow(Math.random(), 1 / x.w) }))
+                .sort((a, b) => b.k - a.k).map(x => x.it);
+            return limit ? keyed.slice(0, limit) : keyed;
+        }
+        function setWeight(f, d) {
+            const w = Object.assign({}, playSettings.weights);
+            w[f] = Math.max(0, Math.min(5, (Number(w[f]) || 0) + d));
+            setPlayOpt('weights', w);
+        }
+        function setWeightPreset(k) { playSettings.order = 'weighted'; setPlayOpt('weights', Object.assign({}, WEIGHT_PRESETS[k])); }
+        function refreshWeightBox() {
+            const on = playSettings.order === 'weighted';
+            document.getElementById('pmWeight').style.display = on ? 'block' : 'none';
+            if (!on) return;
+            const pool = getPlaylist(), cnt = {};
+            pool.forEach(it => { cnt[it.fam || 0] = (cnt[it.fam || 0] || 0) + 1; });
+            document.getElementById('pmWeightRows').innerHTML = [1, 2, 3, 4, 5, 0].map(f => `
+                <div class="wt-row"><span class="fam-badge fam-${f}">${f ? '⭐' + f : '未評分'}</span><span class="wt-name">${f ? FAM_NAME[f] : '還沒評過'}</span><small>${cnt[f] || 0} 句</small>
+                <button onclick="setWeight(${f},-1)">−</button><b>×${famWeight(f)}</b><button onclick="setWeight(${f},1)">＋</button></div>`).join('');
+            const usable = pool.filter(it => famWeight(it.fam) > 0).length;
+            const lim = Number(playSettings.limit) || 0;
+            document.getElementById('pmWeightSum').textContent = usable ? `📋 從 ${usable} 句中依權重挑出 ${lim ? Math.min(lim, usable) : usable} 句` : '📭 沒有可播放的例句（權重都是 0 或範圍內沒有例句）';
+        }
+
+        // 依「播放順序」整理：隨機時打亂並取前 N 句；依熟悉度時加權抽樣
         function buildPlayList() {
             const list = getPlaylist();
+            if (playSettings.order === 'weighted') return weightedPick(list, Number(playSettings.limit) || 0);
             if (playSettings.order !== 'random') return list;
             for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
             const lim = Number(playSettings.limit) || 0;
@@ -1471,11 +1590,14 @@ ${ENRICH_RULES}
             document.getElementById('pmGap').textContent = `${Number(playSettings.gap || 1.2).toFixed(1)} 秒`;
             document.querySelectorAll('#pmOrder button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.order));
             document.querySelectorAll('#pmLimit button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === Number(playSettings.limit)));
-            document.getElementById('pmLimit').style.display = playSettings.order === 'random' ? 'flex' : 'none';
-            const n = getPlaylist().length;
+            document.getElementById('pmLimit').style.display = playSettings.order === 'seq' ? 'none' : 'flex';
+            refreshWeightBox();
+            const all = getPlaylist();
+            const n = playSettings.order === 'weighted' ? all.filter(it => famWeight(it.fam) > 0).length : all.length;
             const lim = Number(playSettings.limit) || 0;
-            const pick = playSettings.order === 'random' ? (lim ? Math.min(lim, n) : n) : n;
+            const pick = playSettings.order !== 'seq' ? (lim ? Math.min(lim, n) : n) : n;
             document.getElementById('pmCount').textContent = !n ? '這個範圍沒有可播放的例句'
+                : playSettings.order === 'weighted' ? `依熟悉度權重播放 ${pick} 句，每句念 ${playSettings.repeat} 次`
                 : playSettings.order === 'random' ? `從 ${n} 句中隨機播放 ${pick} 句，每句念 ${playSettings.repeat} 次`
                 : `共 ${n} 句，每句念 ${playSettings.repeat} 次`;
             document.getElementById('pmStart').disabled = n === 0;
@@ -2007,6 +2129,136 @@ ${ENRICH_RULES}
             el.textContent = !list.length ? '' : missing ? `其中 ${missing} 句需要先上網產生語音（只需一次）` : '✅ 語音都已存在手機裡，可離線播放';
         }
 
+        // ================= 例句熟悉度評分 =================
+        const RATE_KEY = 'eng_rateSettings';
+        let rtSettings = { scope: 'all', order: 'seq', repeat: 1, showCn: false };
+        try { Object.assign(rtSettings, JSON.parse(localStorage.getItem(RATE_KEY)) || {}); } catch (e) {}
+        const rt = { list: [], playing: false, idx: -1, waiting: false, token: 0, audio: null };
+        function rtPool() {
+            const all = getPlaylist({ scope: 'all', dateMode: 'all' });
+            const f = { all: () => true, none: it => !it.fam, low: it => it.fam === 1 || it.fam === 2, mid: it => it.fam === 3, high: it => it.fam >= 4 }[rtSettings.scope] || (() => true);
+            let list = all.filter(f);
+            if (rtSettings.order === 'random') for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
+            if (rtSettings.order === 'low') list.sort((a, b) => (a.fam || 0) - (b.fam || 0));
+            if (rtSettings.order === 'old') { const at = it => (findGrand(it.id) || { g: {} }).g.famAt || 0; list.sort((a, b) => at(a) - at(b)); }
+            return list;
+        }
+        function openRating() {
+            if (player.playing) playerPause();
+            rt.list = rtPool();
+            document.body.classList.add('rate-open');
+            document.getElementById('ratePanel').scrollTop = 0;
+            renderRating();
+        }
+        function closeRating() { rtStop(); document.body.classList.remove('rate-open'); saveData(); renderTasks(); }
+        function rtSet(k, v) {
+            rtSettings[k] = v; localStorage.setItem(RATE_KEY, JSON.stringify(rtSettings));
+            if (k === 'scope' || k === 'order') { rtStop(); rt.list = rtPool(); }
+            renderRating();
+        }
+        function rtCardHtml(it, i) {
+            const g = (findGrand(it.id) || {}).g || {};
+            const f = g.fam || 0;
+            const cls = rt.idx === i ? (rt.waiting ? 'waiting' : 'active') : '';
+            return `<div class="rt-card ${cls}" id="rtc-${it.id}">
+                <div class="rt-top"><div class="rt-no">${i + 1}</div>
+                    <div class="rt-text"><div class="rt-en">${escapeHtml(it.en)}</div>${rtSettings.showCn && it.cn ? `<div class="rt-cn">${escapeHtml(it.cn)}</div>` : ''}<div class="rt-word">${escapeHtml(cleanForSpeech(it.word))}</div></div>
+                    <button class="icon-btn speak" title="聽一遍" onclick="rtSpeakOne(${i})">${ICON.speak}</button></div>
+                <div class="rt-stars">${[1, 2, 3, 4, 5].map(n => `<button class="s${n} ${f === n ? 'on' : ''}" onclick="rateCard(${i}, ${n})">${n}<small>${FAM_NAME[n]}</small></button>`).join('')}</div>
+                ${g.famAt ? `<div class="rt-meta">上次評分：${new Date(g.famAt).toLocaleDateString()}${g.famHist && g.famHist.length > 1 ? `・紀錄 ${g.famHist.map(h => h.s).join('→')}` : ''}</div>` : ''}
+            </div>`;
+        }
+        function renderRating() {
+            document.querySelectorAll('#rtScope button').forEach(b => b.classList.toggle('on', b.dataset.v === rtSettings.scope));
+            document.getElementById('rtOrder').value = rtSettings.order;
+            document.getElementById('rtRepeat').value = String(rtSettings.repeat);
+            document.getElementById('rtCnBtn').classList.toggle('on', !!rtSettings.showCn);
+            const rated = rt.list.filter(it => ((findGrand(it.id) || {}).g || {}).fam).length;
+            document.getElementById('rtProgress').textContent = rt.list.length ? `已評 ${rated}/${rt.list.length}` : '';
+            document.getElementById('rtList').innerHTML = rt.list.length ? rt.list.map(rtCardHtml).join('') : '<div class="rt-hint" style="text-align:center;padding:30px 0">這個範圍沒有例句</div>';
+            rtUpdateState();
+        }
+        function rtUpdateState() {
+            document.getElementById('rtPlayBtn').textContent = rt.playing ? '⏸ 停止' : '▶ 依序播放';
+            document.getElementById('rtState').textContent = !rt.playing ? '' : rt.waiting ? `👉 請為第 ${rt.idx + 1} 句評分` : `🎧 播放第 ${rt.idx + 1} 句…`;
+        }
+        function rtRefreshCard(i) {
+            const it = rt.list[i]; if (!it) return;
+            const el = document.getElementById('rtc-' + it.id);
+            if (el) el.outerHTML = rtCardHtml(it, i);
+            const rated = rt.list.filter(x => ((findGrand(x.id) || {}).g || {}).fam).length;
+            document.getElementById('rtProgress').textContent = `已評 ${rated}/${rt.list.length}`;
+            rtUpdateState();
+        }
+        // 念一句並等它念完（AI 語音優先，失敗改手機語音）
+        async function speakAwait(en, token) {
+            if (playSettings.engine !== 'phone' && getKey(voiceSpec().provider)) {
+                try {
+                    const clip = await getClip(en, voiceSpec());
+                    if (token !== rt.token) return;
+                    await new Promise(resolve => {
+                        if (rt.audio) { rt.audio.pause(); URL.revokeObjectURL(rt.audio.src); }
+                        const a = rt.audio = new Audio(URL.createObjectURL(new Blob([wavHeader(clip.rate, clip.pcm.byteLength), clip.pcm], { type: 'audio/wav' })));
+                        a.playbackRate = aiSpeed(); a.onended = resolve; a.onerror = resolve; a.onpause = resolve;
+                        a.play().catch(resolve);
+                    });
+                    return;
+                } catch (e) {}
+            }
+            if (token !== rt.token) return;
+            await speakOnce(en, phoneRate());
+        }
+        async function rtPlayCard(i) {
+            const it = rt.list[i]; if (!it) return rtStop(true);
+            const token = ++rt.token;
+            const prev = rt.idx; rt.idx = i; rt.waiting = false;
+            if (prev >= 0 && prev !== i) rtRefreshCard(prev);
+            rtRefreshCard(i);
+            const el = document.getElementById('rtc-' + it.id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            for (let r = 0; r < (rtSettings.repeat || 1); r++) {
+                if (token !== rt.token) return;
+                recordPlay(it.id);
+                await speakAwait(it.en, token);
+                if (r < rtSettings.repeat - 1) await sleep(600);
+            }
+            if (token !== rt.token) return;
+            rt.waiting = true; rtRefreshCard(i);
+        }
+        function rtTogglePlay() {
+            if (rt.playing) return rtStop();
+            if (!rt.list.length) return;
+            rt.playing = true;
+            // 從目前這句（或第一句還沒評分的）開始
+            let start = rt.idx >= 0 && rt.idx < rt.list.length ? rt.idx : rt.list.findIndex(it => !((findGrand(it.id) || {}).g || {}).fam);
+            if (start < 0) start = 0;
+            rtPlayCard(start);
+        }
+        function rtStop(finished) {
+            rt.token++; rt.playing = false; rt.waiting = false;
+            if (rt.audio) { try { rt.audio.pause(); } catch (e) {} }
+            try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
+            const i = rt.idx; rt.idx = -1; if (i >= 0) rtRefreshCard(i); rtUpdateState();
+            if (finished) showToast('✅ 這一輪的例句都評完了', 2500);
+        }
+        function rtSpeakOne(i) {
+            const it = rt.list[i]; if (!it) return;
+            if (rt.playing && rt.idx !== i) rtStop();
+            const token = ++rt.token; recordPlay(it.id); speakAwait(it.en, token).then(() => { if (rt.playing && rt.idx === i) { rt.waiting = true; rtRefreshCard(i); } });
+        }
+        function rateCard(i, n) {
+            const it = rt.list[i]; const f = it && findGrand(it.id); if (!f) return;
+            const g = f.g;
+            g.fam = n; g.famAt = Date.now();
+            g.famHist = (g.famHist || []).concat({ s: n, t: g.famAt }).slice(-10);
+            saveData(false);
+            rtRefreshCard(i);
+            // 依序播放中、評的是目前這一句 → 自動播下一句
+            if (rt.playing && rt.idx === i) {
+                if (i + 1 < rt.list.length) setTimeout(() => { if (rt.playing && rt.idx === i) rtPlayCard(i + 1); }, 350);
+                else rtStop(true);
+            }
+        }
+
         // ================= 克漏字練習（含難度）=================
         const CLOZE_KEY = 'eng_clozeSettings';
         let clozeSettings = { scope: 'all', dateMode: 'all', day: '', limit: 10, showCn: false, level: 2 };
@@ -2268,7 +2520,7 @@ ${ENRICH_RULES}
         function statBadgeHtml(g) {
             const p = g.playCount || 0, cr = g.czRight || 0, ct = cr + (g.czWrong || 0);
             const rdc = g.readCount || 0, rsc = g.readScore != null ? `・${g.readScore}分` : '';
-            return (p ? `<span class="st-badge" title="播放次數">▶ ${p}</span>` : '') + (rdc ? `<span class="st-badge" title="朗讀次數・最近一次 AI 評分">🗣️ ${rdc}${rsc}</span>` : '') + (ct ? `<span class="st-badge" title="克漏字 答對／作答">✍️ ${cr}/${ct}</span>` : '');
+            return (g.fam ? `<span class="st-badge fam fam-badge fam-${g.fam}" title="熟悉度 ${g.fam}／5（${FAM_NAME[g.fam]}）">⭐${g.fam}</span>` : '') + (p ? `<span class="st-badge" title="播放次數">▶ ${p}</span>` : '') + (rdc ? `<span class="st-badge" title="朗讀次數・最近一次 AI 評分">🗣️ ${rdc}${rsc}</span>` : '') + (ct ? `<span class="st-badge" title="克漏字 答對／作答">✍️ ${cr}/${ct}</span>` : '');
         }
         function refreshBadge(id) {
             const f = findGrand(id), el = document.querySelector(`.grandtask-row[data-id="${id}"] .st-badges`);
