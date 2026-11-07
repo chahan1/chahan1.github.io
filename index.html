@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.11.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.12.0 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -346,34 +346,58 @@
         body.read-open #readPanel { display: block; }
         body.rate-open #ratePanel { display: block; }
         body.rate-open { overflow: hidden; }
-        .rt-hint { font-size: 12px; color: var(--muted); margin: 4px 0 6px; line-height: 1.5; }
-        .rt-filters { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
-        .rt-filters button:not(.cz-tool) { border: 1px solid #dadce0; background: white; border-radius: 15px; padding: 4px 11px; font-size: 12.5px; color: #3c4043; cursor: pointer; }
-        .rt-filters button.on { background: var(--green); border-color: var(--green); color: white; }
-        .rt-filters select { flex: 1; min-width: 0; height: 32px; border: 1px solid #dadce0; border-radius: 8px; background: white; font-size: 12.5px; padding: 0 6px; }
-        .rt-filters .cz-tool { flex: 0 0 auto; padding: 0 12px; height: 32px; }
-        .rt-filters .cz-tool.on { background: #e8f0fe; color: #1967d2; border-color: #aecbfa; }
-        .rt-play { display: flex; align-items: center; gap: 10px; margin: 10px 0 4px; position: sticky; top: -8px; background: #f5f7f8; padding: 6px 0; z-index: 2; }
-        .rt-play .btn-primary { height: 38px; padding: 0 18px; border-radius: 19px; font-size: 14px; }
-        .rt-play span { font-size: 12.5px; color: #b06000; font-weight: 600; }
-        .rt-card { background: white; border-radius: 12px; padding: 12px 12px 10px; margin-top: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); border: 2px solid transparent; transition: border-color .2s; }
-        .rt-card.active { border-color: var(--green); }
-        .rt-card.waiting { border-color: #f9ab00; box-shadow: 0 0 0 3px rgba(249,171,0,.18); }
-        .rt-top { display: flex; gap: 8px; align-items: flex-start; }
-        .rt-no { font-size: 11px; color: #9aa0a6; min-width: 18px; padding-top: 3px; }
-        .rt-text { flex: 1; min-width: 0; }
-        .rt-en { font-size: 15.5px; line-height: 1.5; color: #202124; }
-        .rt-cn { font-size: 13px; color: #5f6368; margin-top: 2px; }
-        .rt-word { font-size: 11px; color: #9aa0a6; margin-top: 3px; }
-        .rt-stars { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 9px; }
-        .rt-stars button { border: 1px solid #dadce0; background: white; border-radius: 9px; padding: 5px 0 4px; cursor: pointer; font-size: 15px; font-weight: 700; color: #5f6368; line-height: 1.15; }
-        .rt-stars button small { display: block; font-size: 9.5px; font-weight: 400; }
-        .rt-stars button.on.s1 { background: #fce8e6; border-color: #c5221f; color: #c5221f; }
-        .rt-stars button.on.s2 { background: #feefe3; border-color: #c26401; color: #c26401; }
-        .rt-stars button.on.s3 { background: #fef7e0; border-color: #b06000; color: #b06000; }
-        .rt-stars button.on.s4 { background: #e6f4ea; border-color: #188038; color: #188038; }
-        .rt-stars button.on.s5 { background: #ceead6; border-color: #0d652d; color: #0d652d; }
-        .rt-meta { font-size: 10.5px; color: #9aa0a6; margin-top: 5px; text-align: right; }
+        #ratePanel { padding-bottom: 96px; background: #f3f5f7; }
+        .rt-sum { background: white; border-radius: 16px; padding: 14px 14px 12px; margin-top: 6px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        .rt-sum-top { display: flex; align-items: baseline; gap: 8px; }
+        .rt-sum-big { font-size: 26px; font-weight: 800; color: #202124; letter-spacing: -.5px; }
+        .rt-sum-big small { font-size: 13px; font-weight: 500; color: #80868b; margin-left: 2px; }
+        .rt-sum-avg { margin-left: auto; font-size: 12px; color: #5f6368; }
+        .rt-sum-avg b { font-size: 15px; color: #b06000; }
+        .rt-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: #eceff1; margin: 10px 0 10px; }
+        .rt-bar i { display: block; height: 100%; }
+        .rt-legend { display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+        .rt-legend::-webkit-scrollbar { display: none; }
+        .rt-chip { flex: 0 0 auto; display: flex; align-items: center; gap: 5px; border: 1px solid #e3e6e8; background: #fafbfc; border-radius: 16px; padding: 4px 10px 4px 7px; font-size: 12px; color: #3c4043; cursor: pointer; white-space: nowrap; }
+        .rt-chip .dot { width: 9px; height: 9px; border-radius: 50%; }
+        .rt-chip b { font-weight: 700; color: #202124; }
+        .rt-chip.on { border-color: #202124; background: #202124; color: white; }
+        .rt-chip.on b { color: white; }
+        .rt-opts { display: flex; gap: 6px; margin-top: 10px; align-items: center; }
+        .rt-opts select { flex: 1 1 0; min-width: 0; height: 34px; border: 1px solid #e3e6e8; border-radius: 10px; background: white; font-size: 12.5px; padding: 0 6px; color: #3c4043; }
+        .rt-opts .rt-icon { flex: 0 0 auto; height: 34px; min-width: 40px; border: 1px solid #e3e6e8; border-radius: 10px; background: white; font-size: 13px; color: #5f6368; cursor: pointer; padding: 0 9px; }
+        .rt-opts .rt-icon.on { background: #e8f0fe; border-color: #aecbfa; color: #1967d2; font-weight: 600; }
+        .rt-redraw { display: flex; align-items: center; justify-content: space-between; margin: 14px 2px 2px; font-size: 12px; color: #80868b; }
+        .rt-redraw button { border: none; background: none; color: var(--green); font-weight: 700; font-size: 13px; cursor: pointer; padding: 4px 0; }
+        .rt-card { position: relative; background: white; border-radius: 16px; padding: 14px 14px 12px 18px; margin-top: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.06); border: 1.5px solid transparent; transition: border-color .2s, box-shadow .2s; overflow: hidden; }
+        .rt-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--fc, #e3e6e8); }
+        .rt-card.active { border-color: var(--green); box-shadow: 0 4px 14px rgba(16,124,65,.15); }
+        .rt-card.waiting { border-color: #f9ab00; box-shadow: 0 4px 16px rgba(249,171,0,.25); }
+        .rt-meta-top { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #9aa0a6; }
+        .rt-meta-top .rt-word { background: #f1f3f4; color: #5f6368; border-radius: 6px; padding: 1px 7px; font-size: 11px; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .rt-meta-top .rt-plays { margin-left: auto; white-space: nowrap; }
+        .rt-meta-top .icon-btn { width: 30px; height: 30px; margin-right: -4px; }
+        .rt-en { font-size: 16.5px; line-height: 1.55; color: #202124; margin: 6px 0 2px; font-weight: 500; }
+        .rt-cn { font-size: 13px; color: #6b7177; line-height: 1.5; }
+        .rt-stars { display: flex; gap: 6px; margin-top: 12px; }
+        .rt-stars button { flex: 1; height: 44px; border: 1.5px solid #e3e6e8; background: #fafbfc; border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: #5f6368; padding: 0; transition: transform .1s; }
+        .rt-stars button:active { transform: scale(.94); }
+        .rt-stars button b { font-size: 16px; line-height: 1; }
+        .rt-stars button small { font-size: 9.5px; line-height: 1.1; }
+        .rt-stars button.on { color: white; border-color: transparent; background: var(--sc); box-shadow: 0 2px 6px rgba(0,0,0,.15); }
+        .rt-hist { font-size: 10.5px; color: #9aa0a6; margin-top: 8px; display: flex; justify-content: space-between; gap: 8px; }
+        .rt-hist .up { color: #188038; font-weight: 600; }
+        .rt-dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1110; background: rgba(255,255,255,.96); backdrop-filter: blur(8px); border-top: 1px solid #e8eaed; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); display: none; }
+        body.rate-open .rt-dock { display: block; }
+        .rt-dock-in { max-width: 640px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+        .rt-dock .rt-go { width: 52px; height: 52px; border-radius: 50%; border: none; background: var(--green); color: white; font-size: 20px; cursor: pointer; box-shadow: 0 3px 10px rgba(16,124,65,.35); flex-shrink: 0; }
+        .rt-dock .rt-go.stop { background: #3c4043; box-shadow: none; }
+        .rt-dock-txt { flex: 1; min-width: 0; }
+        .rt-dock-txt b { display: block; font-size: 14px; color: #202124; }
+        .rt-dock-txt small { display: block; font-size: 11.5px; color: #80868b; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .rt-dock-txt b.wait { color: #b06000; }
+        .rt-dock .rt-skip { border: 1px solid #dadce0; background: white; border-radius: 18px; height: 36px; padding: 0 12px; font-size: 12.5px; color: #3c4043; cursor: pointer; flex-shrink: 0; }
+        .rt-auto { margin-top: 16px; background: white; border-radius: 14px; padding: 10px 12px; font-size: 12px; color: #5f6368; display: flex; align-items: center; gap: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+        .rt-auto select { margin-left: auto; height: 30px; border: 1px solid #e3e6e8; border-radius: 8px; font-size: 12px; background: white; }
         body.read-open { overflow: hidden; }
         .rd-tools { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
         .rd-tools .cz-tool { flex: 1 1 auto; min-width: 54px; }
@@ -511,7 +535,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.11.0</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.12.0</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -945,33 +969,41 @@
         <div class="cz-head">
             <button class="ps-icon-btn" title="結束" onclick="closeRating()">×</button>
             <div class="cz-title">⭐ 熟悉度評分</div>
-            <div class="cz-score" id="rtProgress"></div>
+            <div class="cz-score"></div>
         </div>
-        <div class="rt-hint">1＝很陌生，5＝很熟。可以按「▶ 依序播放」一句一句聽完再評分，也可以直接在任何一張卡片上評分。</div>
-        <div class="rt-filters" id="rtScope">
-            <button data-v="all" onclick="rtSet('scope','all')">全部</button>
-            <button data-v="none" onclick="rtSet('scope','none')">未評分</button>
-            <button data-v="low" onclick="rtSet('scope','low')">1–2 分</button>
-            <button data-v="mid" onclick="rtSet('scope','mid')">3 分</button>
-            <button data-v="high" onclick="rtSet('scope','high')">4–5 分</button>
+        <div class="rt-sum">
+            <div class="rt-sum-top"><div class="rt-sum-big" id="rtBig"></div><div class="rt-sum-avg" id="rtAvg"></div></div>
+            <div class="rt-bar" id="rtBar"></div>
+            <div class="rt-legend" id="rtLegend"></div>
+            <div class="rt-opts">
+                <select id="rtOrder" onchange="rtSet('order', this.value)">
+                    <option value="random">🔀 隨機</option>
+                    <option value="low">低分優先</option>
+                    <option value="old">久未評優先</option>
+                    <option value="seq">筆記順序</option>
+                </select>
+                <select id="rtBatch" onchange="rtSet('batch', +this.value)">
+                    <option value="10">每次 10 張</option><option value="20">每次 20 張</option><option value="30">每次 30 張</option><option value="0">全部</option>
+                </select>
+                <select id="rtRepeat" onchange="rtSet('repeat', +this.value)">
+                    <option value="1">念 1 次</option><option value="2">念 2 次</option><option value="3">念 3 次</option>
+                </select>
+                <button class="rt-icon" id="rtCnBtn" onclick="rtSet('showCn', !rtSettings.showCn)">中</button>
+            </div>
         </div>
-        <div class="rt-filters">
-            <select id="rtOrder" onchange="rtSet('order', this.value)">
-                <option value="seq">依筆記順序</option>
-                <option value="random">隨機順序</option>
-                <option value="low">分數低的優先</option>
-                <option value="old">最久沒評的優先</option>
-            </select>
-            <select id="rtRepeat" onchange="rtSet('repeat', +this.value)">
-                <option value="1">每句念 1 次</option><option value="2">每句念 2 次</option><option value="3">每句念 3 次</option>
-            </select>
-            <button class="cz-tool" id="rtCnBtn" onclick="rtSet('showCn', !rtSettings.showCn)">中 中文</button>
-        </div>
-        <div class="rt-play">
-            <button class="btn-primary" id="rtPlayBtn" onclick="rtTogglePlay()">▶ 依序播放</button>
-            <span id="rtState"></span>
-        </div>
+        <div class="rt-redraw"><span id="rtBatchInfo"></span><button onclick="rtRedraw()">🔀 換一批</button></div>
         <div id="rtList"></div>
+        <div class="rt-auto">⬆️ 自動升級：播放累積
+            <select id="rtAutoSel" onchange="setFamAuto(+this.value)">
+                <option value="0">關閉</option><option value="5">5 次</option><option value="10">10 次</option><option value="15">15 次</option><option value="20">20 次</option>
+            </select>就升一級</div>
+    </div>
+    <div class="rt-dock">
+        <div class="rt-dock-in">
+            <button class="rt-go" id="rtPlayBtn" onclick="rtTogglePlay()">▶</button>
+            <div class="rt-dock-txt"><b id="rtStateMain">依序播放</b><small id="rtStateSub">一句一句念，念完等你評分，評完自動下一句</small></div>
+            <button class="rt-skip" id="rtSkip" onclick="rtSkip()" style="display:none">跳過 ›</button>
+        </div>
     </div>
 
     <!-- 朗讀練習：畫面 -->
@@ -2131,64 +2163,108 @@ ${ENRICH_RULES}
 
         // ================= 例句熟悉度評分 =================
         const RATE_KEY = 'eng_rateSettings';
-        let rtSettings = { scope: 'all', order: 'seq', repeat: 1, showCn: false };
+        let rtSettings = { scope: 'all', order: 'random', repeat: 1, showCn: false, batch: 20 };
         try { Object.assign(rtSettings, JSON.parse(localStorage.getItem(RATE_KEY)) || {}); } catch (e) {}
-        const rt = { list: [], playing: false, idx: -1, waiting: false, token: 0, audio: null };
-        function rtPool() {
-            const all = getPlaylist({ scope: 'all', dateMode: 'all' });
-            const f = { all: () => true, none: it => !it.fam, low: it => it.fam === 1 || it.fam === 2, mid: it => it.fam === 3, high: it => it.fam >= 4 }[rtSettings.scope] || (() => true);
-            let list = all.filter(f);
-            if (rtSettings.order === 'random') for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
-            if (rtSettings.order === 'low') list.sort((a, b) => (a.fam || 0) - (b.fam || 0));
-            if (rtSettings.order === 'old') { const at = it => (findGrand(it.id) || { g: {} }).g.famAt || 0; list.sort((a, b) => at(a) - at(b)); }
+        // v2.12.0：評分卡片預設隨機出現
+        if (!localStorage.getItem('eng_mig2120')) { rtSettings.order = 'random'; localStorage.setItem('eng_mig2120', '1'); try { localStorage.setItem(RATE_KEY, JSON.stringify(rtSettings)); } catch (e) {} }
+        const FAM_COLOR = { 0: '#dadce0', 1: '#d93025', 2: '#e8710a', 3: '#f9ab00', 4: '#34a853', 5: '#137333' };
+        const rt = { list: [], playing: false, idx: -1, waiting: false, token: 0, audio: null, seen: new Set() };
+        const gOf = id => ((findGrand(id) || {}).g) || {};
+        function rtAll() { return getPlaylist({ scope: 'all', dateMode: 'all' }); }
+        function rtMatch(it) {
+            const f = gOf(it.id).fam || 0;
+            return rtSettings.scope === 'all' ? true : rtSettings.scope === 'none' ? !f : f === Number(rtSettings.scope);
+        }
+        function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+        // 抽一批卡片；隨機時盡量避開上一批已出現過的句子
+        function rtDraw(avoidSeen) {
+            let list = rtAll().filter(rtMatch);
+            const n = Number(rtSettings.batch) || 0;
+            if (rtSettings.order === 'random') {
+                shuffle(list);
+                if (avoidSeen && n) { const fresh = list.filter(it => !rt.seen.has(it.id)); list = fresh.concat(list.filter(it => rt.seen.has(it.id))); if (fresh.length < n) rt.seen.clear(); }   // 沒看過的優先；全部輪過一遍後重新開始
+            }
+            if (rtSettings.order === 'low') list.sort((a, b) => (gOf(a.id).fam || 0) - (gOf(b.id).fam || 0) || Math.random() - .5);
+            if (rtSettings.order === 'old') list.sort((a, b) => (gOf(a.id).famAt || 0) - (gOf(b.id).famAt || 0));
+            if (n) list = list.slice(0, n);
+            list.forEach(it => rt.seen.add(it.id));
             return list;
         }
         function openRating() {
             if (player.playing) playerPause();
-            rt.list = rtPool();
+            rt.seen.clear(); rt.idx = -1;
+            rt.list = rtDraw(false);
             document.body.classList.add('rate-open');
             document.getElementById('ratePanel').scrollTop = 0;
             renderRating();
         }
         function closeRating() { rtStop(); document.body.classList.remove('rate-open'); saveData(); renderTasks(); }
+        function rtRedraw() { rtStop(); rt.list = rtDraw(true); renderRating(); document.getElementById('ratePanel').scrollTo({ top: 0, behavior: 'smooth' }); }
         function rtSet(k, v) {
             rtSettings[k] = v; localStorage.setItem(RATE_KEY, JSON.stringify(rtSettings));
-            if (k === 'scope' || k === 'order') { rtStop(); rt.list = rtPool(); }
+            if (k === 'scope' || k === 'order' || k === 'batch') { rtStop(); rt.seen.clear(); rt.list = rtDraw(false); }
             renderRating();
         }
+        function rtSummary() {
+            const all = rtAll(), cnt = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+            all.forEach(it => { cnt[gOf(it.id).fam || 0]++; });
+            const rated = all.length - cnt[0];
+            const avg = rated ? ([1, 2, 3, 4, 5].reduce((s, n) => s + n * cnt[n], 0) / rated) : 0;
+            document.getElementById('rtBig').innerHTML = `${rated}<small>／${all.length} 句已評分</small>`;
+            document.getElementById('rtAvg').innerHTML = rated ? `平均 <b>${avg.toFixed(1)}</b> 分` : '';
+            document.getElementById('rtBar').innerHTML = [5, 4, 3, 2, 1, 0].map(n => cnt[n] ? `<i style="width:${cnt[n] / all.length * 100}%;background:${FAM_COLOR[n]}"></i>` : '').join('');
+            const chips = [['all', '全部', all.length, ''], ['none', '未評', cnt[0], FAM_COLOR[0]], ...[1, 2, 3, 4, 5].map(n => [String(n), `${n} 分`, cnt[n], FAM_COLOR[n]])];
+            document.getElementById('rtLegend').innerHTML = chips.map(([v, label, c, col]) =>
+                `<button class="rt-chip ${String(rtSettings.scope) === v ? 'on' : ''}" onclick="rtSet('scope','${v}')">${col ? `<span class="dot" style="background:${col}"></span>` : ''}${label} <b>${c}</b></button>`).join('');
+        }
+        function autoLeft(g) {
+            if (!famAutoN || !g.fam || g.fam >= 5) return null;
+            const base = g.famBase != null ? g.famBase : (g.playCount || 0);
+            return Math.max(1, famAutoN - ((g.playCount || 0) - base));
+        }
         function rtCardHtml(it, i) {
-            const g = (findGrand(it.id) || {}).g || {};
-            const f = g.fam || 0;
+            const g = gOf(it.id), f = g.fam || 0;
             const cls = rt.idx === i ? (rt.waiting ? 'waiting' : 'active') : '';
-            return `<div class="rt-card ${cls}" id="rtc-${it.id}">
-                <div class="rt-top"><div class="rt-no">${i + 1}</div>
-                    <div class="rt-text"><div class="rt-en">${escapeHtml(it.en)}</div>${rtSettings.showCn && it.cn ? `<div class="rt-cn">${escapeHtml(it.cn)}</div>` : ''}<div class="rt-word">${escapeHtml(cleanForSpeech(it.word))}</div></div>
+            const left = autoLeft(g);
+            const hist = (g.famHist || []).slice(-6);
+            return `<div class="rt-card ${cls}" id="rtc-${it.id}" style="--fc:${FAM_COLOR[f]}">
+                <div class="rt-meta-top"><span>#${i + 1}</span><span class="rt-word">${escapeHtml(cleanForSpeech(it.word))}</span>
+                    <span class="rt-plays">▶ ${g.playCount || 0}${left ? `・再 ${left} 次升級` : ''}</span>
                     <button class="icon-btn speak" title="聽一遍" onclick="rtSpeakOne(${i})">${ICON.speak}</button></div>
-                <div class="rt-stars">${[1, 2, 3, 4, 5].map(n => `<button class="s${n} ${f === n ? 'on' : ''}" onclick="rateCard(${i}, ${n})">${n}<small>${FAM_NAME[n]}</small></button>`).join('')}</div>
-                ${g.famAt ? `<div class="rt-meta">上次評分：${new Date(g.famAt).toLocaleDateString()}${g.famHist && g.famHist.length > 1 ? `・紀錄 ${g.famHist.map(h => h.s).join('→')}` : ''}</div>` : ''}
+                <div class="rt-en">${escapeHtml(it.en)}</div>
+                ${rtSettings.showCn && it.cn ? `<div class="rt-cn">${escapeHtml(it.cn)}</div>` : ''}
+                <div class="rt-stars">${[1, 2, 3, 4, 5].map(n => `<button class="${f === n ? 'on' : ''}" style="--sc:${FAM_COLOR[n]}" onclick="rateCard(${i}, ${n})"><b>${n}</b><small>${FAM_NAME[n]}</small></button>`).join('')}</div>
+                ${g.famAt ? `<div class="rt-hist"><span>${hist.length > 1 ? '紀錄 ' + hist.map(h => h.auto ? `<span class="up">⬆${h.s}</span>` : h.s).join(' → ') : ''}</span><span>${new Date(g.famAt).toLocaleDateString()}</span></div>` : ''}
             </div>`;
         }
         function renderRating() {
-            document.querySelectorAll('#rtScope button').forEach(b => b.classList.toggle('on', b.dataset.v === rtSettings.scope));
+            rtSummary();
             document.getElementById('rtOrder').value = rtSettings.order;
+            document.getElementById('rtBatch').value = String(rtSettings.batch);
             document.getElementById('rtRepeat').value = String(rtSettings.repeat);
             document.getElementById('rtCnBtn').classList.toggle('on', !!rtSettings.showCn);
-            const rated = rt.list.filter(it => ((findGrand(it.id) || {}).g || {}).fam).length;
-            document.getElementById('rtProgress').textContent = rt.list.length ? `已評 ${rated}/${rt.list.length}` : '';
-            document.getElementById('rtList').innerHTML = rt.list.length ? rt.list.map(rtCardHtml).join('') : '<div class="rt-hint" style="text-align:center;padding:30px 0">這個範圍沒有例句</div>';
+            document.getElementById('rtAutoSel').value = String(famAutoN);
+            const pool = rtAll().filter(rtMatch).length;
+            document.getElementById('rtBatchInfo').textContent = rt.list.length ? `這一批 ${rt.list.length} 張${pool > rt.list.length ? `（共 ${pool} 句可抽）` : ''}` : '';
+            document.getElementById('rtList').innerHTML = rt.list.length ? rt.list.map(rtCardHtml).join('') : '<div class="rt-hint" style="text-align:center;padding:40px 0;color:#80868b">這個分類沒有例句</div>';
             rtUpdateState();
         }
         function rtUpdateState() {
-            document.getElementById('rtPlayBtn').textContent = rt.playing ? '⏸ 停止' : '▶ 依序播放';
-            document.getElementById('rtState').textContent = !rt.playing ? '' : rt.waiting ? `👉 請為第 ${rt.idx + 1} 句評分` : `🎧 播放第 ${rt.idx + 1} 句…`;
+            const btn = document.getElementById('rtPlayBtn');
+            btn.textContent = rt.playing ? '■' : '▶'; btn.classList.toggle('stop', rt.playing);
+            const main = document.getElementById('rtStateMain'), sub = document.getElementById('rtStateSub');
+            document.getElementById('rtSkip').style.display = rt.playing ? '' : 'none';
+            if (!rt.playing) { main.className = ''; main.textContent = '依序播放'; sub.textContent = '一句一句念，念完等你評分，評完自動下一句'; return; }
+            const it = rt.list[rt.idx];
+            main.className = rt.waiting ? 'wait' : '';
+            main.textContent = rt.waiting ? `👉 請為第 ${rt.idx + 1} 張評分` : `🎧 播放中 ${rt.idx + 1}／${rt.list.length}`;
+            sub.textContent = it ? it.en : '';
         }
         function rtRefreshCard(i) {
             const it = rt.list[i]; if (!it) return;
             const el = document.getElementById('rtc-' + it.id);
             if (el) el.outerHTML = rtCardHtml(it, i);
-            const rated = rt.list.filter(x => ((findGrand(x.id) || {}).g || {}).fam).length;
-            document.getElementById('rtProgress').textContent = `已評 ${rated}/${rt.list.length}`;
-            rtUpdateState();
+            rtSummary(); rtUpdateState();
         }
         // 念一句並等它念完（AI 語音優先，失敗改手機語音）
         async function speakAwait(en, token) {
@@ -2228,35 +2304,51 @@ ${ENRICH_RULES}
             if (rt.playing) return rtStop();
             if (!rt.list.length) return;
             rt.playing = true;
-            // 從目前這句（或第一句還沒評分的）開始
-            let start = rt.idx >= 0 && rt.idx < rt.list.length ? rt.idx : rt.list.findIndex(it => !((findGrand(it.id) || {}).g || {}).fam);
+            let start = rt.idx >= 0 && rt.idx < rt.list.length ? rt.idx : rt.list.findIndex(it => !gOf(it.id).fam);
             if (start < 0) start = 0;
             rtPlayCard(start);
         }
+        function rtSkip() { if (!rt.playing) return; const i = rt.idx; if (i + 1 < rt.list.length) rtPlayCard(i + 1); else rtStop(true); }
         function rtStop(finished) {
             rt.token++; rt.playing = false; rt.waiting = false;
             if (rt.audio) { try { rt.audio.pause(); } catch (e) {} }
             try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
             const i = rt.idx; rt.idx = -1; if (i >= 0) rtRefreshCard(i); rtUpdateState();
-            if (finished) showToast('✅ 這一輪的例句都評完了', 2500);
+            if (finished) showToast('✅ 這一批評完了，可以按「🔀 換一批」繼續', 3000);
         }
         function rtSpeakOne(i) {
             const it = rt.list[i]; if (!it) return;
             if (rt.playing && rt.idx !== i) rtStop();
-            const token = ++rt.token; recordPlay(it.id); speakAwait(it.en, token).then(() => { if (rt.playing && rt.idx === i) { rt.waiting = true; rtRefreshCard(i); } });
+            const token = ++rt.token; recordPlay(it.id); rtRefreshCard(i);
+            speakAwait(it.en, token).then(() => { if (rt.playing && rt.idx === i) { rt.waiting = true; rtRefreshCard(i); } });
         }
         function rateCard(i, n) {
             const it = rt.list[i]; const f = it && findGrand(it.id); if (!f) return;
             const g = f.g;
-            g.fam = n; g.famAt = Date.now();
+            g.fam = n; g.famAt = Date.now(); g.famBase = g.playCount || 0;   // 重新評分後，自動升級從這裡重新計算
             g.famHist = (g.famHist || []).concat({ s: n, t: g.famAt }).slice(-10);
             saveData(false);
             rtRefreshCard(i);
-            // 依序播放中、評的是目前這一句 → 自動播下一句
             if (rt.playing && rt.idx === i) {
                 if (i + 1 < rt.list.length) setTimeout(() => { if (rt.playing && rt.idx === i) rtPlayCard(i + 1); }, 350);
                 else rtStop(true);
             }
+        }
+
+        // ---- 自動升級：已評分的例句每播放 N 次（預設 10 次）就自動升一級，最高 5 分 ----
+        const FAM_AUTO_KEY = 'eng_famAutoN';
+        let famAutoN = (() => { const v = localStorage.getItem(FAM_AUTO_KEY); return v == null ? 10 : Number(v); })();
+        function setFamAuto(n) { famAutoN = n; localStorage.setItem(FAM_AUTO_KEY, String(n)); renderRating(); showToast(n ? `⬆️ 已設定：每播放 ${n} 次自動升一級` : '已關閉自動升級', 2000); }
+        let upToastT = null, upList = [];
+        function checkAutoUpgrade(g) {
+            if (!famAutoN || !g.fam || g.fam >= 5) return;
+            if (g.famBase == null) g.famBase = (g.playCount || 1) - 1;   // 舊資料：從現在開始累積
+            if ((g.playCount || 0) - g.famBase < famAutoN) return;
+            g.fam += 1; g.famBase = g.playCount; g.famAt = Date.now();
+            g.famHist = (g.famHist || []).concat({ s: g.fam, t: g.famAt, auto: true }).slice(-10);
+            upList.push(`「${cleanForSpeech(g.text).slice(0, 24)}…」→ ⭐${g.fam}`);
+            clearTimeout(upToastT);
+            upToastT = setTimeout(() => { showToast(`⬆️ 播放滿 ${famAutoN} 次，熟悉度自動升級：\n${upList.slice(-3).join('\n')}${upList.length > 3 ? `\n…共 ${upList.length} 句` : ''}`, 3500); upList = []; }, 800);
         }
 
         // ================= 克漏字練習（含難度）=================
@@ -2529,6 +2621,7 @@ ${ENRICH_RULES}
         function recordPlay(id) {
             const f = findGrand(id); if (!f) return;
             f.g.playCount = (f.g.playCount || 0) + 1; f.g.lastPlayedAt = Date.now();
+            checkAutoUpgrade(f.g);
             bumpDaily('p'); refreshBadge(id); saveQuiet();
         }
         function recordCloze(id, ok) {
