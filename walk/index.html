@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#183A32">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="間歇快走慢跑">
+<title>公園間歇快走慢跑教練</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --mist:#E9EFE8; --paper:#F7FAF5; --ink:#183A32; --lichen:#5F7A6C; --line:#CFDACF;
+  --slate:#8AAFC2; --sage:#7FB08A; --ochre:#E2A63B; --orange:#DE7A34; --verm:#C9432F; --warn:#B7791F;
+  --num:'Barlow Condensed','Roboto Condensed','Arial Narrow',sans-serif;
+  --cjk:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{--mist:#13201C;--paper:#1B2B26;--ink:#E3EDE6;--lichen:#93AA9C;--line:#2B3E37}
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--mist);color:var(--ink);font-family:var(--cjk);font-size:16px;line-height:1.6}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) calc(76px + env(safe-area-inset-bottom)) env(safe-area-inset-left)}
+button,select,input,textarea{font-family:inherit;color:inherit}
+button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--ochre);outline-offset:2px}
+.wrap{max-width:540px;margin:0 auto;padding:18px 20px}
+.num{font-family:var(--num);font-variant-numeric:tabular-nums;letter-spacing:.2px}
+h1{font-size:28px;line-height:1.2;font-weight:800;letter-spacing:-.3px}
+h2{font-size:19px;line-height:1.35;font-weight:800;margin:0 0 8px}
+h3{font-size:16px;font-weight:700;margin:16px 0 6px}
+p{margin:6px 0}
+.sub{color:var(--lichen);font-size:14px}
+.view{display:none}.view.on{display:block}
+
+/* 今天 */
+.t-head{display:flex;justify-content:space-between;align-items:center;color:var(--lichen);font-size:15px}
+.pill{border:1.5px solid var(--line);border-radius:99px;padding:2px 12px;font-size:14px;color:var(--ink);background:none}
+.t-kind{margin-top:18px;font-size:15px;color:var(--lichen)}
+.t-name{font-size:36px;line-height:1.12;font-weight:800;letter-spacing:-.6px;margin-top:2px}
+.t-goal{color:var(--lichen);font-size:15px;max-width:34em;margin-top:8px}
+.profile{margin:20px -6px 0;background:var(--paper);border-radius:20px;padding:16px 14px 10px}
+.profile svg{display:block;width:100%;height:118px}
+.axis{display:flex;justify-content:space-between;font-family:var(--num);font-size:14px;color:var(--lichen);margin-top:6px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--lichen);margin-top:8px}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;background:var(--c);vertical-align:-1px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);margin:18px 0 6px}
+.stats div{padding:0 12px;border-left:1.5px solid var(--line)}
+.stats div:first-child{padding-left:0;border-left:0}
+.stats b{display:block;font-family:var(--num);font-size:34px;font-weight:700;line-height:1.05}
+.stats span{font-size:13px;color:var(--lichen)}
+.q{font-size:15px;font-weight:700;margin:18px 0 8px}
+.mins{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.mins::-webkit-scrollbar{display:none}
+.mins button{flex:0 0 auto;min-width:52px;height:44px;border-radius:22px;border:1.5px solid var(--line);background:none;font-family:var(--num);font-size:20px;font-weight:600;padding:0 12px;cursor:pointer}
+.mins button.custom{font-family:var(--cjk);font-size:15px;font-weight:600}
+.mins button.on{background:var(--ink);color:var(--mist);border-color:var(--ink)}
+.custom-row{display:none;gap:8px;margin-top:8px}
+.go{display:flex;justify-content:center;align-items:baseline;gap:10px;width:100%;margin-top:20px;height:62px;border:0;border-radius:31px;background:var(--ink);color:var(--mist);font-size:19px;font-weight:800;cursor:pointer}
+.go .num{font-size:24px;font-weight:600}
+details.plan{margin-top:16px;border-top:1.5px solid var(--line)}
+details.plan summary{list-style:none;cursor:pointer;padding:14px 0;font-weight:700;display:flex;justify-content:space-between}
+details.plan summary::-webkit-details-marker{display:none}
+details.plan summary::after{content:"展開";color:var(--lichen);font-weight:400;font-size:14px}
+details.plan[open] summary::after{content:"收合"}
+.seglist div{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
+.seglist .d{font-family:var(--num);font-size:17px;white-space:nowrap}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px}
+.week-h{display:flex;justify-content:space-between;align-items:baseline;margin-top:26px;font-weight:700}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;margin-top:10px;position:relative}
+.week::before{content:"";position:absolute;left:7%;right:7%;top:37px;height:2px;background:var(--line);z-index:0}
+.week .d{position:relative;z-index:1;font-size:13px;color:var(--lichen)}
+.week .c{width:30px;height:30px;border-radius:50%;margin:6px auto 4px;background:var(--c);border:3px solid var(--mist);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:800}
+.week .today{color:var(--ink);font-weight:800}
+.week .today .c{box-shadow:0 0 0 2.5px var(--ink)}
+.week .k{font-size:12px}
+.swap{margin-top:22px}
+label{display:block;font-size:14px;color:var(--lichen);margin:14px 0 6px}
+select,input,textarea{width:100%;padding:11px 12px;border-radius:12px;border:1.5px solid var(--line);background:var(--paper);font-size:16px}
+.notice{border-left:4px solid var(--sage);padding:10px 12px;background:var(--paper);border-radius:0 12px 12px 0;font-size:14px;margin-top:12px}
+.notice.warn{border-color:var(--warn)}
+
+/* 其他頁 */
+.card{margin:22px 0;padding-top:16px;border-top:1.5px solid var(--line)}
+.card:first-of-type{border-top:0;padding-top:0}
+.btn{appearance:none;border:0;border-radius:14px;padding:13px 18px;font-size:16px;font-weight:700;cursor:pointer;background:var(--ink);color:var(--mist);width:100%}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--ink)}
+.btn.small{padding:9px 14px;font-size:14px;width:auto;border-radius:12px}
+.btn.gray{background:var(--line);color:var(--ink)}
+.row{display:flex;gap:10px;align-items:center}
+.between{justify-content:space-between}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--lichen);font-weight:600}
+.big3{display:grid;grid-template-columns:repeat(3,1fr)}
+.big3 b{display:block;font-family:var(--num);font-size:38px;font-weight:700;line-height:1.05}
+.bars{display:flex;align-items:flex-end;gap:8px;height:120px;margin-top:10px}
+.bars .b{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;font-size:12px;color:var(--lichen)}
+.bars .b i{display:block;width:100%;background:var(--sage);border-radius:6px 6px 2px 2px;min-height:2px}
+.bars .b span:first-child{font-family:var(--num);font-size:14px;color:var(--ink)}
+.switch{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.switch input{width:22px;height:22px;flex:0 0 auto;accent-color:var(--ink)}
+
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--paper);border-top:1.5px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav button{flex:1;border:0;background:none;color:var(--lichen);padding:9px 0 7px;font-size:12px;cursor:pointer;position:relative}
+nav svg{display:block;margin:0 auto 2px;width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav button.on{color:var(--ink);font-weight:700}
+nav button.on::before{content:"";position:absolute;top:-1.5px;left:30%;right:30%;height:3px;border-radius:0 0 3px 3px;background:var(--ink)}
+
+/* 計時畫面：整頁是目前段落的顏色 */
+#runner{position:fixed;inset:0;z-index:20;display:none;flex-direction:column;--fg:#183A32;color:var(--fg);background:var(--sage);transition:background .5s;padding:calc(14px + env(safe-area-inset-top)) 20px calc(18px + env(safe-area-inset-bottom))}
+#runner.on{display:flex}
+#runner.light{--fg:#FFFFFF}
+.r-top{display:flex;justify-content:space-between;font-size:15px;font-weight:600;opacity:.9}
+.r-top .num{font-size:19px}
+.r-prof{position:relative;margin-top:10px;height:46px}
+.r-prof svg{width:100%;height:100%;display:block;color:var(--fg);opacity:.38}
+#rDone{position:absolute;left:0;top:0;bottom:0;background:rgba(0,0,0,.16);border-radius:6px 0 0 6px}
+#rMarker{position:absolute;top:-5px;bottom:-5px;width:3px;margin-left:-1.5px;background:var(--fg);border-radius:2px}
+.r-main{flex:1;display:flex;flex-direction:column;justify-content:center}
+#rName{font-size:44px;font-weight:900;letter-spacing:1px;line-height:1.1}
+#rRep{font-family:var(--num);font-size:24px;font-weight:600;min-height:30px;opacity:.9}
+#rTime{font-family:var(--num);font-weight:700;font-size:min(30vw,210px);line-height:.9;letter-spacing:-1px;margin:10px 0 6px;font-variant-numeric:tabular-nums}
+#rTalk{font-size:20px;font-weight:700}
+#rHr{font-size:16px;opacity:.85}
+#rNext{display:flex;justify-content:space-between;align-items:baseline;background:rgba(0,0,0,.12);border-radius:16px;padding:12px 16px;font-size:17px;font-weight:600;margin-bottom:14px}
+#rNext .num{font-size:22px}
+#rMode{font-size:13px;opacity:.8;text-align:center;margin-bottom:8px;min-height:18px}
+.ctrl{display:grid;grid-template-columns:1fr 1.5fr 1fr;gap:10px}
+.ctrl button{height:64px;border-radius:32px;border:2px solid var(--fg);background:transparent;color:var(--fg);font-size:17px;font-weight:800;cursor:pointer}
+.ctrl button.main{background:var(--fg);color:var(--bgc,#7FB08A);border-color:var(--fg);font-size:20px}
+.paused #rTime{opacity:.45}
+
+/* 完成畫面 */
+#finish{position:fixed;inset:0;z-index:30;background:var(--mist);overflow:auto;display:none;padding:calc(10px + env(safe-area-inset-top)) 0 30px}
+#finish.on{display:block}
+.rpe{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px}
+.rpe button,.chips button{border:1.5px solid var(--line);background:var(--paper);border-radius:12px;padding:10px 0;font-size:18px;cursor:pointer}
+.rpe button{font-family:var(--num);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.chips button{padding:8px 14px;font-size:15px}
+.rpe button.on,.chips button.on{background:var(--ink);color:var(--mist);border-color:var(--ink)}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--ink);color:var(--mist);padding:10px 16px;border-radius:12px;font-size:14px;z-index:50;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw}
+.toast.on{opacity:.96}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <!-- 今天 -->
+  <section class="view on" id="v-today">
+    <div class="t-head"><span id="todayDate"></span><button class="pill" id="levelTag" title="到設定調整等級"></button></div>
+    <div class="t-kind" id="tKind"></div>
+    <h1 class="t-name" id="tName"></h1>
+    <p class="t-goal" id="tGoal"></p>
+    <div class="profile">
+      <svg id="tProfile" viewBox="0 0 1000 120" preserveAspectRatio="none" role="img" aria-label="今天課表的強度剖面"></svg>
+      <div class="axis" id="tAxis"></div>
+      <div class="legend" id="tLegend"></div>
+    </div>
+    <div class="stats" id="tStats"></div>
+    <div class="q">今天有多少時間？</div>
+    <div class="mins" id="minChips"></div>
+    <div class="custom-row" id="customMin"><input id="customMinInput" type="number" inputmode="numeric" min="15" max="150" placeholder="15–150 分鐘"><button class="btn small" id="customMinOk">確定</button></div>
+    <div id="tNote"></div>
+    <button class="go" id="btnStart"></button>
+    <details class="plan"><summary>課表內容</summary><div class="seglist" id="tList"></div></details>
+    <div class="week-h"><span>本週</span><span class="sub" id="weekCount"></span></div>
+    <div class="week" id="weekGrid"></div>
+    <div class="swap">
+      <label for="pickWorkout">換一個課表</label>
+      <select id="pickWorkout"></select>
+    </div>
+    <div id="suggestBox"></div>
+  </section>
+
+  <!-- 方法 -->
+  <section class="view" id="v-method">
+    <h1>我的間歇快走慢跑法</h1>
+    <p class="sub">以間歇訓練理論為基礎，配合每天約一小時在公園快走、慢跑的習慣設計。</p>
+    <div class="card">
+      <h2>核心原則</h2>
+      <p><b>1. 強弱交替：</b>用「快一段、緩一段」的方式，在中高強度區累積比連續跑更多的時間，提升心肺（VO₂max）與乳酸閾值。</p>
+      <p><b>2. 80/20 分配：</b>一週只有 2 天真正吃力（4×4、短間歇/坡道），1 天中等（節奏），其餘都是輕鬆走跑，讓身體有時間恢復與適應。</p>
+      <p><b>3. 漸進超負荷：</b>分 4 個等級，從「走多跑少」逐步變成「跑多走少」，每個等級至少練 2 週。</p>
+      <p><b>4. 固定結構：</b>每次都是「暖身 → 主課表 → 快走補足時間 → 收操」，總長預設 60 分鐘。</p>
+    </div>
+    <div class="card">
+      <h2>一週課表</h2>
+      <table>
+        <tr><th>星期</th><th>課表</th><th>強度</th></tr>
+        <tr><td>一</td><td>輕鬆走跑</td><td>低</td></tr>
+        <tr><td>二</td><td>挪威式 4×4 間歇</td><td>高</td></tr>
+        <tr><td>三</td><td>恢復快走</td><td>很低</td></tr>
+        <tr><td>四</td><td>節奏閾值間歇</td><td>中高</td></tr>
+        <tr><td>五</td><td>輕鬆走跑</td><td>低</td></tr>
+        <tr><td>六</td><td>短間歇 30/30（單週）／坡道衝刺（雙週）</td><td>高</td></tr>
+        <tr><td>日</td><td>自由變速（法特雷克）</td><td>中</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h2>時間長短怎麼分配</h2>
+      <p class="sub">在「今天」頁選今天有多少時間（20–90 分鐘，或自訂 15–150 分鐘），App 會自動重排：</p>
+      <table>
+        <tr><th>總時間</th><th>暖身</th><th>收操</th></tr>
+        <tr><td>25 分以內</td><td>3–4 分</td><td>3 分</td></tr>
+        <tr><td>26–40 分</td><td>4–6 分</td><td>4 分</td></tr>
+        <tr><td>41 分以上</td><td>5–10 分</td><td>6 分</td></tr>
+      </table>
+      <p style="margin-top:8px"><b>時間短：</b>先減少組數；若排不到 3 組，就把每段快跑縮短成較低等級的長度，保住組數（間歇效果主要來自反覆的高強度刺激）。</p>
+      <p><b>時間長：</b>間歇日最多多加 1–2 組（節奏跑總量上限 40 分鐘、30/30 多一大組），其餘時間用輕鬆走跑補足，不會讓高強度無限增加。</p>
+      <p><b>暖身與收操永遠保留</b>，時間再短也不省略。</p>
+    </div>
+    <div class="card">
+      <h2>強度怎麼判斷</h2>
+      <p class="sub">不用心率錶也可以，用「說話測試」和自覺費力程度 RPE（1–10 分）就很準。</p>
+      <table>
+        <tr><th>動作</th><th>RPE</th><th>說話測試</th><th>最大心率%</th></tr>
+        <tr><td>恢復走／暖身</td><td>2–3</td><td>輕鬆聊天</td><td>50–65%</td></tr>
+        <tr><td>快走</td><td>4–5</td><td>可說話、微喘</td><td>60–70%</td></tr>
+        <tr><td>慢跑</td><td>5–6</td><td>能說完整句子</td><td>70–80%</td></tr>
+        <tr><td>節奏跑</td><td>6–7</td><td>只能說短句</td><td>80–88%</td></tr>
+        <tr><td>快跑／上坡</td><td>7–8</td><td>只能說幾個字</td><td>88–95%</td></tr>
+      </table>
+      <p class="sub" style="margin-top:8px">最大心率估算：208 − 0.7 × 年齡（在「設定」填入年齡，App 會自動換算心率範圍）。</p>
+    </div>
+    <div class="card">
+      <h2>等級與升級規則</h2>
+      <table>
+        <tr><th>等級</th><th>輕鬆走跑（每 5 分鐘）</th><th>4×4 快跑段</th></tr>
+        <tr><td>1</td><td>快走 4＋慢跑 1</td><td>2 分 × 4</td></tr>
+        <tr><td>2</td><td>快走 3＋慢跑 2</td><td>3 分 × 4</td></tr>
+        <tr><td>3</td><td>快走 2＋慢跑 3</td><td>4 分 × 4</td></tr>
+        <tr><td>4</td><td>快走 1＋慢跑 4</td><td>4 分 × 5</td></tr>
+      </table>
+      <p style="margin-top:8px"><b>升級：</b>同一等級練滿 2 週、高強度日至少完成 4 次，而且平均 RPE ≤ 7、沒有疼痛，App 會建議升一級。</p>
+      <p><b>降級或停留：</b>連續兩次高強度日 RPE ≥ 9，或出現關節、肌肉疼痛，就維持或降一級。</p>
+    </div>
+    <div class="card">
+      <h2>安全提醒</h2>
+      <p>• 快跑段用「穩定可控的快」，不是全力衝刺；最後一組應該還能完成。</p>
+      <p>• 胸悶、頭暈、心悸、異常喘不過氣，立刻改成慢走並停止。</p>
+      <p>• 有高血壓、心臟病或膝蓋舊傷，開始高強度日前先問過醫師。</p>
+      <p>• 收操後花 5 分鐘伸展小腿、大腿前後側與臀部。</p>
+      <p>• 睡不好、很累或生病時，把當天換成「恢復快走」。</p>
+    </div>
+  </section>
+
+  <!-- 紀錄 -->
+  <section class="view" id="v-log">
+    <h1>運動紀錄</h1>
+    <div class="card">
+      <div class="row between"><div><div class="sub">本週次數</div><div style="font-size:28px;font-weight:800" id="wkCount">0</div></div>
+      <div><div class="sub">本週分鐘</div><div style="font-size:28px;font-weight:800" id="wkMin">0</div></div>
+      <div><div class="sub">連續天數</div><div style="font-size:28px;font-weight:800" id="streak">0</div></div></div>
+      <div class="sub" style="margin-top:12px">最近 7 天（分鐘）</div>
+      <div class="bars" id="bars"></div>
+    </div>
+    <div class="card"><h2>歷史</h2><div id="histList" class="sub">還沒有紀錄。</div></div>
+    <div class="card">
+      <h2>備份</h2>
+      <p class="sub">紀錄只存在這支手機的瀏覽器裡。可以複製成文字另外保存，換手機時再貼回來匯入。</p>
+      <div class="row" style="margin-top:8px"><button class="btn small" id="btnCopy">複製紀錄</button><button class="btn small ghost" id="btnShowImport">匯入紀錄</button></div>
+      <div id="importBox" style="display:none;margin-top:8px"><textarea id="importText" rows="4" placeholder="把之前複製的紀錄貼在這裡"></textarea><button class="btn small" id="btnImport" style="margin-top:6px">確認匯入</button></div>
+    </div>
+  </section>
+
+  <!-- 設定 -->
+  <section class="view" id="v-set">
+    <h1>設定</h1>
+    <div class="card">
+      <h2>運動中練英語</h2>
+      <div class="switch"><span>英語練習模式（手機完全安靜，只靠手環震動）</span><input type="checkbox" id="sQuiet"></div>
+      <p class="sub" style="margin-top:6px">開啟後：不播語音、不放提示音，只播一條聽不到的保持音讓 App 在背景繼續計時；每換一段由手環震動並顯示內容。英語記事本可以照常錄音。</p>
+      <label for="sLang">語音提示語言（未開安靜模式時）</label>
+      <select id="sLang"><option value="zh">中文</option><option value="en">English（順便練聽力）</option></select>
+    </div>
+    <div class="card">
+      <label for="sLevel" style="margin-top:0">目前等級</label>
+      <select id="sLevel"><option value="1">等級 1：走多跑少（入門）</option><option value="2">等級 2：走跑接近</option><option value="3">等級 3：跑多走少</option><option value="4">等級 4：以跑為主</option></select>
+      <label for="sTotal">預設每天總時間（分鐘，今天頁面可臨時更改）</label>
+      <select id="sTotal"><option>30</option><option>40</option><option>45</option><option>50</option><option selected>60</option><option>70</option><option>80</option><option>90</option></select>
+      <label for="sAge">年齡（用來估算心率範圍，可不填）</label>
+      <input id="sAge" type="number" inputmode="numeric" min="10" max="99" placeholder="例如 55">
+    </div>
+    <div class="card">
+      <div class="switch"><span>語音提示</span><input type="checkbox" id="sVoice" checked></div>
+      <div class="switch"><span>嗶聲倒數（最後 3 秒）</span><input type="checkbox" id="sBeep" checked></div>
+      <div class="switch"><span>震動提示（Android）</span><input type="checkbox" id="sVib" checked></div>
+      <div class="switch"><span>半程與最後 10 秒提醒</span><input type="checkbox" id="sMid" checked></div>
+      <label for="sRate">語音速度</label>
+      <select id="sRate"><option value="0.85">慢</option><option value="1" selected>正常</option><option value="1.15">快</option></select>
+      <button class="btn small ghost" id="btnTestVoice" style="margin-top:12px">測試語音</button>
+    </div>
+    <div class="card">
+      <h2>鎖螢幕＋小米手環提醒</h2>
+      <div class="switch"><span>背景模式（鎖螢幕也有提示音）</span><input type="checkbox" id="sBg" checked></div>
+      <div class="switch"><span>每段發通知（轉到手環震動）</span><input type="checkbox" id="sNotify" checked></div>
+      <label for="sLead">換段前先提醒</label>
+      <select id="sLead"><option value="0">不用，換段時提醒就好</option><option value="5">提前 5 秒（手環多震一次）</option><option value="10">提前 10 秒（手環多震一次）</option></select>
+      <p class="sub" id="nStatus" style="margin-top:8px"></p>
+      <div class="row" style="margin-top:8px;flex-wrap:wrap"><button class="btn small" id="btnPerm">允許通知</button><button class="btn small ghost" id="btnTestNotify">測試手環震動</button></div>
+      <h3>第一次使用請設定（小米手機）</h3>
+      <p class="sub">1. 用 Chrome 開啟 App 的 GitHub Pages 網址 → 右上選單「加到主畫面」，之後都從主畫面圖示開啟。</p>
+      <p class="sub">2. 手機「設定 → 應用程式 → Chrome → 省電策略」改成<b>無限制</b>，並開啟「自啟動」。</p>
+      <p class="sub">3. 「小米運動健康」App → 手環 → 應用通知 → 打開 <b>Chrome</b> 的通知轉發。</p>
+      <p class="sub">4. 回到這裡按「允許通知」，再按「測試手環震動」，10 秒內鎖螢幕。手環有震動就成功了。</p>
+      <div class="notice">背景模式會把整堂課做成一條音軌播放，並用音軌的時間來計時。手機播放音訊時，系統會讓 App 繼續運作，所以關閉螢幕後仍能準時發通知給手環。英語練習模式下音軌是靜音的。提示音：快走一長聲、慢跑兩聲、快跑急促三聲，換段前 3 秒嗶聲倒數。運動時請不要同時開音樂 App。</div>
+    </div>
+  </section>
+</div>
+
+<nav>
+  <button class="on" data-v="today"><svg viewBox="0 0 24 24"><path d="M3 18c3-1 4-6 7-6s3 4 6 4 3-6 5-8"/><circle cx="5" cy="5" r="1.6"/></svg>今天</button>
+  <button data-v="method"><svg viewBox="0 0 24 24"><path d="M4 5h6a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H4z"/><path d="M20 5h-6a3 3 0 0 0-1 .2"/><path d="M20 5v13h-7"/></svg>方法</button>
+  <button data-v="log"><svg viewBox="0 0 24 24"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M21 20H3"/></svg>紀錄</button>
+  <button data-v="set"><svg viewBox="0 0 24 24"><path d="M4 7h10"/><path d="M18 7h2"/><circle cx="16" cy="7" r="2"/><path d="M4 17h4"/><path d="M12 17h8"/><circle cx="10" cy="17" r="2"/></svg>設定</button>
+</nav>
+
+<!-- 計時畫面 -->
+<div id="runner">
+  <div class="r-top"><span id="rWorkout"></span><span class="num" id="rElapsed"></span></div>
+  <div class="r-prof"><svg id="rProfile" viewBox="0 0 1000 120" preserveAspectRatio="none" aria-hidden="true"></svg><div id="rDone"></div><div id="rMarker"></div></div>
+  <div class="r-main">
+    <div id="rName">快走</div>
+    <div id="rRep"></div>
+    <div id="rTime">00:00</div>
+    <div id="rTalk"></div>
+    <div id="rHr"></div>
+  </div>
+  <div id="rNext"></div>
+  <div id="rMode"></div>
+  <div class="ctrl">
+    <button id="bStop">結束</button>
+    <button id="bPause" class="main">暫停</button>
+    <button id="bSkip">下一段</button>
+  </div>
+</div>
+
+<!-- 完成畫面 -->
+<div id="finish"><div class="wrap">
+  <h1 id="fTitle">訓練完成 🎉</h1>
+  <div class="card" id="fSummary"></div>
+  <div class="card">
+    <h2>整體費力程度（RPE）</h2>
+    <p class="sub">1＝非常輕鬆，5＝有點累，7＝很吃力，10＝用盡全力</p>
+    <div class="rpe" id="fRpe"></div>
+    <h3>身體感覺</h3>
+    <div class="chips" id="fFeel"></div>
+    <label for="fNote">備註</label>
+    <textarea id="fNote" rows="2" placeholder="例如：天氣熱、第 3 組開始很喘…"></textarea>
+  </div>
+  <button class="btn" id="fSave">儲存紀錄</button>
+  <button class="btn gray" id="fDiscard" style="margin-top:10px">不儲存</button>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- 儲存 ---------- */
+const store={
+  get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+const defaults={level:1,total:60,age:'',voice:true,beep:true,vib:true,mid:true,rate:1,bg:true,notify:true,quiet:false,lang:'zh',lead:0};
+let S=Object.assign({},defaults,store.get('iw_settings',{}));
+let H=store.get('iw_history',[]);
+const saveS=()=>store.set('iw_settings',S);
+const saveH=()=>store.set('iw_history',H);
+
+/* ---------- 動作類型 ---------- */
+const T={
+  warm:{name:'暖身快走',color:'#8AAFC2',lv:1,rpe:'3',talk:'可以輕鬆聊天',hr:[50,65]},
+  walk:{name:'快走',color:'#7FB08A',lv:2,rpe:'4–5',talk:'可以說話、微喘',hr:[60,70]},
+  jog:{name:'慢跑',color:'#E2A63B',lv:3,rpe:'5–6',talk:'能說完整句子',hr:[70,80]},
+  tempo:{name:'節奏跑',color:'#DE7A34',lv:4,rpe:'6–7',talk:'只能說短句',hr:[80,88],light:true},
+  run:{name:'快跑',color:'#C9432F',lv:5,rpe:'7–8',talk:'只能說幾個字',hr:[88,95],light:true},
+  hill:{name:'上坡跑',color:'#A6372A',lv:5,rpe:'8',talk:'步幅小、手臂用力擺',hr:[85,95],light:true},
+  rec:{name:'恢復走',color:'#8AAFC2',lv:1,rpe:'2–3',talk:'放鬆、深呼吸',hr:[50,65]},
+  cool:{name:'收操緩走',color:'#A3B3AD',lv:1,rpe:'2',talk:'慢慢走，之後伸展',hr:[45,60]}
+};
+const HARD=['run','hill','tempo'];
+
+/* ---------- 課表 ---------- */
+const seg=(t,s,label)=>({t,s,label});
+let blkId=1;
+function reps(n,pair,repType){ // pair: [[type,sec],...]
+  const out=[];
+  for(let i=1;i<=n;i++) pair.forEach(([t,s])=>{const g=seg(t,s); g.blk=blkId; g.c=i; g.n=n; if(t===repType){g.rep=i;g.of=n} out.push(g)});
+  blkId++;
+  return out;
+}
+/* 間歇課表的參數：每段組合、每個等級的標準組數 */
+const IV={
+  n44:L=>({unit:[['run',[120,180,240,240][L-1]],['rec',180]],rep:'run',n:[4,4,4,5][L-1],max:6,min:3}),
+  tempo:L=>({unit:[['tempo',[240,360,480,600][L-1]],['walk',120]],rep:'tempo',n:[4,4,4,3][L-1],max:Math.min(6,Math.floor(2400/[240,360,480,600][L-1])),min:3}), // 節奏跑總量上限 40 分鐘
+  hill:L=>({unit:[['hill',[30,45,60,60][L-1]],['rec',[90,90,120,120][L-1],'走下坡恢復']],rep:'hill',n:[6,8,8,10][L-1],max:12,min:4}),
+  short:L=>({unit:[['run',[20,30,30,30][L-1]],[['walk','walk','walk','jog'][L-1],[70,60,45,30][L-1]]],rep:'run',n:[10,12,8,10][L-1],sets:[1,1,2,2][L-1],max:16,min:6})
+};
+function unitSegs(n,unit,rep,set){
+  const out=reps(n,unit.map(u=>[u[0],u[1]]),rep);
+  out.forEach(g=>{const u=unit.find(x=>x[0]===g.t&&x[2]);if(u)g.label=u[2];if(set&&g.rep)g.set=set});
+  return out;
+}
+/* 依可用時間安排間歇：時間長→多 1–2 組；時間短→先減組數，還不夠就縮短每段快跑（用較低等級的長度） */
+function fitIntervals(key,L,avail,long){
+  for(let l=L;l>=1;l--){
+    const sp=IV[key](l);const u=sum(sp.unit.map(x=>({s:x[1]})));
+    if(sp.sets&&sp.sets>1||key==='short'){
+      const baseSets=(sp.sets||1)+(long?1:0);
+      for(let k=baseSets;k>=1;k--){
+        if(k*sp.n*u+(k-1)*180<=avail){let out=[];for(let j=1;j<=k;j++){if(j>1)out.push(seg('rec',180,'組間休息'));out=out.concat(unitSegs(sp.n,sp.unit,sp.rep,k>1?j:0))}return {segs:out,lvl:l}}
+      }
+      const n=Math.floor(avail/u);if(n>=sp.min)return {segs:unitSegs(n,sp.unit,sp.rep),lvl:l};
+      continue;
+    }
+    const target=Math.min(sp.max,sp.n+(long?(key==='n44'?1:2):0));
+    const n=Math.min(target,Math.floor(avail/u));
+    if(n>=Math.min(sp.min,sp.n))return {segs:unitSegs(n,sp.unit,sp.rep),lvl:l};
+  }
+  const sp=IV[key](1);const u=sum(sp.unit.map(x=>({s:x[1]})));
+  return {segs:unitSegs(Math.max(1,Math.floor(avail/u)),sp.unit,sp.rep),lvl:1,tight:true};
+}
+const EASY_P=[[240,60],[180,120],[120,180],[60,240]];
+
+const W={
+  easy:{name:'輕鬆走跑',level:'低',
+    goal:'累積有氧基礎，讓腿和心肺適應跑步，同時是高強度日之間的恢復。',
+    build(L,avail){const p=EASY_P[L-1];const n=Math.max(1,Math.floor(avail/300));return {segs:reps(n,[['walk',p[0]],['jog',p[1]]],'jog')}}},
+  n44:{name:'挪威式 4×4 間歇',level:'高',hard:true,
+    goal:'在接近最大攝氧量的強度累積時間，是提升心肺能力最有研究支持的間歇模式。'},
+  rest:{name:'恢復快走',level:'很低',
+    goal:'促進血液循環、幫助恢復；強度保持在能輕鬆說話。',
+    build(L,avail){return {segs:[seg('walk',avail,'輕鬆快走')]}}},
+  tempo:{name:'節奏閾值間歇',level:'中高',hard:true,
+    goal:'訓練乳酸閾值，讓「能長時間維持的配速」變快、變輕鬆。'},
+  short:{name:'短間歇 30/30',level:'高',hard:true,
+    goal:'短快段讓你在高強度停留更久卻不會太早力竭，同時改善跑步經濟性。'},
+  hill:{name:'坡道衝刺',level:'高',hard:true,
+    goal:'上坡增加腿部力量與爆發力，衝擊比平地快跑小。找公園內的緩坡或步道。'},
+  fartlek:{name:'自由變速（法特雷克）',level:'中',
+    goal:'不同速度自由穿插，訓練轉換節奏的能力，也比較有趣。',
+    build(L,avail){
+      const p=[[['walk',120],['jog',90],['walk',60],['run',30]],[['jog',120],['walk',60],['run',45],['walk',75]],[['jog',180],['run',60],['walk',60]],[['jog',180],['run',90],['jog',60],['walk',30]]][L-1];
+      const per=p.reduce((s,x)=>s+x[1],0);
+      return {segs:reps(Math.max(1,Math.floor(avail/per)),p,'run')}}}
+};
+const WEEK=['fartlek','easy','n44','rest','tempo','easy',null]; // 0=日
+
+function isoWeek(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-day);const y=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-y)/864e5+1)/7)}
+function planFor(d){const k=WEEK[d.getDay()];return k||(isoWeek(d)%2?'short':'hill')}
+
+/* 暖身與收操也依總時間伸縮 */
+function phases(totalMin,hard){
+  if(totalMin<=25)return {warm:hard?[seg('warm',180),seg('jog',60,'暖身慢跑')]:[seg('warm',180)],cool:[seg('cool',180)]};
+  if(totalMin<=40)return {warm:hard?[seg('warm',300),seg('jog',60,'暖身慢跑')]:[seg('warm',240)],cool:[seg('cool',240)]};
+  return {warm:hard?[seg('warm',480),seg('jog',120,'暖身慢跑')]:[seg('warm',300)],cool:[seg('cool',360)]};
+}
+function compose(key,L,totalMin){
+  const w=W[key];const total=totalMin*60;
+  const ph=phases(totalMin,!!w.hard);
+  const avail=Math.max(120,total-sum(ph.warm)-sum(ph.cool));
+  const r=w.hard?fitIntervals(key,L,avail,totalMin>=75):w.build(L,avail);
+  let segs=ph.warm.concat(r.segs);
+  let left=avail-sum(r.segs);
+  if(w.hard&&left>=300){const p=EASY_P[L-1];const n=Math.floor(left/300);segs=segs.concat(reps(n,[['walk',p[0]],['jog',p[1]]],'jog'));left-=n*300}
+  if(left>=60)segs.push(seg('walk',Math.round(left/30)*30,'快走（補足時間）'));
+  segs=segs.concat(ph.cool);
+  segs.info={lvl:r.lvl||L,tight:!!r.tight,hardSec:segs.filter(g=>HARD.includes(g.t)).reduce((s,g)=>s+g.s,0)};
+  return segs;
+}
+function sum(a){return a.reduce((s,g)=>s+g.s,0)}
+
+/* ---------- 工具 ---------- */
+const $=id=>document.getElementById(id);
+const mmss=s=>{s=Math.max(0,Math.ceil(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
+function durText(s){const m=Math.floor(s/60),r=s%60;if(!m)return r+'秒';return m+'分鐘'+(r?r+'秒':'')}
+const DAYS=['日','一','二','三','四','五','六'];
+function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(toast._t);toast._t=setTimeout(()=>e.classList.remove('on'),2200)}
+function hrText(t){const a=parseInt(S.age,10);if(!a||a<10||a>99)return '';const m=208-0.7*a;const r=T[t].hr;return '心率約 '+Math.round(m*r[0]/100)+'–'+Math.round(m*r[1]/100)+' 下/分'}
+function segName(g){return g.label||T[g.t].name}
+function mmssShort(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+
+/* ---------- 今天 ---------- */
+let chosen=null,todayMin=null;
+const MIN_CHIPS=[20,30,40,50,60,75,90];
+function profileSVG(segs,mono){
+  const tot=sum(segs);let x=0,out='';
+  segs.forEach(g=>{const w=g.s/tot*1000;const h=12+T[g.t].lv*21;
+    out+='<rect x="'+x.toFixed(2)+'" y="'+(120-h)+'" width="'+Math.max(.6,w-1.2).toFixed(2)+'" height="'+h+'" rx="2.5" fill="'+(mono?'currentColor':T[g.t].color)+'"/>';x+=w});
+  return out;
+}
+function peakType(key){const s=compose(key,S.level,S.total);let b='walk';s.forEach(g=>{if(T[g.t].lv>T[b].lv)b=g.t});return b}
+function renderToday(){
+  const now=new Date();
+  $('todayDate').textContent=(now.getMonth()+1)+'月'+now.getDate()+'日・星期'+DAYS[now.getDay()];
+  $('levelTag').textContent='等級 '+S.level;
+  const key=chosen||planFor(now);
+  const mins=todayMin||S.total;
+  const segs=compose(key,S.level,mins);const tot=sum(segs);const inf=segs.info;
+  $('tKind').textContent=(chosen&&chosen!==planFor(now))?'自選課表':'今天練';
+  $('tName').textContent=W[key].name;
+  $('tGoal').textContent=W[key].goal;
+  $('tProfile').innerHTML=profileSVG(segs);
+  const tm=Math.round(tot/60),step=tm<=30?5:tm<=60?10:15;let ax='';for(let m=0;m<=tm;m+=step)ax+='<span>'+m+'</span>';
+  $('tAxis').innerHTML=ax+(tm%step?'<span>'+tm+'</span>':'');
+  const used=[...new Set(segs.map(g=>g.t))].sort((a,b)=>T[a].lv-T[b].lv);
+  $('tLegend').innerHTML=used.map(t=>'<span style="--c:'+T[t].color+'">'+T[t].name+'</span>').join('');
+  const repN=segs.filter(g=>g.rep).length;
+  $('tStats').innerHTML='<div><b>'+tm+'</b><span>總分鐘</span></div><div><b>'+(inf.hardSec?Math.round(inf.hardSec/60*10)/10:0)+'</b><span>快段分鐘</span></div><div><b>'+(repN||'—')+'</b><span>'+(W[key].hard?'快段組數':'跑段次數')+'</span></div>';
+  $('minChips').innerHTML=MIN_CHIPS.map(m=>'<button data-min="'+m+'" class="'+(m===mins?'on':'')+'" aria-pressed="'+(m===mins)+'">'+m+'</button>').join('')+'<button data-min="custom" class="custom'+(MIN_CHIPS.includes(mins)?'':' on')+'">'+(MIN_CHIPS.includes(mins)?'自訂':mins+' 分')+'</button>';
+  let note='';
+  if(inf.lvl<S.level)note='<div class="notice warn">時間較短，快段改用等級 '+inf.lvl+' 的長度，保留足夠組數。</div>';
+  if(inf.tight)note='<div class="notice warn">時間太短，間歇只排得下 1–2 組。建議今天改做「短間歇 30/30」或「輕鬆走跑」。</div>';
+  $('tNote').innerHTML=note;
+  $('btnStart').innerHTML='開始 <span class="num">'+tm+'</span> 分鐘';
+  $('btnStart').onclick=()=>startRun(key,segs);
+  $('tList').innerHTML=collapse(segs).map(r=>'<div><span><span class="dot" style="background:'+T[r.t].color+'"></span>'+r.text+'</span><span class="d">'+r.dur+'</span></div>').join('');
+  // 本週
+  const start=new Date(now);start.setDate(now.getDate()-((now.getDay()+6)%7));
+  let html='',doneN=0;
+  for(let i=0;i<7;i++){const d=new Date(start);d.setDate(start.getDate()+i);const k=planFor(d);
+    const done=H.some(h=>h.date===ymd(d));if(done)doneN++;
+    html+='<div class="d'+(ymd(d)===ymd(now)?' today':'')+'">'+DAYS[d.getDay()]+'<div class="c" style="--c:'+T[peakType(k)].color+'">'+(done?'✓':'')+'</div><div class="k">'+short(k)+'</div></div>'}
+  $('weekGrid').innerHTML=html;$('weekCount').textContent='已完成 '+doneN+' 天';
+  const sel=$('pickWorkout');
+  sel.innerHTML=Object.keys(W).map(k=>'<option value="'+k+'"'+(k===key?' selected':'')+'>'+W[k].name+(k===planFor(now)?'（今天建議）':'')+'</option>').join('');
+  renderSuggest();
+}
+$('minChips').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.min==='custom'){$('customMin').style.display='flex';$('customMinInput').focus();return}
+  todayMin=+b.dataset.min;$('customMin').style.display='none';renderToday()};
+$('customMinOk').onclick=()=>{const v=parseInt($('customMinInput').value,10);if(!(v>=15&&v<=150)){toast('請輸入 15–150 分鐘');return}todayMin=v;$('customMin').style.display='none';renderToday()};
+$('levelTag').onclick=()=>{location.hash='set'};
+function short(k){return {easy:'走跑',n44:'4×4',rest:'恢復',tempo:'節奏',short:'30/30',hill:'坡道',fartlek:'變速'}[k]}
+function collapse(segs){ // 把重複組合併成「× n」
+  const out=[];let i=0;
+  while(i<segs.length){const g=segs[i];
+    if(g.blk){let j=i;while(j<segs.length&&segs[j].blk===g.blk)j++;
+      const per=segs.slice(i,j);const pat=per.filter(p=>p.c===1);const main=pat.find(p=>p.rep)||pat[0];
+      out.push({t:main.t,text:pat.map(p=>segName(p)+' '+durText(p.s)).join(' ＋ ')+' × '+g.n,dur:mmssShort(sum(per))});
+      i=j;continue}
+    out.push({t:g.t,text:segName(g),dur:mmssShort(g.s)});i++}
+  return out;
+}
+
+/* ---------- 升級建議 ---------- */
+function renderSuggest(){
+  const box=$('suggestBox');const since=Date.now()-14*864e5;
+  const hard=H.filter(h=>['n44','short','tempo','hill'].includes(h.key)&&h.level===S.level&&h.ts>=since&&h.completed);
+  const recentHard=H.filter(h=>['n44','short','tempo','hill'].includes(h.key)).slice(-2);
+  const pain=H.slice(-3).some(h=>(h.feel||[]).includes('有疼痛'));
+  let msg='';
+  if(pain) msg='<div class="notice warn">最近有記錄到<b>疼痛</b>。建議這幾天以恢復快走為主，疼痛消失前不要做高強度日。</div>';
+  else if(recentHard.length===2&&recentHard.every(h=>h.rpe>=9)) msg='<div class="notice warn">最近兩次高強度日 RPE 都在 9 以上，負荷偏重。建議維持等級，或在設定裡降一級。</div>';
+  else if(S.level<4&&hard.length>=4){const avg=hard.reduce((s,h)=>s+(h.rpe||0),0)/hard.length;
+    if(avg<=7) msg='<div class="notice">👏 近兩週高強度日完成 '+hard.length+' 次，平均 RPE '+avg.toFixed(1)+'。可以升到<b>等級 '+(S.level+1)+'</b> 了。<div style="margin-top:8px"><button class="btn small" id="btnUp">升級</button></div></div>'}
+  box.innerHTML=msg;
+  const b=$('btnUp');if(b)b.onclick=()=>{S.level++;saveS();syncSettings();renderToday();toast('已升到等級 '+S.level)};
+}
+
+/* ---------- 聲音 / 語音 ---------- */
+let AC=null;
+function beep(f=880,ms=150,vol=.25){if(!S.beep||S.quiet)return;try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.frequency.value=f;o.type='sine';g.gain.value=vol;o.connect(g);g.connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+ms/1000);o.stop(AC.currentTime+ms/1000+.02)}catch(e){}}
+let zhVoice=null,enVoice=null;
+function pickVoice(){try{const vs=speechSynthesis.getVoices();zhVoice=vs.find(v=>/zh[-_]TW/i.test(v.lang))||vs.find(v=>/zh[-_]HK/i.test(v.lang))||vs.find(v=>/^zh/i.test(v.lang))||null;enVoice=vs.find(v=>/en[-_]US/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang))||null}catch(e){}}
+try{pickVoice();speechSynthesis.onvoiceschanged=pickVoice}catch(e){}
+function say(t,en){if(!S.voice||S.quiet)return;const E=S.lang==='en';if(E&&en)t=en;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);const v=E&&en?enVoice:zhVoice;u.lang=v?v.lang:(E&&en?'en-US':'zh-TW');if(v)u.voice=v;u.rate=+S.rate;speechSynthesis.speak(u)}catch(e){}}
+/* 英文提示（運動中順便練英語） */
+const EN={warm:['Warm-up walk','You can chat easily'],walk:['Brisk walk','You can talk, slightly out of breath'],jog:['Jog','You can speak in full sentences'],tempo:['Tempo run','Only short phrases'],run:['Fast run','Only a few words'],hill:['Hill run','Short steps, drive your arms'],rec:['Recovery walk','Relax and breathe deeply'],cool:['Cool-down walk','Walk slowly, then stretch']};
+const EN_LABEL={'暖身慢跑':'Warm-up jog','快走（補足時間）':'Brisk walk','輕鬆快走':'Easy brisk walk','組間休息':'Rest between sets','走下坡恢復':'Walk back down'};
+function nameEn(g){return (g.label&&EN_LABEL[g.label])||EN[g.t][0]}
+function durEn(s){const m=Math.floor(s/60),r=s%60;const ms=m?(m+(m>1?' minutes':' minute')):'';const rs=r?(r+' seconds'):'';return [ms,rs].filter(Boolean).join(' ')}
+function vib(p){if(S.vib&&navigator.vibrate)try{navigator.vibrate(p)}catch(e){}}
+
+/* ---------- 防止螢幕休眠 ---------- */
+let lock=null;
+async function keepAwake(){try{if('wakeLock' in navigator){lock=await navigator.wakeLock.request('screen')}}catch(e){}}
+function releaseAwake(){try{lock&&lock.release()}catch(e){}lock=null}
+document.addEventListener('visibilitychange',()=>{if(R&&!R.paused&&document.visibilityState==='visible')keepAwake()});
+
+/* ---------- 背景音軌：把整堂課的提示音做成一條音訊 ---------- */
+const CUE={
+  warm:[[0,660,.7]], walk:[[0,660,.7]],
+  jog:[[0,780,.18],[.3,780,.18]],
+  tempo:[[0,900,.15],[.25,900,.15],[.5,900,.15]],
+  run:[[0,1100,.12],[.18,1100,.12],[.36,1100,.12],[.6,1320,.4]],
+  hill:[[0,1100,.12],[.18,1100,.12],[.36,1100,.12],[.6,1320,.4]],
+  rec:[[0,700,.3],[.35,500,.5]], cool:[[0,700,.3],[.35,500,.5]]
+};
+function buildTrack(segs,silent){
+  const SR=8000,total=sum(segs),N=Math.ceil((total+2)*SR);
+  const buf=new ArrayBuffer(44+N*2),dv=new DataView(buf);
+  const w=(o,s)=>{for(let i=0;i<s.length;i++)dv.setUint8(o+i,s.charCodeAt(i))};
+  w(0,'RIFF');dv.setUint32(4,36+N*2,true);w(8,'WAVE');w(12,'fmt ');dv.setUint32(16,16,true);dv.setUint16(20,1,true);dv.setUint16(22,1,true);
+  dv.setUint32(24,SR,true);dv.setUint32(28,SR*2,true);dv.setUint16(32,2,true);dv.setUint16(34,16,true);w(36,'data');dv.setUint32(40,N*2,true);
+  const pcm=new Int16Array(buf,44,N);
+  // 極小聲的底音（幾乎聽不到），讓手機認定「正在播放音訊」而不暫停 App
+  const tbl=new Int16Array(50);for(let i=0;i<50;i++)tbl[i]=Math.round(40*Math.sin(2*Math.PI*i/50));
+  for(let i=0;i<N;i++)pcm[i]=tbl[i%50];
+  const tone=(t,f,d,a=12000)=>{const s0=Math.floor(t*SR),n=Math.floor(d*SR),fd=Math.floor(.006*SR);
+    for(let i=0;i<n&&s0+i<N;i++){if(s0+i<0)continue;let e=1;if(i<fd)e=i/fd;else if(i>n-fd)e=(n-i)/fd;pcm[s0+i]=Math.round(a*e*Math.sin(2*Math.PI*f*i/SR))}};
+  let st=0;
+  if(silent)return URL.createObjectURL(new Blob([buf],{type:'audio/wav'}));
+  segs.forEach((g,i)=>{
+    if(i>0){tone(st-3,880,.12,9000);tone(st-2,880,.12,9000);tone(st-1,880,.12,9000)}
+    (CUE[g.t]||CUE.walk).forEach(([o,f,d])=>tone(st+o+(i===0?.3:0),f,d));
+    st+=g.s;
+  });
+  tone(st-3,880,.12,9000);tone(st-2,880,.12,9000);tone(st-1,880,.12,9000);
+  tone(st,784,.2);tone(st+.25,988,.2);tone(st+.5,1175,.5);
+  return URL.createObjectURL(new Blob([buf],{type:'audio/wav'}));
+}
+
+/* ---------- 通知（轉到小米手環） ---------- */
+let swReg=null;
+if('serviceWorker' in navigator){try{navigator.serviceWorker.register('sw.js').then(r=>{swReg=r;renderNotifyStatus()}).catch(()=>renderNotifyStatus())}catch(e){}}
+function notifySupported(){return 'Notification' in window}
+async function notify(title,body){
+  if(!S.notify||!notifySupported()||Notification.permission!=='granted')return;
+  const opt={body,tag:'iw-seg',renotify:true,vibrate:[400,150,400],silent:false,icon:'icon-192.png',badge:'icon-192.png'};
+  try{const reg=swReg||(navigator.serviceWorker&&await navigator.serviceWorker.getRegistration());
+    if(reg){await reg.showNotification(title,opt);return}}catch(e){}
+  try{new Notification(title,opt)}catch(e){}
+}
+function renderNotifyStatus(){
+  const el=$('nStatus');if(!el)return;
+  if(!notifySupported()){el.textContent='這個瀏覽器不支援通知。';return}
+  const p=Notification.permission;
+  el.textContent=p==='granted'?(swReg?'✅ 已允許通知':'✅ 已允許通知（若手環收不到，請用 GitHub Pages 網址開啟）'):p==='denied'?'❌ 通知被封鎖，請到手機設定 → 應用 → Chrome → 通知 開啟':'尚未允許通知';
+}
+
+/* ---------- 計時器（背景模式以音軌時間為準） ---------- */
+let R=null;
+
+function startRun(key,segs){
+  try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();AC.resume&&AC.resume()}catch(e){}
+  try{speechSynthesis.cancel();speechSynthesis.speak(new SpeechSynthesisUtterance(''))}catch(e){}
+  const starts=[];let acc=0;segs.forEach(g=>{starts.push(acc);acc+=g.s});
+  R={key,segs,starts,total:acc,idx:-1,mode:'clock',t0:Date.now(),pausedAcc:0,paused:false,pauseAt:0,offset:0,skipped:0,cues:{},done:false};
+  if(S.bg){
+    try{
+      const url=buildTrack(segs,S.quiet);const a=new Audio(url);a.preload='auto';
+      R.audio=a;R.url=url;R.mode='audio';
+      a.addEventListener('ended',()=>{if(R&&!R.done)finishRun(true)});
+      a.addEventListener('timeupdate',()=>tick()); // 媒體事件在背景不像計時器那樣被降速
+      a.addEventListener('pause',()=>{ // 被別的 App（例如英語記事本播例句）暫停：讓出播放權，改用時鐘繼續計時
+        if(!R||R.done||R.paused||R.selfPause||a.ended||a.currentTime>=R.total-.5||R.mode!=='audio')return;
+        yieldAudio();
+      });
+      const p=a.play();
+      if(p&&p.catch)p.catch(()=>{if(R){R.mode='clock';R.t0=Date.now();toast('無法播放背景音軌，改用一般模式（請保持螢幕亮著）')}});
+      setupMediaSession();
+    }catch(e){R.mode='clock'}
+  }
+  $('rWorkout').textContent=W[key].name;
+  $('rMode').textContent=S.quiet?'英語練習模式：手機靜音，換段由手環震動':(R.mode==='audio'?'背景模式：可以關閉螢幕':'請保持螢幕亮著');
+  $('rProfile').innerHTML=profileSVG(segs,true);
+  $('runner').classList.add('on');$('runner').classList.remove('paused');$('bPause').textContent='暫停';document.body.style.overflow='hidden';
+  keepAwake();R.timer=setInterval(tick,250);tick();
+}
+function yieldAudio(){
+  const t=R.audio.currentTime;R.mode='clock';R.yielded=true;R.t0=Date.now();R.pausedAcc=0;R.offset=t;
+  $('rMode').innerHTML='其他 App 正在播放，已讓出聲音（計時照常）<br><button id="bReclaim" style="margin-top:6px;border:1.5px solid currentColor;background:none;color:inherit;border-radius:14px;padding:4px 12px;font-size:13px">例句播完了，接回背景音軌</button>';
+  const b=$('bReclaim');if(b)b.onclick=reclaimAudio;
+}
+function reclaimAudio(){ // 回到間歇 App 畫面時，才把音軌接回來
+  if(!R||R.done||R.paused||!R.yielded||!R.audio)return;
+  const t=pos();if(t>=R.total)return;
+  try{R.audio.currentTime=t;const q=R.audio.play();
+    if(q&&q.then)q.then(()=>{R.mode='audio';R.yielded=false;$('rMode').textContent=S.quiet?'英語練習模式：手機靜音，換段由手環震動':'背景模式：可以關閉螢幕'}).catch(()=>{})}catch(e){}
+}
+function pos(){
+  if(!R)return 0;
+  if(R.mode==='audio'&&R.audio)return R.audio.currentTime;
+  const now=R.paused?R.pauseAt:Date.now();
+  return (now-R.t0-R.pausedAcc)/1000+R.offset;
+}
+function segIndexAt(p){let i=0;while(i+1<R.starts.length&&R.starts[i+1]<=p)i++;return i}
+function setupMediaSession(){
+  if(!('mediaSession' in navigator))return;
+  try{
+    navigator.mediaSession.setActionHandler('pause',()=>togglePause(true));
+    navigator.mediaSession.setActionHandler('play',()=>togglePause(false));
+    navigator.mediaSession.setActionHandler('nexttrack',()=>skip());
+  }catch(e){}
+}
+function updateMedia(g){
+  if(!('mediaSession' in navigator)||!window.MediaMetadata)return;
+  try{navigator.mediaSession.metadata=new MediaMetadata({title:segName(g)+' '+durText(g.s)+(g.rep?'（'+g.rep+'/'+g.of+'）':''),artist:'間歇快走慢跑教練',album:W[R.key].name})}catch(e){}
+}
+function enterSeg(){
+  const g=R.segs[R.idx];R.cues={};
+  const t=T[g.t];const first=R.idx===0;
+  const rn=$('runner');rn.style.background=t.color;rn.style.setProperty('--bgc',t.color);rn.classList.toggle('light',!!t.light);
+  try{document.querySelector('meta[name=theme-color]').setAttribute('content',t.color)}catch(e){}
+  $('rName').textContent=segName(g);
+  $('rRep').textContent=g.rep?('第 '+g.rep+' / '+g.of+' 組'+(g.set?'（第'+g.set+'大組）':'')):'';
+  $('rTalk').textContent='RPE '+t.rpe+'｜'+t.talk;
+  $('rHr').textContent=hrText(g.t);
+  const n=R.segs[R.idx+1];
+  const nextTxt=n?('接著：'+segName(n)+' '+durText(n.s)):'這是最後一段';
+  $('rNext').innerHTML=n?('<span>接著　'+segName(n)+'</span><span class="num">'+mmssShort(n.s)+'</span>'):'<span>最後一段，加油</span><span>🎉</span>';
+  let msg=(first?'開始訓練。':'')+segName(g)+'，'+durText(g.s)+'。';
+  if(g.rep)msg+='第'+g.rep+'組，共'+g.of+'組。';
+  msg+=t.talk;
+  let en=(first?"Let's start. ":'')+nameEn(g)+', '+durEn(g.s)+'. '+(g.rep?'Set '+g.rep+' of '+g.of+'. ':'')+EN[g.t][1]+'.';
+  say(msg,en);
+  vib(HARD.includes(g.t)?[200,100,200,100,200]:[300]);
+  if(R.mode!=='audio')beep(HARD.includes(g.t)?1046:660,300);
+  const icon={warm:'🚶',walk:'🚶',jog:'🏃',tempo:'🏃‍♂️',run:'⚡',hill:'⛰️',rec:'😮‍💨',cool:'🧘'}[g.t]||'⏱️';
+  notify(icon+' '+segName(g)+' '+durText(g.s)+(g.rep?' · 第'+g.rep+'/'+g.of+'組':''),'RPE '+t.rpe+'｜'+t.talk+'\n'+nextTxt);
+  updateMedia(g);
+}
+function tick(){
+  if(!R||R.done)return;
+  const p=pos();
+  if(p>=R.total){finishRun(true);return}
+  const i=segIndexAt(p);
+  if(i!==R.idx){R.idx=i;enterSeg()}
+  if(R.paused)return;
+  const g=R.segs[R.idx];const rem=R.starts[R.idx]+g.s-p;
+  $('rTime').textContent=mmss(rem);
+  const done=p-R.skipped;
+  const pc=(p/R.total*100).toFixed(2)+'%';$('rDone').style.width=pc;$('rMarker').style.left=pc;
+  $('rElapsed').textContent=mmss(p)+' / '+mmss(R.total);
+  const c=R.cues;
+  const nx=R.segs[R.idx+1];
+  const nowT=Date.now(),gap=nowT-(R.lastTick||nowT);R.lastTick=nowT;
+  if(R.mode==='clock'&&document.visibilityState==='hidden'&&gap>4000&&nx&&rem<=75&&rem>3&&!c.approx&&!c.pre){c.approx=1;
+    notify('⏩ 約 '+Math.round(rem)+' 秒後：'+segName(nx)+' '+durText(nx.s),'App 在背景被降速，先提早提醒你')}
+  if(+S.lead>0&&nx&&rem<=+S.lead&&rem>1&&!c.pre){c.pre=1;
+    notify('⏩ '+Math.round(rem)+' 秒後：'+segName(nx)+' '+durText(nx.s),'RPE '+T[nx.t].rpe+'｜'+T[nx.t].talk);
+    say(Math.round(rem)+'秒後，'+segName(nx),'In '+Math.round(rem)+' seconds, '+nameEn(nx))}
+  if(S.mid&&g.s>=180&&rem<=g.s/2&&!c.half){c.half=1;say('一半了，再'+durText(Math.round(rem/30)*30||30),'Halfway. '+durEn(Math.round(rem/30)*30||30)+' to go.')}
+  if(S.mid&&g.s>=60&&HARD.includes(g.t)&&rem<=10.2&&rem>8&&!c.ten){c.ten=1;say('最後十秒','Last ten seconds')}
+  const sec=Math.ceil(rem);
+  if(R.mode!=='audio'&&sec<=3&&sec>=1&&!c['b'+sec]){c['b'+sec]=1;beep(880,120)}
+}
+function finishRun(completed){
+  if(!R||R.done)return;R.done=true;
+  clearInterval(R.timer);releaseAwake();
+  const p=Math.min(pos(),R.total);
+  if(R.audio){try{if(!completed)R.audio.pause();setTimeout(()=>{try{R&&R.audio&&R.audio.pause()}catch(e){}},2500)}catch(e){}}
+  R.result={completed,doneSec:Math.round(Math.max(0,(completed?R.total:p)-R.skipped))};
+  if(completed){say('訓練完成，做得好！記得伸展小腿和大腿。','Workout complete. Great job! Remember to stretch your calves and thighs.');vib([300,150,300,150,600]);if(R.mode!=='audio'){beep(784,200);setTimeout(()=>beep(1046,350),220)}
+    notify('🎉 訓練完成','做得好！記得伸展小腿和大腿。')}
+  $('runner').classList.remove('on');document.body.style.overflow='';
+  try{document.querySelector('meta[name=theme-color]').setAttribute('content','#183A32')}catch(e){}
+  showFinish();
+}
+function togglePause(force){
+  if(!R||R.done)return;
+  const want=force===undefined?!R.paused:force;
+  if(want===R.paused)return;
+  if(want){if(R.mode==='audio'&&R.audio){R.selfPause=true;try{R.audio.pause()}catch(e){}R.selfPause=false}R.paused=true;R.pauseAt=Date.now();
+    $('bPause').textContent='繼續';$('runner').classList.add('paused');say('暫停','Paused');releaseAwake()}
+  else{if(R.mode==='clock')R.pausedAcc+=Date.now()-R.pauseAt;R.paused=false;if(R.mode==='audio'&&R.audio){try{R.audio.play()}catch(e){}}else reclaimAudio();
+    $('bPause').textContent='暫停';$('runner').classList.remove('paused');say('繼續','Resume');keepAwake();tick()}
+}
+function skip(){
+  if(!R||R.done)return;
+  const p=pos();const i=segIndexAt(p);
+  if(i+1>=R.segs.length){finishRun(true);return}
+  const target=R.starts[i+1];R.skipped+=target-p;
+  if(R.mode==='audio'&&R.audio){try{R.audio.currentTime=target}catch(e){}}
+  else R.offset+=target-p;
+  tick();
+}
+$('bPause').onclick=()=>togglePause();
+$('bSkip').onclick=()=>skip();
+let stopArm=0;
+$('bStop').onclick=()=>{
+  if(!R)return;
+  if(Date.now()-stopArm<3000){stopArm=0;$('bStop').textContent='結束';finishRun(false);return}
+  stopArm=Date.now();$('bStop').textContent='再按一次';
+  setTimeout(()=>{if(stopArm&&Date.now()-stopArm>=2900){$('bStop').textContent='結束';stopArm=0}},3000);
+};
+
+/* ---------- 測試：鎖螢幕後手環會不會震動 ---------- */
+let testAudio=null;
+$('btnTestNotify').onclick=async()=>{
+  if(notifySupported()&&Notification.permission==='default'){try{await Notification.requestPermission()}catch(e){}renderNotifyStatus()}
+  if(!notifySupported()||Notification.permission!=='granted'){toast('請先允許通知');return}
+  try{const url=buildTrack([seg('walk',12)]);testAudio&&testAudio.pause();testAudio=new Audio(url);testAudio.play().catch(()=>{})}catch(e){}
+  toast('請在 10 秒內鎖上螢幕，等手環震動');
+  setTimeout(()=>{const o=S.notify;S.notify=true;notify('⚡ 測試：快跑 4分鐘','如果手環震動並顯示這則訊息，就設定成功了！');S.notify=o},10000);
+};
+$('btnPerm').onclick=async()=>{
+  if(!notifySupported()){toast('這個瀏覽器不支援通知');return}
+  try{await Notification.requestPermission()}catch(e){}
+  renderNotifyStatus();
+};
+
+/* ---------- 完成 / 記錄 ---------- */
+let F={rpe:0,feel:[]};
+const FEELS=['輕鬆','剛好','很累','很喘','腳痠','有疼痛','很有成就感'];
+function showFinish(){
+  F={rpe:0,feel:[]};
+  const r=R.result;
+  $('fTitle').textContent=r.completed?'訓練完成 🎉':'提前結束';
+  const hardSec=R.segs.slice(0,R.idx+1).filter(g=>HARD.includes(g.t)).reduce((s,g)=>s+g.s,0);
+  $('fSummary').innerHTML='<h2>'+W[R.key].name+'</h2><p>運動時間：<b>'+durText(r.doneSec)+'</b></p><p>中高強度段：約 <b>'+durText(Math.min(hardSec,r.doneSec))+'</b></p><p class="sub">等級 '+S.level+'</p>';
+  $('fRpe').innerHTML=Array.from({length:10},(_,i)=>'<button data-v="'+(i+1)+'">'+(i+1)+'</button>').join('');
+  $('fFeel').innerHTML=FEELS.map(f=>'<button data-v="'+f+'">'+f+'</button>').join('');
+  $('fNote').value='';
+  $('finish').classList.add('on');
+}
+$('fRpe').onclick=e=>{const b=e.target.closest('button');if(!b)return;F.rpe=+b.dataset.v;[...$('fRpe').children].forEach(x=>x.classList.toggle('on',x===b))};
+$('fFeel').onclick=e=>{const b=e.target.closest('button');if(!b)return;const v=b.dataset.v;const i=F.feel.indexOf(v);i<0?F.feel.push(v):F.feel.splice(i,1);b.classList.toggle('on')};
+$('fSave').onclick=()=>{
+  const d=new Date();
+  H.push({ts:Date.now(),date:ymd(d),key:R.key,name:W[R.key].name,level:S.level,sec:R.result.doneSec,completed:R.result.completed,rpe:F.rpe||null,feel:F.feel,note:$('fNote').value.trim()});
+  saveH();closeFinish();toast('已儲存');
+};
+$('fDiscard').onclick=closeFinish;
+function closeFinish(){$('finish').classList.remove('on');try{R&&R.url&&URL.revokeObjectURL(R.url)}catch(e){}R=null;chosen=null;todayMin=null;renderAll()}
+
+function renderLog(){
+  const now=new Date();const mon=new Date(now);mon.setHours(0,0,0,0);mon.setDate(now.getDate()-((now.getDay()+6)%7));
+  const wk=H.filter(h=>h.ts>=mon.getTime());
+  $('wkCount').textContent=wk.length;$('wkMin').textContent=Math.round(wk.reduce((s,h)=>s+h.sec,0)/60);
+  // 連續天數
+  const days=new Set(H.map(h=>h.date));let st=0;const d=new Date();if(!days.has(ymd(d)))d.setDate(d.getDate()-1);
+  while(days.has(ymd(d))){st++;d.setDate(d.getDate()-1)}
+  $('streak').textContent=st;
+  // 7 天
+  const arr=[];for(let i=6;i>=0;i--){const x=new Date();x.setDate(x.getDate()-i);const m=H.filter(h=>h.date===ymd(x)).reduce((s,h)=>s+h.sec,0)/60;arr.push({l:DAYS[x.getDay()],m})}
+  const mx=Math.max(60,...arr.map(a=>a.m));
+  $('bars').innerHTML=arr.map(a=>'<div class="b"><span>'+(a.m?Math.round(a.m):'')+'</span><i style="height:'+(a.m/mx*80)+'%"></i><span>'+a.l+'</span></div>').join('');
+  if(!H.length){$('histList').innerHTML='還沒有紀錄。完成第一次訓練後會出現在這裡。';return}
+  $('histList').innerHTML='<table><tr><th>日期</th><th>課表</th><th>分鐘</th><th>RPE</th><th></th></tr>'+
+    H.slice().reverse().slice(0,60).map(h=>'<tr><td>'+h.date.slice(5)+'</td><td>'+h.name+'<div class="sub">等級'+h.level+(h.completed?'':'・提前結束')+(h.feel&&h.feel.length?'・'+h.feel.join('、'):'')+(h.note?'<br>'+esc(h.note):'')+'</div></td><td>'+Math.round(h.sec/60)+'</td><td>'+(h.rpe||'–')+'</td><td><button class="btn small gray" data-del="'+h.ts+'">刪</button></td></tr>').join('')+'</table>';
+}
+function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+let delArm=null;
+$('histList').onclick=e=>{const b=e.target.closest('[data-del]');if(!b)return;const ts=+b.dataset.del;
+  if(delArm!==ts){delArm=ts;b.textContent='確定?';setTimeout(()=>{if(delArm===ts){delArm=null;b.textContent='刪'}},3000);return}
+  H=H.filter(h=>h.ts!==ts);saveH();delArm=null;renderAll()};
+$('btnCopy').onclick=async()=>{const t=JSON.stringify(H);try{await navigator.clipboard.writeText(t);toast('已複製 '+H.length+' 筆紀錄')}catch(e){$('importBox').style.display='block';$('importText').value=t;$('importText').select();toast('請手動複製文字框內容')}};
+$('btnShowImport').onclick=()=>{$('importBox').style.display='block';$('importText').value=''};
+$('btnImport').onclick=()=>{try{const a=JSON.parse($('importText').value);if(!Array.isArray(a))throw 0;const have=new Set(H.map(h=>h.ts));a.forEach(h=>{if(h&&h.ts&&!have.has(h.ts))H.push(h)});H.sort((x,y)=>x.ts-y.ts);saveH();renderAll();toast('匯入完成，共 '+H.length+' 筆');$('importBox').style.display='none'}catch(e){toast('格式不正確')}};
+
+/* ---------- 設定 ---------- */
+function syncSettings(){$('sLevel').value=S.level;$('sTotal').value=S.total;$('sAge').value=S.age;$('sVoice').checked=S.voice;$('sBeep').checked=S.beep;$('sVib').checked=S.vib;$('sMid').checked=S.mid;$('sBg').checked=S.bg;$('sNotify').checked=S.notify;$('sQuiet').checked=S.quiet;$('sLead').value=String(S.lead||0);$('sLang').value=S.lang;renderNotifyStatus();$('sRate').value=String(S.rate)}
+$('sLevel').onchange=e=>{S.level=+e.target.value;saveS();renderToday()};
+$('sTotal').onchange=e=>{S.total=+e.target.value;saveS();renderToday()};
+$('sAge').oninput=e=>{S.age=e.target.value;saveS()};
+$('sLang').onchange=e=>{S.lang=e.target.value;saveS()};
+$('sLead').onchange=e=>{S.lead=+e.target.value;saveS()};
+['Voice','Beep','Vib','Mid','Bg','Notify','Quiet'].forEach(k=>$('s'+k).onchange=e=>{S[k.toLowerCase()]=e.target.checked;saveS()});
+$('sRate').onchange=e=>{S.rate=+e.target.value;saveS()};
+$('btnTestVoice').onclick=()=>{const v=S.voice,q=S.quiet;S.voice=true;S.quiet=false;say('開始快跑，四分鐘。只能說幾個字。','Fast run, 4 minutes. Set 2 of 4. Only a few words.');S.voice=v;beep(880,150);S.quiet=q};
+$('pickWorkout').onchange=e=>{chosen=e.target.value;renderToday()};
+
+/* ---------- 導覽 ---------- */
+const VIEWS=['today','method','log','set'];
+function show(v){if(!VIEWS.includes(v))v='today';document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id==='v-'+v));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));if(v==='log')renderLog();window.scrollTo(0,0)}
+document.querySelector('nav').onclick=e=>{const b=e.target.closest('button');if(!b)return;const v=b.dataset.v;if(location.hash!=='#'+v)location.hash=v;else show(v)};
+window.addEventListener('hashchange',()=>show(location.hash.slice(1)));
+function renderAll(){renderToday();renderLog()}
+
+syncSettings();renderAll();show(location.hash.slice(1));
+})();
+</script>
+</body>
+</html>
