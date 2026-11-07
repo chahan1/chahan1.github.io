@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.14.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.15.0 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -628,7 +628,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.14.0</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.15.0</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1405,12 +1405,16 @@
 }
 （cefr 為這個單字／片語最常見意思的 CEFR 難易度：A1、A2、B1、B2、C1、C2 其中之一）
 ${ENRICH_RULES}
-（corrected_word：如果 "${cleanWord}" 拼錯了，或不是正確的英文寫法（例如片語的介系詞錯誤），請填正確寫法，並且 definition、sentence 等全部都以正確寫法為準；如果寫法正確就留空字串）`;
+（corrected_word：檢查 "${cleanWord}" 的寫法是否正確。
+  單字：拼錯就填正確拼法。
+  片語：只要有任何一個字拼錯、介系詞或冠詞用錯、少字或多字、詞序或詞形錯誤，就填「完整的正確片語」，例如 "look forward to see" → "look forward to seeing"、"pay attention on" → "pay attention to"、"in the other hand" → "on the other hand"、"take care off" → "take care of"。
+  修正時保留原本的意思與結構，不要改成另一個不同的說法；definition、sentence 等全部都以正確寫法為準。寫法本來就正確時留空字串。）`;
             try {
                 const result = await aiJSON(promptText);
                 const gen = result.__engine;
                 const fixedWord = String(result.corrected_word || '').trim();
-                const correctedWord = fixedWord && /^[a-z][a-z '.\-]*$/i.test(fixedWord) && fixedWord.toLowerCase() !== cleanWord.toLowerCase() ? fixedWord : '';
+                const correctedWord = fixedWord && /[a-z]/i.test(fixedWord) && /^[a-z0-9 '’.,\-\/%$&?!]{1,80}$/i.test(fixedWord)
+                    && fixedWord.toLowerCase() !== cleanWord.toLowerCase() && similarEnough(cleanWord, fixedWord) ? fixedWord : '';
                 const word = correctedWord || cleanWord;
                 const entry = {
                     definition: result.definition || '(無法解析定義)',
@@ -4606,9 +4610,15 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
 
             task.subtasks.unshift({ id: subId, text: text, definition: LOADING_TEXT, checked: false, collapsed: false, showDef: false, isLoading: true, createdAt: Date.now(), grandtasks: [] });
             task.collapsed = false; saveData(); if (opts.scroll) flashSub(subId);
+            await lookupSub(subId, mainTaskId);
+        }
 
+        // 查詢單字並把釋義、例句等寫回（新增單字與「修改單字後重建」共用）
+        async function lookupSub(subId, topicId) {
+            const s0 = findSubAnywhere(subId); if (!s0) return;
+            const text = s0.text;
             let result = null, failKind = null;
-            try { result = await fetchDefinitionAndSentence(text, { topicId: mainTaskId }); }
+            try { result = await fetchDefinitionAndSentence(text, { topicId }); }
             catch (e) { failKind = e.kind || classifyError(e); }
 
             // 查詢期間使用者可能拖曳或刪除，因此重新用 ID 找到該單字再寫入
@@ -4629,6 +4639,18 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             saveData();
         }
 
+        // AI 建議的修正必須和原本的字很接近，避免被換成完全不同的字詞
+        function similarEnough(a, b) {
+            const A = String(a).toLowerCase().trim(), B = String(b).toLowerCase().trim();
+            const d = (() => { const m = A.length, n = B.length, dp = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
+                for (let j = 1; j <= n; j++) dp[0][j] = j;
+                for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (A[i - 1] === B[j - 1] ? 0 : 1));
+                return dp[m][n]; })();
+            if (d <= Math.max(3, Math.ceil(Math.max(A.length, B.length) * 0.45))) return true;
+            const wa = A.split(/\s+/), wb = new Set(B.split(/\s+/));
+            return wa.filter(w => wb.has(w)).length / wa.length >= 0.5;
+        }
+
         // 把 AI 結果寫進單字（使用者若已手動填寫釋義，就不覆蓋）
         function applyAIResult(sub, result) {
             const placeholders = [LOADING_TEXT, PENDING_DEF_TEXT, MANUAL_DEF_TEXT, ''];
@@ -4640,9 +4662,14 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             if (result.etymology && !sub.etym) { sub.etym = result.etymology; if (result.etymSrc) sub.etymSrc = result.etymSrc; }
             if (result.aiModel) sub.aiModel = result.aiModel;
             if (result.entryVerified) sub.entryVerified = true;
-            if (result.correctedWord && result.originalWord && sub.text.includes(result.originalWord)) {
-                sub.text = sub.text.replace(result.originalWord, result.correctedWord);
-                setTimeout(() => showToast(`✏️ 拼字已自動修正：${result.originalWord} → ${result.correctedWord}`, 4000), 600);
+            if (result.correctedWord && result.originalWord) {
+                const re = new RegExp(result.originalWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+'), 'i');
+                const before = sub.text;
+                sub.text = re.test(sub.text) ? sub.text.replace(re, result.correctedWord) : sub.text.replace(clozeTarget(sub.text) || sub.text, result.correctedWord);
+                if (sub.text !== before) {
+                    const kind = /\s/.test(result.correctedWord) ? '片語' : '拼字';
+                    setTimeout(() => showToast(`✏️ ${kind}已自動修正：${result.originalWord} → ${result.correctedWord}\n（點單字可再修改）`, 4500), 600);
+                }
             }
             if (result.spellWarn) sub.spellWarn = sub.text;
             if (result.sentence) sub.grandtasks.unshift({ id: newId(), text: result.sentence, checked: false, createdAt: Date.now(), ...sentMeta(result, result.sentence), ...(result.reviewWords && result.reviewWords.length ? { reviewWords: result.reviewWords } : {}) });
@@ -4779,7 +4806,37 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
 
         function editTask(id, level, parentId = null, grandParentId = null) {
             const target = getTarget(id, level, parentId, grandParentId);
-            if (target) { const nt = prompt("請修改內容：", target.text); if (nt && nt.trim()) { target.text = nt.trim(); saveData(); } }
+            if (!target) return;
+            const nt = prompt("請修改內容：", target.text);
+            if (!nt || !nt.trim() || nt.trim() === target.text) return;
+            const oldText = target.text;
+            target.text = nt.trim();
+            // 單字／片語的英文改了：原本的釋義、例句等都是依舊的字產生的，問使用者要不要全部重建
+            if (level === 'sub') {
+                const oldEn = clozeTarget(oldText).toLowerCase(), newEn = clozeTarget(target.text).toLowerCase();
+                if (newEn && oldEn !== newEn) {
+                    const n = target.grandtasks.length, own = target.grandtasks.filter(g => !/🤖/.test(g.text)).length;
+                    const msg = `單字已從「${clozeTarget(oldText) || oldText}」改成「${clozeTarget(target.text)}」。\n\n要刪除依舊單字產生的釋義、同義字、搭配、字源、難易度${n ? `和 ${n} 句例句${own ? `（其中 ${own} 句是你自己輸入的）` : ''}` : ''}，並用新的字重新查詢建立嗎？${n ? '\n（這些例句的播放次數與評分紀錄也會一起刪除）' : ''}\n\n按「取消」則只修改文字，保留原本的內容。`;
+                    if (confirm(msg)) { rebuildSub(target, parentId); return; }
+                }
+            }
+            saveData();
+        }
+        // 清除舊資料並重新查詢
+        const SUB_AI_FIELDS = ['synonyms', 'usage', 'common', 'collocations', 'cefr', 'etym', 'etymSrc', 'spellWarn', 'entryVerified', 'aiModel', 'noSynonyms', 'proofed', 'genEx'];
+        async function rebuildSub(sub, topicId) {
+            SUB_AI_FIELDS.forEach(k => delete sub[k]);
+            sub.grandtasks = [];
+            sub.collapsed = false;
+            if (!navigator.onLine || !hasTextKey()) {
+                sub.definition = PENDING_DEF_TEXT; sub.pendingAI = true; saveData();
+                showToast(!navigator.onLine ? '📴 目前離線，舊資料已清除\n上線後會自動重新查詢' : '已清除舊資料；設定 AI 金鑰後會自動重新查詢', 3500);
+                return;
+            }
+            sub.definition = LOADING_TEXT; sub.isLoading = true; delete sub.pendingAI;
+            saveData();
+            showToast('🔄 已清除舊資料，正在用新的字重新查詢…', 2500);
+            await lookupSub(sub.id, topicId);
         }
 
         function toggleCheck(id, level, parentId = null, grandParentId = null) {
