@@ -11,7 +11,8 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.17.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.17.1 - 語音與 AI 升級版</title>
+    <script>try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         /* Hallmark v2.0.0 (condensed) | shape: app screen | screen: note list with topics, words and sentences | signature: the word card (word, definition, etymology, sentence with its voice button) | tokens: generated from the existing palette, neutrals tinted to the notebook green, with a dark scheme | type: system sans, one family */
@@ -19,7 +20,7 @@
         /* Hallmark · waive 24b · padding and gaps of 2, 6, 10 and 14px in the word list rows · the owner scans hundreds of word and sentence rows daily, and this dense note list spacing is kept on purpose */
         :root {
             color-scheme: light dark;
-            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans TC', Helvetica, Arial, sans-serif;
+            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans TC', Helvetica, Arial, sans-serif; --on-ring: transparent;
             --c-f5f7f8: #f5f7f5;
             --c-cccccc: #c8ceca;
             --c-777777: #747975;
@@ -145,136 +146,269 @@
             --c-101828-4: rgba(16,24,40,0.04);
             --c-8a9096: #8c918d;
             --c-2b2f33: #2c302d;
+            --c-e8710a: #e8710a;
             --green: var(--c-107c41); --green-light: var(--c-e8f5ec); --blue: var(--c-1a73e8); --line: var(--c-eef0f2); --muted: var(--c-8a9096); --text: var(--c-2b2f33);
             --star: var(--c-f9ab00); --ok: var(--c-137333); --bad: var(--c-d93025); --warn: var(--c-b06000); --ai: var(--c-1a73e8);
         }
-        @media (prefers-color-scheme: dark) {
-            :root {
-            --c-f5f7f8: #111612;
-            --c-cccccc: #2d322e;
+        :root[data-theme="light"] { color-scheme: light; }
+        :root[data-theme="dark"] {
+            color-scheme: dark; --on-ring: var(--c-107c41);
+            --c-f5f7f8: #252a27;
+            --c-cccccc: #0e120f;
             --c-777777: #a7aea8;
             --c-5f6368: #b9c1ba;
-            --c-e8eaed: #191e1a;
-            --c-ffffff: #0c110d;
+            --c-e8eaed: #1e231f;
+            --c-ffffff: #2a2f2b;
             --c-000000-14: rgba(0,0,0,0.22);
             --c-3c4043: #c5cdc7;
             --c-9aa0a6: #939a95;
-            --c-e0e3e6: #1e221f;
+            --c-e0e3e6: #1a1f1b;
             --c-a8adb2: #939a95;
             --c-107c41-12: rgba(116,209,145,0.12);
-            --c-dadce0: #222723;
+            --c-dadce0: #161b17;
             --c-4285f4: #5f9bff;
             --c-d93025: #ff7e6d;
             --c-000000-5: rgba(0,0,0,0.08);
-            --c-dcefe2: #152018;
-            --c-d3e9da: #17251c;
+            --c-dcefe2: #19241d;
+            --c-d3e9da: #132118;
             --c-b0b5ba: #939a95;
-            --c-d5d9dd: #242925;
+            --c-d5d9dd: #141915;
             --c-555a5f: #c1c9c3;
-            --c-f7f9f8: #101511;
+            --c-f7f9f8: #272b28;
             --c-6d4c1f: #eac395;
-            --c-fdf7ec: #17130d;
+            --c-fdf7ec: #2c2922;
             --c-e3a33b: #c98a16;
-            --c-f1f3f4: #141815;
+            --c-f1f3f4: #232824;
             --c-80868b: #9ba39d;
-            --c-e6f4ea: #131b15;
+            --c-e6f4ea: #1f2721;
             --c-137333: #82d892;
-            --c-fef7e0: #181407;
+            --c-fef7e0: #2d291b;
             --c-b06000: #ea954c;
             --c-b06d00: #db9540;
             --c-868b90: #979e98;
-            --c-cfe7d7: #18271d;
+            --c-cfe7d7: #111f17;
             --c-e06055: #eb6c60;
-            --c-fff8e1: #171306;
-            --c-fde7a9: #241c05;
+            --c-fff8e1: #2e291b;
+            --c-fde7a9: #282007;
             --c-7a5b00: #debc72;
-            --c-fff4e0: #1a1409;
-            --c-fde3b5: #281c06;
+            --c-fff4e0: #2e271b;
+            --c-fde3b5: #291d07;
             --c-000000-12: rgba(0,0,0,0.19);
-            --c-f1f8f4: #121613;
-            --c-cfe3d6: #1c2820;
-            --c-b7d7c2: #203528;
+            --c-f1f8f4: #252a26;
+            --c-cfe3d6: #111d16;
+            --c-b7d7c2: #03160b;
             --c-8a4b00: #f9b176;
-            --c-f0e2c4: #281f0c;
-            --c-f4f8fd: #111512;
+            --c-f0e2c4: #251c09;
+            --c-f4f8fd: #262b27;
             --c-1a5fb4: #99c2fa;
-            --c-fffaf0: #0f1310;
-            --c-f3e3c0: #281e07;
-            --c-fce8e6: #221716;
+            --c-fffaf0: #282c29;
+            --c-f3e3c0: #261d06;
+            --c-fce8e6: #2b201f;
             --c-c5221f: #fb9689;
-            --c-feefe3: #1d150f;
+            --c-feefe3: #2d241d;
             --c-c26401: #e9883b;
             --c-188038: #71cf83;
-            --c-ceead6: #15261b;
+            --c-ceead6: #102116;
             --c-0d652d: #91e0a1;
-            --c-b7d9c4: #1d3427;
+            --c-b7d9c4: #03170c;
             --c-0b5c30: #96deab;
-            --c-eef7f1: #131714;
-            --c-f7faf8: #101411;
-            --c-e0eee5: #161f1a;
-            --c-d7f0e0: #122118;
-            --c-c4c7c5: #313632;
+            --c-eef7f1: #242925;
+            --c-f7faf8: #272c28;
+            --c-e0eee5: #1b241f;
+            --c-d7f0e0: #15251c;
+            --c-c4c7c5: #0b0f0c;
             --c-107c41-35: rgba(116,209,145,0.35);
             --c-107c41-40: rgba(116,209,145,0.4);
-            --c-e3e3e3: #1d221e;
+            --c-e3e3e3: #1a1f1b;
             --c-000000-15: rgba(0,0,0,0.24);
             --c-000000-6: rgba(0,0,0,0.1);
             --c-e3e6e8: #1c201d;
             --c-34a853: #42b35e;
-            --c-f0faf3: #111512;
-            --c-fdf1f0: #131714;
-            --c-e8f5ec: #131a15;
+            --c-f0faf3: #262a27;
+            --c-fdf1f0: #242925;
+            --c-e8f5ec: #202823;
             --c-b3261e: #ffa193;
             --c-107c41: #74d191;
             --c-1a73e8: #78adf9;
-            --c-e8f0fe: #151921;
+            --c-e8f0fe: #20252d;
             --c-1967d2: #88b7ff;
-            --c-d2e3fc: #182231;
+            --c-d2e3fc: #131d2b;
             --c-174ea6: #adccfe;
-            --c-f3e8fd: #1e1723;
+            --c-f3e8fd: #27202c;
             --c-8430ce: #caa6fc;
-            --c-e9d2fd: #2b1f34;
+            --c-e9d2fd: #1f1428;
             --c-681da8: #d6bdfb;
-            --c-bdc1c6: #353a36;
-            --c-eeeeee: #161b17;
+            --c-bdc1c6: #080c09;
+            --c-eeeeee: #212522;
             --c-c5221f-50: rgba(251,150,137,0.5);
-            --c-f3f5f7: #121713;
+            --c-f3f5f7: #242925;
             --c-202124: #ced6d0;
-            --c-eceff1: #161b17;
-            --c-fafbfc: #0f1310;
-            --c-aecbfa: #263246;
+            --c-eceff1: #212522;
+            --c-fafbfc: #282d29;
+            --c-aecbfa: #050f20;
             --c-107c41-15: rgba(116,209,145,0.15);
             --c-f9ab00: #c78b1c;
             --c-f9ab00-25: rgba(199,139,28,0.25);
             --c-6b7177: #adb4ae;
-            --c-ffffff-96: rgba(12,17,13,0.96);
-            --c-f2b8b5: #452a29;
-            --c-c6dafc: #1c273b;
-            --c-f8f9fa: #101411;
+            --c-ffffff-96: rgba(42,47,43,0.96);
+            --c-f2b8b5: #1d0707;
+            --c-c6dafc: #0d172a;
+            --c-f8f9fa: #272c28;
             --c-f28b82: #dc776f;
-            --c-fde293: #271f07;
-            --c-eef0f2: #151a16;
+            --c-fde293: #251d05;
+            --c-eef0f2: #222623;
             --c-107c41-30: rgba(116,209,145,0.3);
             --c-7a4f00: #eebd7d;
             --c-202124-92: rgba(206,214,208,0.92);
             --c-000000-45: rgba(0,0,0,0.6);
-            --c-dddddd: #212622;
-            --c-f3f5f7-92: rgba(18,23,19,0.92);
+            --c-dddddd: #171b18;
+            --c-f3f5f7-92: rgba(36,41,37,0.92);
             --c-101828-18: rgba(203,215,238,0.18);
             --c-101828-8: rgba(203,215,238,0.08);
             --c-a0a6ab: #939a95;
-            --c-d9ede0: #15211a;
+            --c-d9ede0: #17231c;
             --c-101828-14: rgba(203,215,238,0.14);
             --c-107c41-38: rgba(116,209,145,0.38);
             --c-202124-45: rgba(206,214,208,0.45);
             --c-101828-22: rgba(203,215,238,0.22);
-            --c-b7dfc4: #1a3123;
-            --c-f6faf7: #101411;
+            --c-b7dfc4: #041a0d;
+            --c-f6faf7: #272c28;
             --c-000000-25: rgba(0,0,0,0.4);
             --c-101828-6: rgba(203,215,238,0.06);
             --c-101828-4: rgba(203,215,238,0.04);
             --c-8a9096: #939a95;
             --c-2b2f33: #cad1cb;
+            --c-e8710a: #e37628;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                color-scheme: dark; --on-ring: var(--c-107c41);
+            --c-f5f7f8: #252a27;
+            --c-cccccc: #0e120f;
+            --c-777777: #a7aea8;
+            --c-5f6368: #b9c1ba;
+            --c-e8eaed: #1e231f;
+            --c-ffffff: #2a2f2b;
+            --c-000000-14: rgba(0,0,0,0.22);
+            --c-3c4043: #c5cdc7;
+            --c-9aa0a6: #939a95;
+            --c-e0e3e6: #1a1f1b;
+            --c-a8adb2: #939a95;
+            --c-107c41-12: rgba(116,209,145,0.12);
+            --c-dadce0: #161b17;
+            --c-4285f4: #5f9bff;
+            --c-d93025: #ff7e6d;
+            --c-000000-5: rgba(0,0,0,0.08);
+            --c-dcefe2: #19241d;
+            --c-d3e9da: #132118;
+            --c-b0b5ba: #939a95;
+            --c-d5d9dd: #141915;
+            --c-555a5f: #c1c9c3;
+            --c-f7f9f8: #272b28;
+            --c-6d4c1f: #eac395;
+            --c-fdf7ec: #2c2922;
+            --c-e3a33b: #c98a16;
+            --c-f1f3f4: #232824;
+            --c-80868b: #9ba39d;
+            --c-e6f4ea: #1f2721;
+            --c-137333: #82d892;
+            --c-fef7e0: #2d291b;
+            --c-b06000: #ea954c;
+            --c-b06d00: #db9540;
+            --c-868b90: #979e98;
+            --c-cfe7d7: #111f17;
+            --c-e06055: #eb6c60;
+            --c-fff8e1: #2e291b;
+            --c-fde7a9: #282007;
+            --c-7a5b00: #debc72;
+            --c-fff4e0: #2e271b;
+            --c-fde3b5: #291d07;
+            --c-000000-12: rgba(0,0,0,0.19);
+            --c-f1f8f4: #252a26;
+            --c-cfe3d6: #111d16;
+            --c-b7d7c2: #03160b;
+            --c-8a4b00: #f9b176;
+            --c-f0e2c4: #251c09;
+            --c-f4f8fd: #262b27;
+            --c-1a5fb4: #99c2fa;
+            --c-fffaf0: #282c29;
+            --c-f3e3c0: #261d06;
+            --c-fce8e6: #2b201f;
+            --c-c5221f: #fb9689;
+            --c-feefe3: #2d241d;
+            --c-c26401: #e9883b;
+            --c-188038: #71cf83;
+            --c-ceead6: #102116;
+            --c-0d652d: #91e0a1;
+            --c-b7d9c4: #03170c;
+            --c-0b5c30: #96deab;
+            --c-eef7f1: #242925;
+            --c-f7faf8: #272c28;
+            --c-e0eee5: #1b241f;
+            --c-d7f0e0: #15251c;
+            --c-c4c7c5: #0b0f0c;
+            --c-107c41-35: rgba(116,209,145,0.35);
+            --c-107c41-40: rgba(116,209,145,0.4);
+            --c-e3e3e3: #1a1f1b;
+            --c-000000-15: rgba(0,0,0,0.24);
+            --c-000000-6: rgba(0,0,0,0.1);
+            --c-e3e6e8: #1c201d;
+            --c-34a853: #42b35e;
+            --c-f0faf3: #262a27;
+            --c-fdf1f0: #242925;
+            --c-e8f5ec: #202823;
+            --c-b3261e: #ffa193;
+            --c-107c41: #74d191;
+            --c-1a73e8: #78adf9;
+            --c-e8f0fe: #20252d;
+            --c-1967d2: #88b7ff;
+            --c-d2e3fc: #131d2b;
+            --c-174ea6: #adccfe;
+            --c-f3e8fd: #27202c;
+            --c-8430ce: #caa6fc;
+            --c-e9d2fd: #1f1428;
+            --c-681da8: #d6bdfb;
+            --c-bdc1c6: #080c09;
+            --c-eeeeee: #212522;
+            --c-c5221f-50: rgba(251,150,137,0.5);
+            --c-f3f5f7: #242925;
+            --c-202124: #ced6d0;
+            --c-eceff1: #212522;
+            --c-fafbfc: #282d29;
+            --c-aecbfa: #050f20;
+            --c-107c41-15: rgba(116,209,145,0.15);
+            --c-f9ab00: #c78b1c;
+            --c-f9ab00-25: rgba(199,139,28,0.25);
+            --c-6b7177: #adb4ae;
+            --c-ffffff-96: rgba(42,47,43,0.96);
+            --c-f2b8b5: #1d0707;
+            --c-c6dafc: #0d172a;
+            --c-f8f9fa: #272c28;
+            --c-f28b82: #dc776f;
+            --c-fde293: #251d05;
+            --c-eef0f2: #222623;
+            --c-107c41-30: rgba(116,209,145,0.3);
+            --c-7a4f00: #eebd7d;
+            --c-202124-92: rgba(206,214,208,0.92);
+            --c-000000-45: rgba(0,0,0,0.6);
+            --c-dddddd: #171b18;
+            --c-f3f5f7-92: rgba(36,41,37,0.92);
+            --c-101828-18: rgba(203,215,238,0.18);
+            --c-101828-8: rgba(203,215,238,0.08);
+            --c-a0a6ab: #939a95;
+            --c-d9ede0: #17231c;
+            --c-101828-14: rgba(203,215,238,0.14);
+            --c-107c41-38: rgba(116,209,145,0.38);
+            --c-202124-45: rgba(206,214,208,0.45);
+            --c-101828-22: rgba(203,215,238,0.22);
+            --c-b7dfc4: #041a0d;
+            --c-f6faf7: #272c28;
+            --c-000000-25: rgba(0,0,0,0.4);
+            --c-101828-6: rgba(203,215,238,0.06);
+            --c-101828-4: rgba(203,215,238,0.04);
+            --c-8a9096: #939a95;
+            --c-2b2f33: #cad1cb;
+            --c-e8710a: #e37628;
             }
         }
 
@@ -499,7 +633,7 @@
         .cz-tool { flex: 1; height: 34px; border-radius: 17px; border: 1px solid var(--c-dadce0); background: var(--c-ffffff); font-size: 12.5px; color: var(--c-5f6368); cursor: pointer; }
         .cz-tool:active, .cz-tool.on { background: var(--green-light); border-color: var(--c-cfe7d7); color: var(--green); }
         .cz-input { display: block; width: 100%; height: 46px; margin-top: 14px; border: 2px solid var(--c-dadce0); border-radius: 12px; padding: 0 14px; font-size: 17px; outline: none; background: var(--c-ffffff); color: var(--text); }
-        .cz-input:focus { border-color: var(--green); }
+        .cz-input:focus { }
         .cz-input.ok { border-color: var(--c-34a853); background: var(--c-f0faf3); }
         .cz-input.bad { border-color: var(--c-e06055); background: var(--c-fdf1f0); }
         .cz-ok, .cz-bad { margin-top: 10px; font-size: 14px; padding: 10px 12px; border-radius: 10px; }
@@ -912,6 +1046,8 @@
         .ae-ic svg.hi { width: 22px; height: 22px; }
         .play-fab svg.hi, .cz-fab svg.hi { width: 22px; height: 22px; }
         .header-container .version-tag { margin-right: auto; margin-left: 6px; }
+        .rp-hero-num { font-variant-numeric: tabular-nums; }
+        .seg button.on { box-shadow: 0 1px 2px var(--c-000000-12), inset 0 0 0 1.5px var(--on-ring); }
         h1, h2, h3, .cz-title { text-wrap: balance; overflow-wrap: break-word; min-width: 0; }
         :where(button, a, [onclick], input, select, textarea, summary):focus-visible { outline: 2px solid var(--green); outline-offset: 2px; transition: none; }
         input[type="text"]:focus, .search-box input:focus { outline: 2px solid var(--green); outline-offset: 0; }
@@ -922,11 +1058,11 @@
 </style>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="hi-check" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></symbol><symbol id="hi-ok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></symbol><symbol id="hi-bad" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></symbol><symbol id="hi-warn" viewBox="0 0 24 24"><path d="M12 3.5L2.5 20h19z"/><path d="M12 10v4M12 17h.01"/></symbol><symbol id="hi-ai" viewBox="0 0 24 24"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M18.5 14.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></symbol><symbol id="hi-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></symbol><symbol id="hi-offline" viewBox="0 0 24 24"><path d="M3 3l18 18M8.5 16.5a5 5 0 0 1 7 0M5 12.5a10 10 0 0 1 4.5-2.6M19 12.5a10 10 0 0 0-2.3-1.7M12 20h.01"/></symbol><symbol id="hi-book" viewBox="0 0 24 24"><path d="M3 5h6a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H3z"/><path d="M21 5h-6a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h7z"/></symbol><symbol id="hi-pencil" viewBox="0 0 24 24"><path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/></symbol><symbol id="hi-thumb" viewBox="0 0 24 24"><path d="M7 10v10H4V10z"/><path d="M7 10l4-7a2 2 0 0 1 3 2l-1 4h5a2 2 0 0 1 2 2.3l-1.2 6A2 2 0 0 1 16.8 20H7"/></symbol><symbol id="hi-write" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol><symbol id="hi-shuffle" viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></symbol><symbol id="hi-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol><symbol id="hi-folder-open" viewBox="0 0 24 24"><path d="M3 17V7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v1"/><path d="M3 19l3-8h15l-3 8z"/></symbol><symbol id="hi-grip" viewBox="0 0 24 24"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01"/></symbol><symbol id="hi-sprout" viewBox="0 0 24 24"><path d="M12 20v-8"/><path d="M12 12C12 8 9 5 4 5c0 4 3 7 8 7z"/><path d="M12 14c0-3 2.5-6 7-6 0 3.5-2.5 6-7 6z"/></symbol><symbol id="hi-review" viewBox="0 0 24 24"><path d="M9 3h6v3H9z"/><path d="M9 4.5H6V21h12V4.5h-3"/><path d="M9 14l2 2 4-4"/></symbol><symbol id="hi-speech" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol><symbol id="hi-volume" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></symbol><symbol id="hi-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol><symbol id="hi-tag" viewBox="0 0 24 24"><path d="M3 12V4h8l9 9-8 8z"/><path d="M7.5 7.5h.01"/></symbol><symbol id="hi-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol><symbol id="hi-clipboard" viewBox="0 0 24 24"><path d="M9 3h6v3H9z"/><path d="M9 4.5H6V21h12V4.5h-3"/></symbol><symbol id="hi-note" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></symbol><symbol id="hi-mic" viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol><symbol id="hi-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="hi-eye-off" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/></symbol><symbol id="hi-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></symbol><symbol id="hi-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></symbol><symbol id="hi-tools" viewBox="0 0 24 24"><path d="M3 8h18v11H3z"/><path d="M8 8V5h8v3M3 13h18"/></symbol><symbol id="hi-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2s-1-1.5-1-2.5 1-1.5 2-1.5h2a4 4 0 0 0 4-4c0-4.4-4-8-9-8z"/><path d="M7.5 11h.01M10 7h.01M15 7h.01"/></symbol><symbol id="hi-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></symbol><symbol id="hi-save" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h7V3M8 21v-7h8v7"/></symbol><symbol id="hi-cloud" viewBox="0 0 24 24"><path d="M7 18a5 5 0 0 1-.6-10A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z"/></symbol><symbol id="hi-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z"/></symbol><symbol id="hi-file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></symbol><symbol id="hi-wait" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12"/><path d="M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9s10 4 10 9"/></symbol><symbol id="hi-inbox" viewBox="0 0 24 24"><path d="M3 13l3-8h12l3 8v6H3z"/><path d="M3 13h5l1 3h6l1-3h5"/></symbol><symbol id="hi-listen" viewBox="0 0 24 24"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><path d="M4 15h3v5H4zM17 15h3v5h-3z"/></symbol><symbol id="hi-award" viewBox="0 0 24 24"><circle cx="12" cy="9" r="5"/><path d="M8.5 13.5L7 21l5-3 5 3-1.5-7.5"/></symbol><symbol id="hi-rise" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></symbol><symbol id="hi-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.6-4.5L4 8M4 3v5h5M4 13a8 8 0 0 0 14.6 4.5L20 16M20 21v-5h-5"/></symbol><symbol id="hi-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol><symbol id="hi-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol><symbol id="hi-repeat" viewBox="0 0 24 24"><path d="M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3"/></symbol><symbol id="hi-memory" viewBox="0 0 24 24"><path d="M12 5a3 3 0 0 0-5.8-1A3 3 0 0 0 4 9a3 3 0 0 0 0 6 3 3 0 0 0 3 4 3 3 0 0 0 5 1z"/><path d="M12 5a3 3 0 0 1 5.8-1A3 3 0 0 1 20 9a3 3 0 0 1 0 6 3 3 0 0 1-3 4 3 3 0 0 1-5 1z"/></symbol><symbol id="hi-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></symbol><symbol id="hi-checkbox" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M8 12l3 3 5-6"/></symbol><symbol id="hi-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol><symbol id="hi-stop" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></symbol><symbol id="hi-next" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol><symbol id="hi-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol><symbol id="hi-puzzle" viewBox="0 0 24 24"><path d="M10 3h4v2.5a2 2 0 1 0 4 0V3h3v7h-2.5a2 2 0 1 0 0 4H21v7h-7v-2.5a2 2 0 1 0-4 0V21H3v-7h2.5a2 2 0 1 0 0-4H3V3z"/></symbol><symbol id="hi-cards" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></symbol><symbol id="hi-play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></symbol></defs></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="hi-check" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></symbol><symbol id="hi-ok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></symbol><symbol id="hi-bad" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></symbol><symbol id="hi-warn" viewBox="0 0 24 24"><path d="M12 3.5L2.5 20h19z"/><path d="M12 10v4M12 17h.01"/></symbol><symbol id="hi-ai" viewBox="0 0 24 24"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M18.5 14.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></symbol><symbol id="hi-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></symbol><symbol id="hi-offline" viewBox="0 0 24 24"><path d="M3 3l18 18M8.5 16.5a5 5 0 0 1 7 0M5 12.5a10 10 0 0 1 4.5-2.6M19 12.5a10 10 0 0 0-2.3-1.7M12 20h.01"/></symbol><symbol id="hi-book" viewBox="0 0 24 24"><path d="M3 5h6a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H3z"/><path d="M21 5h-6a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h7z"/></symbol><symbol id="hi-pencil" viewBox="0 0 24 24"><path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/></symbol><symbol id="hi-thumb" viewBox="0 0 24 24"><path d="M7 10v10H4V10z"/><path d="M7 10l4-7a2 2 0 0 1 3 2l-1 4h5a2 2 0 0 1 2 2.3l-1.2 6A2 2 0 0 1 16.8 20H7"/></symbol><symbol id="hi-write" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol><symbol id="hi-shuffle" viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></symbol><symbol id="hi-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol><symbol id="hi-folder-open" viewBox="0 0 24 24"><path d="M3 17V7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v1"/><path d="M3 19l3-8h15l-3 8z"/></symbol><symbol id="hi-grip" viewBox="0 0 24 24"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01"/></symbol><symbol id="hi-sprout" viewBox="0 0 24 24"><path d="M12 20v-8"/><path d="M12 12C12 8 9 5 4 5c0 4 3 7 8 7z"/><path d="M12 14c0-3 2.5-6 7-6 0 3.5-2.5 6-7 6z"/></symbol><symbol id="hi-review" viewBox="0 0 24 24"><path d="M9 3h6v3H9z"/><path d="M9 4.5H6V21h12V4.5h-3"/><path d="M9 14l2 2 4-4"/></symbol><symbol id="hi-speech" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol><symbol id="hi-volume" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></symbol><symbol id="hi-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol><symbol id="hi-tag" viewBox="0 0 24 24"><path d="M3 12V4h8l9 9-8 8z"/><path d="M7.5 7.5h.01"/></symbol><symbol id="hi-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol><symbol id="hi-clipboard" viewBox="0 0 24 24"><path d="M9 3h6v3H9z"/><path d="M9 4.5H6V21h12V4.5h-3"/></symbol><symbol id="hi-note" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></symbol><symbol id="hi-mic" viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol><symbol id="hi-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="hi-eye-off" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/></symbol><symbol id="hi-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></symbol><symbol id="hi-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></symbol><symbol id="hi-tools" viewBox="0 0 24 24"><path d="M3 8h18v11H3z"/><path d="M8 8V5h8v3M3 13h18"/></symbol><symbol id="hi-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2s-1-1.5-1-2.5 1-1.5 2-1.5h2a4 4 0 0 0 4-4c0-4.4-4-8-9-8z"/><path d="M7.5 11h.01M10 7h.01M15 7h.01"/></symbol><symbol id="hi-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></symbol><symbol id="hi-save" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h7V3M8 21v-7h8v7"/></symbol><symbol id="hi-cloud" viewBox="0 0 24 24"><path d="M7 18a5 5 0 0 1-.6-10A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z"/></symbol><symbol id="hi-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z"/></symbol><symbol id="hi-file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></symbol><symbol id="hi-wait" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12"/><path d="M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9s10 4 10 9"/></symbol><symbol id="hi-inbox" viewBox="0 0 24 24"><path d="M3 13l3-8h12l3 8v6H3z"/><path d="M3 13h5l1 3h6l1-3h5"/></symbol><symbol id="hi-listen" viewBox="0 0 24 24"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><path d="M4 15h3v5H4zM17 15h3v5h-3z"/></symbol><symbol id="hi-award" viewBox="0 0 24 24"><circle cx="12" cy="9" r="5"/><path d="M8.5 13.5L7 21l5-3 5 3-1.5-7.5"/></symbol><symbol id="hi-rise" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></symbol><symbol id="hi-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.6-4.5L4 8M4 3v5h5M4 13a8 8 0 0 0 14.6 4.5L20 16M20 21v-5h-5"/></symbol><symbol id="hi-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol><symbol id="hi-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol><symbol id="hi-repeat" viewBox="0 0 24 24"><path d="M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3"/></symbol><symbol id="hi-memory" viewBox="0 0 24 24"><path d="M12 5a3 3 0 0 0-5.8-1A3 3 0 0 0 4 9a3 3 0 0 0 0 6 3 3 0 0 0 3 4 3 3 0 0 0 5 1z"/><path d="M12 5a3 3 0 0 1 5.8-1A3 3 0 0 1 20 9a3 3 0 0 1 0 6 3 3 0 0 1-3 4 3 3 0 0 1-5 1z"/></symbol><symbol id="hi-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></symbol><symbol id="hi-checkbox" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M8 12l3 3 5-6"/></symbol><symbol id="hi-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol><symbol id="hi-stop" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></symbol><symbol id="hi-next" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol><symbol id="hi-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol><symbol id="hi-puzzle" viewBox="0 0 24 24"><path d="M10 3h4v2.5a2 2 0 1 0 4 0V3h3v7h-2.5a2 2 0 1 0 0 4H21v7h-7v-2.5a2 2 0 1 0-4 0V21H3v-7h2.5a2 2 0 1 0 0-4H3V3z"/></symbol><symbol id="hi-cards" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></symbol><symbol id="hi-play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></symbol><symbol id="hi-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/></symbol><symbol id="hi-collapse" viewBox="0 0 24 24"><path d="M7 11l5-5 5 5M7 18l5-5 5 5"/></symbol><symbol id="hi-expand" viewBox="0 0 24 24"><path d="M7 6l5 5 5-5M7 13l5 5 5-5"/></symbol><symbol id="hi-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol></defs></svg>
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.17.0</span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.17.1</span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1313,6 +1449,12 @@
     <div id="viewModal" class="modal-overlay play-modal" onclick="if(event.target===this) closeViewModal()">
         <div class="modal-content">
             <div class="pm-title"><h3><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-eye"/></svg> 顯示設定</h3><button class="pm-close" onclick="closeViewModal()">×</button></div>
+            <div class="pm-label">外觀</div>
+            <div class="seg" id="vwTheme">
+                <button data-v="auto" onclick="setTheme('auto')">跟隨手機</button>
+                <button data-v="light" onclick="setTheme('light')">一律淺色</button>
+                <button data-v="dark" onclick="setTheme('dark')">一律深色</button>
+            </div>
             <div class="pm-hint">選擇筆記畫面要顯示哪些內容，設定會自動記住。</div>
             <div id="vwList" class="sw-list"></div>
         </div>
@@ -1489,7 +1631,7 @@
     <script>
         /* Hallmark：把畫面上用來當圖示的表情符號換成同一套線條圖示（只改顯示，不改資料） */
         (function () {
-            const MAP = {"✅": "ok", "✓": "check", "☑": "checkbox", "❌": "bad", "⚠": "warn", "🤖": "ai", "🆕": "ai", "⭐": "star", "📴": "offline", "📖": "book", "✏": "pencil", "👍": "thumb", "✍": "write", "🔀": "shuffle", "📁": "folder", "📂": "folder-open", "☰": "grip", "🌱": "sprout", "🩺": "review", "🗣": "speech", "💬": "speech", "🔊": "volume", "🎚": "sliders", "🏷": "tag", "⬆": "up", "📋": "clipboard", "📝": "note", "🎙": "mic", "🎤": "mic", "👁": "eye", "👀": "eye", "🙈": "eye-off", "↩": "undo", "📊": "chart", "🧰": "tools", "🎨": "palette", "🔑": "key", "💾": "save", "☁": "cloud", "💡": "bulb", "📄": "file", "⏳": "wait", "📭": "inbox", "🎧": "listen", "🎉": "award", "💪": "rise", "🔄": "refresh", "🔗": "link", "🔎": "search", "🔍": "search", "🔁": "repeat", "🧠": "memory", "📥": "download", "⏸": "pause", "⏹": "stop", "👉": "next", "🕒": "clock", "🧩": "puzzle", "🃏": "cards", "▶️": "play"};
+            const MAP = {"✅": "ok", "✓": "check", "☑": "checkbox", "❌": "bad", "⚠": "warn", "🤖": "ai", "🆕": "ai", "⭐": "star", "📴": "offline", "📖": "book", "✏": "pencil", "👍": "thumb", "✍": "write", "🔀": "shuffle", "📁": "folder", "📂": "folder-open", "☰": "grip", "🌱": "sprout", "🩺": "review", "🗣": "speech", "💬": "speech", "🔊": "volume", "🎚": "sliders", "🏷": "tag", "⬆": "up", "📋": "clipboard", "📝": "note", "🎙": "mic", "🎤": "mic", "👁": "eye", "👀": "eye", "🙈": "eye-off", "↩": "undo", "📊": "chart", "🧰": "tools", "🎨": "palette", "🔑": "key", "💾": "save", "☁": "cloud", "💡": "bulb", "📄": "file", "⏳": "wait", "📭": "inbox", "🎧": "listen", "🎉": "award", "💪": "rise", "🔄": "refresh", "🔗": "link", "🔎": "search", "🔍": "search", "🔁": "repeat", "🧠": "memory", "📥": "download", "⏸": "pause", "⏹": "stop", "👉": "next", "🕒": "clock", "🧩": "puzzle", "🃏": "cards", "▶️": "play", "⚙": "gear", "🗂": "collapse", "📑": "expand", "➕": "plus"};
             const CLS = {"star": "hi-star", "ok": "hi-ok", "bad": "hi-bad", "warn": "hi-warn", "ai": "hi-ai", "grip": "hi-grip"};
             const RE = new RegExp('(' + Object.keys(MAP).sort((a, b) => b.length - a.length).map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\uFE0F?', 'gu');
             const SKIP = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'OPTION', 'TITLE', 'INPUT', 'SELECT']);
@@ -4743,7 +4885,18 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             ];
             box.innerHTML = rows.map(([ic, t, d, on, fn]) => `<label class="sw-row"><i>${ic}</i><span><b>${t}</b><small>${d}</small></span><input type="checkbox" class="sw" ${on ? 'checked' : ''} onchange="${fn}(); renderViewModal()"></label>`).join('');
         }
-        function openViewModal() { closeMenu(); renderViewModal(); document.getElementById('viewModal').style.display = 'flex'; }
+        // ---- 外觀：跟隨手機／一律淺色／一律深色（記在 eng_theme）----
+        function currentTheme() { try { return localStorage.getItem('eng_theme') || 'auto'; } catch (e) { return 'auto'; } }
+        function setTheme(t) {
+            try { t === 'auto' ? localStorage.removeItem('eng_theme') : localStorage.setItem('eng_theme', t); } catch (e) {}
+            if (t === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t);
+            renderThemePicker();
+        }
+        function renderThemePicker() {
+            const cur = currentTheme();
+            document.querySelectorAll('#vwTheme button').forEach(b => b.classList.toggle('on', b.dataset.v === cur));
+        }
+        function openViewModal() { closeMenu(); renderViewModal(); renderThemePicker(); document.getElementById('viewModal').style.display = 'flex'; }
         function closeViewModal() { document.getElementById('viewModal').style.display = 'none'; }
 
         // ---- 備份與還原 ----
