@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.15.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.16.0 - 語音與 AI 升級版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -139,6 +139,18 @@
         .seg { display: flex; background: #f1f3f4; border-radius: 10px; padding: 3px; gap: 3px; }
         .seg button { flex: 1; border: none; background: transparent; padding: 8px 2px; border-radius: 8px; font-size: 12.5px; color: #5f6368; cursor: pointer; }
         .seg button.on { background: white; color: var(--green); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+        .lim-custom { display: flex; align-items: center; gap: 5px; margin-top: 6px; padding: 6px 8px; background: #f1f8f4; border-radius: 10px; font-size: 13px; color: #3c4043; flex-wrap: wrap; }
+        .lim-custom button { height: 28px; min-width: 34px; border-radius: 14px; border: 1px solid #cfe3d6; background: white; color: var(--green); font-size: 12.5px; cursor: pointer; }
+        .lim-custom input { width: 64px; height: 30px; text-align: center; font-size: 16px; font-weight: 600; border: 1px solid #b7d7c2; border-radius: 8px; color: var(--green); }
+        .lv-check { display: flex; align-items: center; gap: 6px; margin: 8px 0 4px; font-size: 13px; font-weight: 600; color: #8a4b00; cursor: pointer; }
+        .lv-check input { width: 18px; height: 18px; accent-color: #b06000; }
+        .wt-item { padding: 4px 0; border-bottom: 1px dashed #f0e2c4; }
+        .wt-item:last-child { border-bottom: none; }
+        .wt-item.empty { opacity: .55; }
+        .wt-sub { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: 3px; font-size: 12px; color: #5f6368; }
+        .wt-sub .lv-st { display: inline-flex; align-items: center; gap: 3px; background: #f4f8fd; border-radius: 14px; padding: 1px 3px 1px 8px; }
+        .wt-sub button { width: 26px; height: 26px; border-radius: 13px; border: 1px solid #dadce0; background: white; font-size: 14px; cursor: pointer; line-height: 1; padding: 0; }
+        .wt-sub b { min-width: 36px; text-align: center; color: #1a5fb4; }
         .wt-box { margin-top: 6px; background: #fffaf0; border: 1px solid #f3e3c0; border-radius: 10px; padding: 8px 10px; }
         .wt-rows { display: flex; flex-direction: column; gap: 4px; }
         .wt-row { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
@@ -628,7 +640,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.15.0</span></h2>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本 <span class="version-tag">v2.16.0</span></h2>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -747,6 +759,12 @@
                     <button onclick="setWeightPreset('only')">只練不熟 3·2·1·0·0</button>
                     <button onclick="setWeightPreset('even')">平均 1·1·1·1·1</button>
                 </div>
+                <label class="lv-check"><input type="checkbox" id="pmLvOn" onchange="setLvOn(this.checked)"> 🎚️ 依熟悉度分別設定「念幾次」與「語速」</label>
+                <div class="curve-presets" id="pmLvPresets">
+                    <button onclick="setLvPreset('focus')">不熟慢念多次</button>
+                    <button onclick="setLvPreset('gentle')">溫和差異</button>
+                    <button onclick="setLvPreset('same')">全部同一般設定</button>
+                </div>
                 <div class="wt-rows" id="pmWeightRows"></div>
                 <div class="curve-sum" id="pmWeightSum"></div>
             </div>
@@ -754,13 +772,15 @@
                 <button data-v="10" onclick="setPlayOpt('limit',10)">10 句</button>
                 <button data-v="20" onclick="setPlayOpt('limit',20)">20 句</button>
                 <button data-v="30" onclick="setPlayOpt('limit',30)">30 句</button>
+                <button data-v="custom" onclick="setLimitCustom()">✏️ 自訂</button>
                 <button data-v="0" onclick="setPlayOpt('limit',0)">全部</button>
             </div>
-            <div class="pm-label">每句念幾次</div>
-            <div class="stepper">
-                <button onclick="setPlayOpt('repeat', playSettings.repeat - 1)">−</button>
-                <div class="num" id="pmRepeat">2 次</div>
-                <button onclick="setPlayOpt('repeat', playSettings.repeat + 1)">＋</button>
+            <div class="lim-custom" id="pmLimitCustom" style="display:none">
+                <span>播放</span>
+                <button onclick="stepLimit(-5)">−5</button><button onclick="stepLimit(-1)">−1</button>
+                <input type="number" id="pmLimitInput" min="1" max="999" inputmode="numeric" onchange="setLimitNum(this.value)">
+                <button onclick="stepLimit(1)">＋1</button><button onclick="stepLimit(5)">＋5</button>
+                <span>句</span>
             </div>
             <div class="pm-label">句子間隔（每念完一次就停頓，含同一句的重複）</div>
             <div class="stepper">
@@ -768,11 +788,20 @@
                 <div class="num" id="pmGap">1.2 秒</div>
                 <button onclick="setPlayOpt('gap', Math.round((Number(playSettings.gap) + 0.5) * 10) / 10)">＋</button>
             </div>
+            <div class="pm-hint" id="pmLvNote" style="display:none">🎚️ 念幾次和語速已改成依熟悉度分別設定（見上方「⭐ 依熟悉度」）。</div>
+            <div id="pmUniform">
+            <div class="pm-label">每句念幾次</div>
+            <div class="stepper">
+                <button onclick="setPlayOpt('repeat', playSettings.repeat - 1)">−</button>
+                <div class="num" id="pmRepeat">2 次</div>
+                <button onclick="setPlayOpt('repeat', playSettings.repeat + 1)">＋</button>
+            </div>
             <div class="pm-label">語速</div>
             <div class="seg" id="pmRate">
                 <button data-v="0.8" onclick="setPlayOpt('speed',0.8)">慢 0.8x</button>
                 <button data-v="1" onclick="setPlayOpt('speed',1)">正常 1.0x</button>
                 <button data-v="1.2" onclick="setPlayOpt('speed',1.2)">快 1.2x</button>
+            </div>
             </div>
             <div class="pm-count" id="pmCount">共 0 句</div>
             <div class="pm-hint" id="pmCacheInfo" style="text-align:center"></div>
@@ -1525,7 +1554,25 @@ ${ENRICH_RULES}
         const aiSpeed = () => Math.max(0.5, Math.min(1.5, Number(playSettings.speed) || 1));
         const phoneRate = () => Math.round(0.9 * aiSpeed() * 100) / 100;
         // 播放中直接調整速度，不需重新產生播放清單
+        // 依熟悉度設定語速時，播放中按 −／＋ 只調整「目前這句的熟悉度分數」的語速
+        function applyItemRate() {
+            if (!player.open) return;
+            const sp = itemSpeed(player.list[player.idx]);
+            if (aiAudio && player.mode === 'ai' && Math.abs(aiAudio.playbackRate - sp) > 0.001) aiAudio.playbackRate = aiAudio.defaultPlaybackRate = sp;
+            updateSpeedView();
+        }
         function changeSpeed(d) {
+            const curItem = player.open && !player.finished ? player.list[player.idx] : null;
+            if (d && curItem && lvCfg(curItem)) {
+                const f = curItem.fam || 0, c = playSettings.lv.fam[f];
+                c.s = clampSpeed((Number(c.s) || 1) + d);
+                localStorage.setItem(PLAY_KEY, JSON.stringify(playSettings));
+                applyItemRate();
+                if (singleAudio) singleAudio.playbackRate = c.s;
+                showToast(`🎚️ ${famText(f)} 的語速：${c.s.toFixed(1)}x`, 1200);
+                if (document.getElementById('playModal').style.display === 'flex') refreshPlayModal();
+                return;
+            }
             playSettings.speed = Math.round(Math.max(0.5, Math.min(1.5, aiSpeed() + d)) * 10) / 10;
             localStorage.setItem(PLAY_KEY, JSON.stringify(playSettings));
             if (aiAudio) { aiAudio.playbackRate = aiAudio.defaultPlaybackRate = aiSpeed(); }
@@ -1533,7 +1580,11 @@ ${ENRICH_RULES}
             updateSpeedView();
             if (document.getElementById('playModal').style.display === 'flex') refreshPlayModal();
         }
-        function updateSpeedView() { const el = document.getElementById('psSpeed'); if (el) el.textContent = aiSpeed().toFixed(1) + 'x'; }
+        function updateSpeedView() {
+            const el = document.getElementById('psSpeed'); if (!el) return;
+            const item = player.open && !player.finished ? player.list[player.idx] : null;
+            el.textContent = (item && lvCfg(item) ? itemSpeed(item) : aiSpeed()).toFixed(1) + 'x';
+        }
         const player = { open: false, playing: false, finished: false, list: [], idx: 0, rep: 0, token: 0, mode: 'phone', segments: null, aiUrl: null };
         const ICON_PAUSE = '<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
         const ICON_PLAY = '<svg viewBox="0 0 24 24" style="margin-left:2px"><path d="M7 5v14l12-7z"/></svg>';
@@ -1629,6 +1680,55 @@ ${ENRICH_RULES}
                 .sort((a, b) => b.k - a.k).map(x => x.it);
             return limit ? keyed.slice(0, limit) : keyed;
         }
+        // ---- v2.16.0：依熟悉度分別設定念幾次與語速（只在「⭐ 依熟悉度」播放時生效） ----
+        const LV_PRESETS = {
+            focus: { 1: [4, 0.8], 2: [3, 0.9], 3: [2, 1.0], 4: [1, 1.1], 5: [1, 1.2], 0: [3, 0.9] },
+            gentle: { 1: [3, 0.9], 2: [2, 0.9], 3: [2, 1.0], 4: [2, 1.0], 5: [1, 1.1], 0: [2, 1.0] }
+        };
+        (function () {
+            const cur = playSettings.lv || {}, fam = {};
+            Object.entries(LV_PRESETS.focus).forEach(([k, [r, sp]]) => { fam[k] = Object.assign({ r, s: sp }, (cur.fam || {})[k] || {}); });
+            playSettings.lv = { on: !!cur.on, fam };
+        })();
+        const clampSpeed = v => Math.round(Math.max(0.5, Math.min(1.5, Number(v) || 1)) * 10) / 10;
+        const lvActive = () => playSettings.order === 'weighted' && playSettings.lv && playSettings.lv.on;
+        const lvCfg = item => lvActive() && item ? playSettings.lv.fam[item.fam || 0] || null : null;
+        const itemRepeat = item => { const c = lvCfg(item); return c ? Math.max(1, Math.min(10, Number(c.r) || 1)) : playSettings.repeat; };
+        const itemSpeed = item => { const c = lvCfg(item); return c ? clampSpeed(c.s) : aiSpeed(); };
+        const famText = f => f ? `⭐${f} ${FAM_NAME[f]}` : '未評分';
+        function savePlay() { const { _lc, ...o } = playSettings; localStorage.setItem(PLAY_KEY, JSON.stringify(o)); }
+        function setLvOn(on) { playSettings.lv.on = on; savePlay(); refreshPlayModal(); }
+        function stepLv(f, field, d) {
+            const c = playSettings.lv.fam[f];
+            if (field === 'r') c.r = Math.max(1, Math.min(10, (Number(c.r) || 1) + d));
+            else c.s = clampSpeed((Number(c.s) || 1) + d);
+            savePlay(); refreshPlayModal();
+        }
+        function setLvPreset(name) {
+            playSettings.lv.on = true;
+            [1, 2, 3, 4, 5, 0].forEach(f => {
+                playSettings.lv.fam[f] = name === 'same' ? { r: playSettings.repeat, s: aiSpeed() } : { r: LV_PRESETS[name][f][0], s: LV_PRESETS[name][f][1] };
+            });
+            savePlay(); refreshPlayModal();
+        }
+
+        // ---- v2.16.0：自訂播放句數 ----
+        const LIMIT_PRESETS = [10, 20, 30, 0];
+        function setLimitCustom() {
+            const cur = Number(playSettings.limit) || 0;
+            playSettings._lc = true; playSettings.limitCustom = true;
+            setPlayOpt('limit', LIMIT_PRESETS.includes(cur) ? (Number(playSettings.lastCustom) || 15) : cur);
+            delete playSettings._lc;
+            setTimeout(() => { const el = document.getElementById('pmLimitInput'); if (el) el.focus(); }, 50);
+        }
+        function setLimitNum(v) {
+            const n = Math.max(1, Math.min(999, Math.round(Number(v) || 1)));
+            playSettings._lc = true; playSettings.limitCustom = true; playSettings.lastCustom = n;
+            setPlayOpt('limit', n);
+            delete playSettings._lc;
+        }
+        function stepLimit(d) { setLimitNum((Number(playSettings.limit) || Number(playSettings.lastCustom) || 15) + d); }
+
         function setWeight(f, d) {
             const w = Object.assign({}, playSettings.weights);
             w[f] = Math.max(0, Math.min(5, (Number(w[f]) || 0) + d));
@@ -1641,12 +1741,29 @@ ${ENRICH_RULES}
             if (!on) return;
             const pool = getPlaylist(), cnt = {};
             pool.forEach(it => { cnt[it.fam || 0] = (cnt[it.fam || 0] || 0) + 1; });
-            document.getElementById('pmWeightRows').innerHTML = [1, 2, 3, 4, 5, 0].map(f => `
+            const lvOn = !!playSettings.lv.on;
+            document.getElementById('pmLvOn').checked = lvOn;
+            document.getElementById('pmLvPresets').style.display = lvOn ? 'flex' : 'none';
+            document.getElementById('pmWeightRows').innerHTML = [1, 2, 3, 4, 5, 0].map(f => {
+                const c = playSettings.lv.fam[f];
+                return `<div class="wt-item ${cnt[f] ? '' : 'empty'}">
                 <div class="wt-row"><span class="fam-badge fam-${f}">${f ? '⭐' + f : '未評分'}</span><span class="wt-name">${f ? FAM_NAME[f] : '還沒評過'}</span><small>${cnt[f] || 0} 句</small>
-                <button onclick="setWeight(${f},-1)">−</button><b>×${famWeight(f)}</b><button onclick="setWeight(${f},1)">＋</button></div>`).join('');
+                <button onclick="setWeight(${f},-1)">−</button><b>×${famWeight(f)}</b><button onclick="setWeight(${f},1)">＋</button></div>
+                ${lvOn ? `<div class="wt-sub">
+                    <span class="lv-st">念<button onclick="stepLv(${f},'r',-1)">−</button><b>${c.r} 次</b><button onclick="stepLv(${f},'r',1)">＋</button></span>
+                    <span class="lv-st">語速<button onclick="stepLv(${f},'s',-0.1)">−</button><b>${clampSpeed(c.s).toFixed(1)}x</b><button onclick="stepLv(${f},'s',0.1)">＋</button></span>
+                </div>` : ''}</div>`;
+            }).join('');
             const usable = pool.filter(it => famWeight(it.fam) > 0).length;
             const lim = Number(playSettings.limit) || 0;
-            document.getElementById('pmWeightSum').textContent = usable ? `📋 從 ${usable} 句中依權重挑出 ${lim ? Math.min(lim, usable) : usable} 句` : '📭 沒有可播放的例句（權重都是 0 或範圍內沒有例句）';
+            let extra = '';
+            if (lvOn && usable) {
+                const sample = weightedPick(pool, lim);
+                const reads = sample.reduce((a, it) => a + itemRepeat(it), 0);
+                const secs = sample.reduce((a, it) => a + itemRepeat(it) * (it.en.split(/\s+/).length * 0.42 / itemSpeed(it) + Number(playSettings.gap || 1.2)), 0);
+                extra = `，共念約 ${reads} 次、約 ${Math.max(1, Math.round(secs / 60))} 分鐘`;
+            }
+            document.getElementById('pmWeightSum').textContent = usable ? `📋 從 ${usable} 句中依權重挑出 ${lim ? Math.min(lim, usable) : usable} 句${extra}` : '📭 沒有可播放的例句（權重都是 0 或範圍內沒有例句）';
         }
 
         // 依「播放順序」整理：隨機時打亂並取前 N 句；依熟悉度時加權抽樣
@@ -1677,11 +1794,12 @@ ${ENRICH_RULES}
         function closePlayModal() { document.getElementById('playModal').style.display = 'none'; }
 
         function setPlayOpt(key, val) {
+            if (key === 'limit' && !playSettings._lc) playSettings.limitCustom = false;
             if (key === 'repeat') val = Math.max(1, Math.min(10, val));
             if (key === 'gap') val = Math.max(0.5, Math.min(15, val));
             if (key === 'speed') { playSettings.speed = val; changeSpeed(0); return; }
             playSettings[key] = val;
-            localStorage.setItem(PLAY_KEY, JSON.stringify(playSettings));
+            savePlay();
             refreshPlayModal();
         }
 
@@ -1708,15 +1826,21 @@ ${ENRICH_RULES}
             document.getElementById('pmRepeat').textContent = `${playSettings.repeat} 次`;
             document.getElementById('pmGap').textContent = `${Number(playSettings.gap || 1.2).toFixed(1)} 秒`;
             document.querySelectorAll('#pmOrder button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.order));
-            document.querySelectorAll('#pmLimit button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === Number(playSettings.limit)));
+            const isCustom = playSettings.limitCustom || !LIMIT_PRESETS.includes(Number(playSettings.limit) || 0);
+            document.querySelectorAll('#pmLimit button').forEach(b => b.classList.toggle('on', b.dataset.v === 'custom' ? isCustom : !isCustom && Number(b.dataset.v) === Number(playSettings.limit)));
             document.getElementById('pmLimit').style.display = playSettings.order === 'seq' ? 'none' : 'flex';
+            document.getElementById('pmLimitCustom').style.display = playSettings.order !== 'seq' && isCustom ? 'flex' : 'none';
+            const limIn = document.getElementById('pmLimitInput');
+            if (document.activeElement !== limIn) limIn.value = Number(playSettings.limit) || '';
             refreshWeightBox();
+            document.getElementById('pmUniform').style.display = lvActive() ? 'none' : 'block';
+            document.getElementById('pmLvNote').style.display = lvActive() ? 'block' : 'none';
             const all = getPlaylist();
             const n = playSettings.order === 'weighted' ? all.filter(it => famWeight(it.fam) > 0).length : all.length;
             const lim = Number(playSettings.limit) || 0;
             const pick = playSettings.order !== 'seq' ? (lim ? Math.min(lim, n) : n) : n;
             document.getElementById('pmCount').textContent = !n ? '這個範圍沒有可播放的例句'
-                : playSettings.order === 'weighted' ? `依熟悉度權重播放 ${pick} 句，每句念 ${playSettings.repeat} 次`
+                : playSettings.order === 'weighted' ? `依熟悉度權重播放 ${pick} 句，${lvActive() ? '依熟悉度念不同次數與語速' : `每句念 ${playSettings.repeat} 次`}`
                 : playSettings.order === 'random' ? `從 ${n} 句中隨機播放 ${pick} 句，每句念 ${playSettings.repeat} 次`
                 : `共 ${n} 句，每句念 ${playSettings.repeat} 次`;
             document.getElementById('pmStart').disabled = n === 0;
@@ -1848,10 +1972,11 @@ ${ENRICH_RULES}
                     return;
                 }
                 highlightPlaying(true);
-                for (; player.rep < playSettings.repeat; player.rep++) {
+                updateSpeedView();
+                for (; player.rep < itemRepeat(player.list[player.idx]); player.rep++) {
                     updatePlayerView();
                     recordPlay(player.list[player.idx].id);
-                    await speakOnce(player.list[player.idx].en, phoneRate());   // 每句都用當下的速度
+                    await speakOnce(player.list[player.idx].en, Math.round(0.9 * itemSpeed(player.list[player.idx]) * 100) / 100);   // 依熟悉度時，每句用自己分數的語速
                     if (!alive()) return;
                     await sleep(Number(playSettings.gap || 1.2) * 1000);   // 每念完一次（同句重複或換句）都停頓設定的秒數
                     if (!alive()) return;
@@ -1885,7 +2010,8 @@ ${ENRICH_RULES}
                 $('psCn').textContent = item.cn;
                 $('psBar').style.width = `${(player.idx / total) * 100}%`;
                 $('psMeta').textContent = `第 ${player.idx + 1} / ${total} 句　${dayLabel(item.day)}`;
-                $('psRep').textContent = `第 ${Math.min(player.rep + 1, playSettings.repeat)} / ${playSettings.repeat} 次`;
+                const rr = itemRepeat(item);
+                $('psRep').textContent = `第 ${Math.min(player.rep + 1, rr)} / ${rr} 次` + (lvActive() ? `　🎚️ ${famText(item.fam)}` : '');
             }
             updateMediaSession();
         }
@@ -2120,7 +2246,7 @@ ${ENRICH_RULES}
             return out.buffer;
         }
         // 串成一整段：每句念 N 次，同句之間停 0.7 秒，換句停 1.2 秒
-        function buildPlaylistAudio(list, clips, repeat) {
+        function buildPlaylistAudio(list, clips) {
             const rate = clips[list[0].id].rate;
             const parts = [], segments = [];
             let samples = 0;
@@ -2129,7 +2255,7 @@ ${ENRICH_RULES}
             gap(0.3);
             list.forEach((item, idx) => {
                 const pcm = resamplePCM(clips[item.id].pcm, clips[item.id].rate, rate);
-                for (let r = 0; r < repeat; r++) {
+                for (let r = 0, rep = itemRepeat(item); r < rep; r++) {
                     const start = samples / rate;
                     add(pcm);
                     segments.push({ idx, rep: r, start, end: samples / rate });
@@ -2168,7 +2294,7 @@ ${ENRICH_RULES}
             if (seg.idx !== player.idx || seg.rep !== player.rep) {
                 const changed = seg.idx !== player.idx;
                 player.idx = seg.idx; player.rep = seg.rep;
-                if (changed) highlightPlaying(true);
+                if (changed) { applyItemRate(); highlightPlaying(true); }
                 updatePlayerView();
             }
         }
@@ -2178,6 +2304,7 @@ ${ENRICH_RULES}
             if (!seg || !aiAudio) return;
             aiAudio.currentTime = seg.start;
             player.idx = idx; player.rep = 0; player.finished = false;
+            applyItemRate();
             highlightPlaying(true); updatePlayerView();
         }
         function aiReleaseAudio() {
@@ -2228,11 +2355,11 @@ ${ENRICH_RULES}
 
             aiReleaseAudio();
             player.list = ready;
-            const built = buildPlaylistAudio(ready, clips, playSettings.repeat);
+            const built = buildPlaylistAudio(ready, clips);
             player.aiUrl = built.url; player.segments = built.segments; player.lastSeg = -1;
             const a = aiEnsureAudio();
             a.src = built.url;
-            a.playbackRate = a.defaultPlaybackRate = aiSpeed();
+            a.playbackRate = a.defaultPlaybackRate = itemSpeed(ready[0]);
             try { a.preservesPitch = true; } catch (e) {}
             player.idx = 0; player.rep = 0; player.finished = false;
             highlightPlaying(true); updatePlayerView();
