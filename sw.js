@@ -1,6 +1,6 @@
 // 英語學習筆記本 - Service Worker（讓 App 可離線開啟）
 // 更新程式後，把版本號改掉，使用者下次開啟就會拿到新版
-const CACHE_NAME = 'eng-notebook-v2.16.0';
+const CACHE_NAME = 'eng-notebook-v2.17.0';
 const APP_FILES = [
   './',
   './index.html',
@@ -25,7 +25,7 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
+    caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('eng-notebook-') && k !== CACHE_NAME).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
