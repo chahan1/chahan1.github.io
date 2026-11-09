@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.17.1 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.18.0 - 語音與 AI 升級版</title>
     <script>try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
@@ -1016,6 +1016,14 @@
         .bk-status { background: var(--c-f6faf7); border: 1px solid var(--c-dcefe2); border-radius: 12px; padding: 10px 12px; font-size: 12.5px; color: var(--c-3c4043); line-height: 1.7; }
         .bk-status b { color: var(--green); }
         .bk-status .warn { color: var(--c-b06000); font-weight: 600; }
+        .sync-badge { font-size: 11px; margin-left: 4px; margin-right: auto; display: inline-flex; align-items: center; gap: 2px; padding: 1px 6px; border-radius: 9px; cursor: pointer; font-weight: 600; vertical-align: middle; }
+        .sync-badge:empty { display: none; }
+        .header-container .version-tag:has(+ .sync-badge:not(:empty)) { margin-right: 0; }
+        .sync-badge.st-idle { background: var(--c-e6f4ea); color: var(--c-137333); }
+        .sync-badge.st-pushing, .sync-badge.st-loading { background: var(--c-e8f0fe); color: var(--c-1a5fb4); }
+        .sync-badge.st-offline, .sync-badge.st-login { background: var(--c-fef7e0); color: var(--c-b06000); }
+        .sync-badge.st-error { background: var(--c-fce8e6); color: var(--c-b3261e); }
+        .sm-cancel { display: block; width: 100%; margin-top: 8px; padding: 10px; border: none; background: none; color: var(--c-5f6368); font-size: 13.5px; cursor: pointer; }
 
         /* 顯示設定：開關 */
         .sw-list { margin-top: 6px; }
@@ -1062,7 +1070,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.17.1</span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.18.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1084,6 +1092,7 @@
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-label">設定</div>
                     <div class="dropdown-item" onclick="openViewModal()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-eye"/></svg></i><span>顯示設定</span></div>
+                    <div class="dropdown-item" onclick="openSyncModal()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-cloud"/></svg></i><span>雲端同步</span></div>
                     <div class="dropdown-item" onclick="openBackupModal()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-save"/></svg></i><span>備份與還原</span></div>
                 </div>
                 <input type="file" id="importFile" accept=".json,application/json,text/plain,*/*" style="display: none;" onchange="importData(event)">
@@ -1457,6 +1466,30 @@
             </div>
             <div class="pm-hint">選擇筆記畫面要顯示哪些內容，設定會自動記住。</div>
             <div id="vwList" class="sw-list"></div>
+        </div>
+    </div>
+
+    <!-- 雲端同步 -->
+    <div id="syncModal" class="modal-overlay play-modal" onclick="if(event.target===this) closeSyncModal()">
+        <div class="modal-content">
+            <div class="pm-title"><h3>☁️ 雲端同步</h3><button class="pm-close" onclick="closeSyncModal()">×</button></div>
+            <div class="pm-hint" style="margin-top:0">手機和電腦登入同一個 Google 帳號後，筆記會自動同步：在一台修改，另一台幾秒內就會更新；離線時的修改，連上網路後會自動補傳。</div>
+            <div class="bk-status" id="syncInfo"></div>
+            <button class="tool-card" id="syncLoginBtn" onclick="syncLoginClick()"><i>🔑</i><span><b>登入並開始同步</b><small>用你建立 Firebase 的 Google 帳號登入</small></span></button>
+            <button class="tool-card" id="syncNowBtn" onclick="syncNowClick()"><i>🔄</i><span><b>立即同步</b><small>平常會自動同步，通常不需要按</small></span></button>
+            <button class="tool-card" id="syncUndoBtn" onclick="restorePresyncBackup()"><i>↩</i><span><b>還原第一次同步前的筆記</b><small>合併結果不如預期時使用</small></span></button>
+            <button class="tool-card" id="syncOutBtn" onclick="syncOutClick()"><i>⏹</i><span><b>登出並停止同步</b><small>這台裝置的筆記會保留</small></span></button>
+            <div class="pm-hint">• 會同步：主題、單字、釋義、字源、例句、熟記勾選、熟悉度評分與播放／練習紀錄。<br>• 不會同步：AI 金鑰、AI 語音檔、顯示與播放設定（每台裝置各自保留）。<br>• 「💾 備份與還原」照常可用；在一台還原備份，其他裝置也會跟著更新。</div>
+        </div>
+    </div>
+    <div id="syncMerge" class="modal-overlay play-modal">
+        <div class="modal-content">
+            <div class="pm-title"><h3>☁️ 第一次同步</h3></div>
+            <div class="bk-status" id="smInfo"></div>
+            <button class="tool-card" onclick="__smResolve('merge')"><i>🔀</i><span><b>合併兩邊（建議）</b><small>兩邊的主題、單字、例句都保留；同一個單字以雲端內容為準，並補上這台獨有的例句</small></span></button>
+            <button class="tool-card" onclick="__smResolve('cloud')"><i>📥</i><span><b>以雲端為準</b><small>這台裝置的筆記換成雲端的內容</small></span></button>
+            <button class="tool-card" onclick="__smResolve('device')"><i>⬆</i><span><b>以這台裝置為準</b><small>雲端換成這台的筆記，其他裝置也會跟著改變</small></span></button>
+            <button class="sm-cancel" onclick="__smResolve(null)">取消，先不要同步</button>
         </div>
     </div>
 
@@ -3331,7 +3364,7 @@ ${ENRICH_RULES}
             return null;
         }
         let quietSaveTimer = null;
-        function flushQuietSave() { clearTimeout(quietSaveTimer); quietSaveTimer = null; try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); } catch (e) {} }
+        function flushQuietSave() { clearTimeout(quietSaveTimer); quietSaveTimer = null; try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); } catch (e) {} syncNotify(); }
         function saveQuiet() { clearTimeout(quietSaveTimer); quietSaveTimer = setTimeout(flushQuietSave, 1500); }   // 只存檔、不重畫畫面（播放中不會閃）
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && quietSaveTimer) flushQuietSave(); });
         window.addEventListener('pagehide', () => { if (quietSaveTimer) flushQuietSave(); });
@@ -4899,6 +4932,367 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
         function openViewModal() { closeMenu(); renderViewModal(); renderThemePicker(); document.getElementById('viewModal').style.display = 'flex'; }
         function closeViewModal() { document.getElementById('viewModal').style.display = 'none'; }
 
+        // ======================================================================
+        // ---- v2.17.0：☁️ 雲端同步（Firebase：Google 登入＋Firestore 資料庫）----
+        // 每個主題、每個單字（含它的例句）各存成雲端的一筆資料；改了哪一筆就只上傳那一筆。
+        // 另一台裝置會即時收到改動。刪除會留下「已刪除」標記，避免被另一台救回來。
+        // ======================================================================
+        const FB_VER = '12.12.0';
+        const FB_CONFIG = {
+            apiKey: 'AIzaSyB2XUeg9Ztzle9bCXIsWgtR0bK5Nq7MK5s',
+            authDomain: 'english-notebook-5fa89.firebaseapp.com',
+            projectId: 'english-notebook-5fa89',
+            storageBucket: 'english-notebook-5fa89.firebasestorage.app',
+            messagingSenderId: '61959186614',
+            appId: '1:61959186614:web:e0595213e65cae72185e17'
+        };
+        const SYNC_KEY = 'eng_sync';
+        const SYNC_LOCAL_ONLY = ['collapsed', 'isLoading'];   // 只屬於這台裝置的畫面狀態，不上傳
+        const sync = {
+            fb: null, app: null, auth: null, db: null, user: null,
+            status: 'off', msg: '', unsub: null, timer: null, inflight: {}, ready: false, starting: false,
+            applying: false
+        };
+        let syncState = { on: false, uid: '', email: '', shadow: {}, lastAt: 0, dev: '' };
+        try { Object.assign(syncState, JSON.parse(localStorage.getItem(SYNC_KEY)) || {}); } catch (e) {}
+        if (!syncState.dev) syncState.dev = Math.random().toString(36).slice(2, 10);
+        function saveSyncState() { try { localStorage.setItem(SYNC_KEY, JSON.stringify(syncState)); } catch (e) {} }
+
+        // 簡單又快的雜湊，用來判斷某一筆有沒有改過
+        function syncHash(str) {
+            let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+            for (let i = 0; i < str.length; i++) { const c = str.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }
+            h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+            h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+            return (h2 >>> 0).toString(36) + (h1 >>> 0).toString(36);
+        }
+        const syncStrip = o => { const c = {}; for (const k in o) if (!SYNC_LOCAL_ONLY.includes(k)) c[k] = o[k]; return c; };
+        const docHash = d => d.del ? 'DEL' : syncHash(`${d.kind}|${d.topicId || ''}|${d.order}|${d.data}`);
+
+        // 把目前的筆記拆成一筆一筆（null＝這筆正在 AI 查詢中，先不處理）
+        function syncBuildDocs() {
+            const docs = {};
+            tasks.forEach((t, ti) => {
+                const { subtasks, ...meta } = t;
+                docs['t_' + t.id] = { kind: 't', id: t.id, order: ti, data: JSON.stringify(syncStrip(meta)) };
+                (subtasks || []).forEach((s, si) => {
+                    docs['w_' + s.id] = s.isLoading ? null : { kind: 'w', id: s.id, topicId: t.id, order: si, data: JSON.stringify(syncStrip(s)) };
+                });
+            });
+            return docs;
+        }
+
+        // 存檔時呼叫：有開同步就排程上傳
+        function syncNotify() {
+            if (sync.applying) return;
+            try { localStorage.setItem('eng_sync_editAt', String(Date.now())); } catch (e) {}
+            if (!syncState.on || !sync.ready) return;
+            clearTimeout(sync.timer);
+            sync.timer = setTimeout(syncPush, 1500);
+        }
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && sync.timer) { clearTimeout(sync.timer); syncPush(); } });
+
+        const syncRef = k => sync.fb.doc(sync.db, 'users', sync.user.uid, 'items', k);
+        function syncPayload(d) {
+            return d.del ? { kind: d.kind, id: d.id, del: true, ts: sync.fb.serverTimestamp(), dev: syncState.dev }
+                         : { kind: d.kind, id: d.id, topicId: d.topicId || null, order: d.order, data: d.data, del: false, ts: sync.fb.serverTimestamp(), dev: syncState.dev };
+        }
+        // 找出和上次同步不同的部分，分批上傳（每批最多 400 筆）
+        async function syncPush() {
+            sync.timer = null;
+            if (!sync.ready) return;
+            const docs = syncBuildDocs(), sh = syncState.shadow, writes = [];
+            for (const k in docs) {
+                const d = docs[k]; if (!d) continue;
+                const h = docHash(d);
+                if (sh[k] !== h && sync.inflight[k] !== h) writes.push({ k, d, h });
+            }
+            for (const k in sh) {
+                if (!(k in docs) && sh[k] !== 'DEL' && sync.inflight[k] !== 'DEL') {
+                    const d = { kind: k[0], id: Number(k.slice(2)) || k.slice(2), del: true };
+                    writes.push({ k, d, h: 'DEL' });
+                }
+            }
+            if (!writes.length) { if (sync.status === 'pushing') setSyncStatus('idle'); return; }
+            setSyncStatus('pushing');
+            for (let i = 0; i < writes.length; i += 400) {
+                const part = writes.slice(i, i + 400);
+                const batch = sync.fb.writeBatch(sync.db);
+                part.forEach(w => { batch.set(syncRef(w.k), syncPayload(w.d)); sync.inflight[w.k] = w.h; });
+                try {
+                    await batch.commit();   // 離線時會等到連上網路才完成
+                    part.forEach(w => { if (sync.inflight[w.k] === w.h) delete sync.inflight[w.k]; sh[w.k] = w.h; });
+                    syncState.lastAt = Date.now(); saveSyncState();
+                } catch (e) {
+                    part.forEach(w => { if (sync.inflight[w.k] === w.h) delete sync.inflight[w.k]; });
+                    syncFail(e); return;
+                }
+            }
+            setSyncStatus('idle');
+            if (sync.timer == null && Object.keys(syncBuildDiffPreview()).length) syncNotify();
+        }
+        function syncBuildDiffPreview() {   // 上傳期間又有新改動 → 再傳一次
+            const docs = syncBuildDocs(), sh = syncState.shadow, out = {};
+            for (const k in docs) if (docs[k] && sh[k] !== docHash(docs[k]) && !sync.inflight[k]) out[k] = 1;
+            return out;
+        }
+
+        // ---- 收到雲端（另一台裝置）的改動 ----
+        function syncApplyRemote(list, isInitial) {
+            if (!list.length) return 0;
+            const local = syncBuildDocs(), sh = syncState.shadow;
+            const accept = [];
+            list.forEach(r => {
+                const k = r.key, h = docHash(r);
+                if (sh[k] === h) return;                                     // 已經一樣
+                if (sync.inflight[k]) return;                                // 這台正在上傳這一筆
+                const l = local[k];
+                if (l === null) return;                                      // 這台正在 AI 查詢這個字
+                const lh = l ? docHash(l) : (sh[k] ? 'GONE' : undefined);
+                if (lh === h) { sh[k] = h; return; }                         // 內容剛好相同
+                const localDirty = lh !== sh[k] && !(lh === undefined && sh[k] === undefined);
+                if (localDirty && !isInitial && (r.tsMs || 0) < Number(localStorage.getItem('eng_sync_editAt') || 0)) return;   // 兩邊都改了：較新的為準（這台較新 → 稍後上傳覆蓋）
+                accept.push(r);
+                sh[k] = h;
+            });
+            if (!accept.length) { saveSyncState(); return 0; }
+            const changedTopics = new Set();
+            // 記下套用前每個主題、單字原本的位置（沒被改到的照原位置排）
+            const origT = {}, origW = {};
+            tasks.forEach((t, i) => { origT[t.id] = i; t.subtasks.forEach((s, j) => { origW[s.id] = j; }); });
+            const findTopic = id => tasks.find(t => t.id === id);
+            const findWord = id => { for (const t of tasks) { const i = t.subtasks.findIndex(s => s.id === id); if (i >= 0) return { t, i, s: t.subtasks[i] }; } return null; };
+            const topicOrder = {};
+            // 先處理主題，再處理單字
+            accept.filter(r => r.kind === 't').forEach(r => {
+                const cur = findTopic(r.id);
+                if (r.del) { if (cur) tasks = tasks.filter(t => t.id !== r.id); return; }
+                let meta = {}; try { meta = JSON.parse(r.data); } catch (e) { return; }
+                if (cur) { const keep = { subtasks: cur.subtasks, collapsed: cur.collapsed }; Object.keys(cur).forEach(x => delete cur[x]); Object.assign(cur, meta, keep); }
+                else tasks.push(Object.assign(meta, { subtasks: [], collapsed: false }));
+                topicOrder[r.id] = r.order;
+            });
+            accept.filter(r => r.kind === 'w').forEach(r => {
+                const cur = findWord(r.id);
+                if (r.del) { if (cur) { cur.t.subtasks.splice(cur.i, 1); } return; }
+                let data = {}; try { data = JSON.parse(r.data); } catch (e) { return; }
+                data.grandtasks = Array.isArray(data.grandtasks) ? data.grandtasks : [];
+                if (cur) { data.collapsed = cur.s.collapsed; cur.t.subtasks.splice(cur.i, 1); }
+                let topic = findTopic(r.topicId);
+                if (!topic) { topic = { id: r.topicId, text: '📥 同步中的主題', checked: false, collapsed: false, createdAt: Date.now(), subtasks: [] }; tasks.push(topic); }
+                data.__ord = r.order;
+                topic.subtasks.push(data);
+                changedTopics.add(topic);
+            });
+            // 依雲端的順序排列（沒改到的維持原本位置）
+            changedTopics.forEach(t => {
+                t.subtasks = t.subtasks.map((s, i) => ({ s, o: s.__ord != null ? s.__ord - 0.25 : (origW[s.id] != null ? origW[s.id] : i) })).sort((a, b) => a.o - b.o).map(x => { delete x.s.__ord; return x.s; });
+            });
+            if (Object.keys(topicOrder).length) {
+                tasks = tasks.map((t, i) => ({ t, o: topicOrder[t.id] != null ? topicOrder[t.id] - 0.25 : (origT[t.id] != null ? origT[t.id] : i) })).sort((a, b) => a.o - b.o).map(x => x.t);
+            }
+            tasks = normalizeTasks(tasks);
+            // 套用後重新記下每一筆的雜湊（順序可能因合併而改變）
+            const now = syncBuildDocs();
+            accept.forEach(r => { if (!r.del && now[r.key]) sh[r.key] = docHash(now[r.key]); });
+            saveSyncState();
+            sync.applying = true;
+            try { saveData(); } finally { sync.applying = false; }
+            return accept.length;
+        }
+
+        function syncDocFromSnap(snap) {
+            const v = snap.data() || {};
+            return { key: snap.id, kind: v.kind || snap.id[0], id: v.id, topicId: v.topicId, order: Number(v.order) || 0, data: v.data || '', del: !!v.del,
+                     tsMs: v.ts && v.ts.toMillis ? v.ts.toMillis() : 0, dev: v.dev };
+        }
+
+        // ---- 載入 Firebase（第一次開同步時才下載，不影響平常開啟速度）----
+        async function syncLoadSDK() {
+            if (sync.fb) return sync.fb;
+            if (window.__FB_TEST__) { sync.fb = window.__FB_TEST__; return sync.fb; }
+            const base = `https://www.gstatic.com/firebasejs/${FB_VER}/`;
+            const [a, au, fs] = await Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')]);
+            sync.fb = Object.assign({}, a, au, fs);
+            return sync.fb;
+        }
+        async function syncInit() {
+            const fb = await syncLoadSDK();
+            if (!sync.app) {
+                sync.app = fb.initializeApp(FB_CONFIG);
+                sync.auth = fb.getAuth(sync.app);
+                sync.db = fb.getFirestore(sync.app);
+            }
+            return fb;
+        }
+
+        function setSyncStatus(st, msg) {
+            sync.status = st; sync.msg = msg || '';
+            const el = document.getElementById('syncBadge');
+            if (el) {
+                const map = { off: '', loading: '☁️…', idle: '☁️✓', pushing: '☁️⬆', offline: '☁️📴', error: '☁️⚠', login: '☁️🔑' };
+                el.textContent = syncState.on || st === 'loading' ? (map[st] || '') : '';
+                el.className = 'sync-badge st-' + st;
+                el.title = { idle: '已同步', pushing: '上傳中', offline: '離線中，連上網路後自動同步', error: '同步發生問題，點一下查看', loading: '連線中', login: '需要重新登入' }[st] || '';
+            }
+            if (document.getElementById('syncModal') && document.getElementById('syncModal').style.display === 'flex') renderSyncModal();
+        }
+        function syncFail(e) {
+            const code = String(e && (e.code || e.message) || e);
+            console.warn('sync', e);
+            if (/permission-denied|insufficient permissions/i.test(code)) setSyncStatus('error', `這個 Google 帳號（${syncState.email || '?'}）沒有權限使用雲端資料。請登出，改用你建立 Firebase 的 Gmail 登入。`);
+            else if (/unavailable|offline|network|failed to fetch|Failed to fetch dynamically/i.test(code)) setSyncStatus('offline', '目前沒有網路，連上後會自動同步。');
+            else setSyncStatus('error', '同步失敗：' + code);
+        }
+
+        // 開 App 時：之前有開同步就自動連線
+        async function syncStart(interactive) {
+            if (sync.starting || sync.ready) return;
+            sync.starting = true;
+            setSyncStatus('loading');
+            try {
+                const fb = await syncInit();
+                let user = await new Promise(res => { const u = fb.onAuthStateChanged(sync.auth, x => { u(); res(x); }); });
+                if (!user && interactive) {
+                    const provider = new fb.GoogleAuthProvider();
+                    provider.setCustomParameters({ prompt: 'select_account' });
+                    user = (await fb.signInWithPopup(sync.auth, provider)).user;
+                }
+                if (!user) { sync.starting = false; setSyncStatus('login', '請按「登入並開始同步」。'); return; }
+                sync.user = user;
+                if (syncState.uid && syncState.uid !== user.uid) syncState.shadow = {};   // 換了帳號：重新比對
+                syncState.uid = user.uid; syncState.email = user.email || ''; syncState.on = true; saveSyncState();
+                // 第一次同步（或之前的比對紀錄不見了）：先讀一次雲端，決定怎麼合併
+                if (!Object.keys(syncState.shadow).length) {
+                    const qs = await fb.getDocs(fb.collection(sync.db, 'users', user.uid, 'items'));
+                    const remote = []; qs.forEach(d => remote.push(syncDocFromSnap(d)));
+                    const ok = await syncFirstMerge(remote);
+                    if (!ok) { sync.starting = false; await syncStop(false); return; }
+                }
+                sync.ready = true;
+                sync.unsub = fb.onSnapshot(fb.collection(sync.db, 'users', user.uid, 'items'), snap => {
+                    const list = [];
+                    snap.docChanges().forEach(ch => { if (ch.type !== 'removed' && !ch.doc.metadata.hasPendingWrites) list.push(syncDocFromSnap(ch.doc)); });
+                    const n = syncApplyRemote(list, false);
+                    if (n && sync.status !== 'loading') showToast(`☁️ 已從其他裝置同步 ${n} 筆更新`, 1800);
+                    if (!snap.metadata.fromCache) { syncState.lastAt = Date.now(); saveSyncState(); if (sync.status !== 'pushing') setSyncStatus('idle'); }
+                }, err => syncFail(err));
+                sync.starting = false;
+                setSyncStatus('idle');
+                syncPush();
+            } catch (e) {
+                sync.starting = false;
+                if (e && /popup-closed-by-user|cancelled-popup-request/.test(e.code || '')) { setSyncStatus(syncState.on ? 'login' : 'off', '已取消登入。'); return; }
+                if (e && /popup-blocked/.test(e.code || '')) { setSyncStatus('error', '登入視窗被擋住了。請再按一次，或改用 Chrome 開啟網站登入一次（App 會一起登入）。'); return; }
+                if (e && /unauthorized-domain/.test(e.code || '')) { setSyncStatus('error', '這個網址還沒加入 Firebase 的「授權網域」（chahan1.github.io）。'); return; }
+                syncFail(e);
+            }
+        }
+        async function syncStop(signOut) {
+            try { if (sync.unsub) sync.unsub(); } catch (e) {}
+            sync.unsub = null; sync.ready = false; sync.starting = false; clearTimeout(sync.timer); sync.timer = null; sync.inflight = {};
+            if (signOut && sync.auth && sync.fb) { try { await sync.fb.signOut(sync.auth); } catch (e) {} }
+            syncState.on = false; if (signOut) { syncState.shadow = {}; syncState.uid = ''; syncState.email = ''; }
+            saveSyncState();
+            setSyncStatus('off');
+        }
+
+        // ---- 第一次同步：這台裝置和雲端都有資料時，讓使用者選擇怎麼合併 ----
+        function syncTasksFromRemote(remote) {
+            const live = remote.filter(r => !r.del);
+            const topics = live.filter(r => r.kind === 't').sort((a, b) => a.order - b.order).map(r => { let m = {}; try { m = JSON.parse(r.data); } catch (e) {} return Object.assign(m, { subtasks: [], collapsed: false }); });
+            const byId = {}; topics.forEach(t => byId[t.id] = t);
+            live.filter(r => r.kind === 'w').sort((a, b) => a.order - b.order).forEach(r => {
+                let s = {}; try { s = JSON.parse(r.data); } catch (e) { return; }
+                let t = byId[r.topicId];
+                if (!t) { t = byId[r.topicId] = { id: r.topicId, text: '📥 未分類（同步）', checked: false, collapsed: false, createdAt: Date.now(), subtasks: [] }; topics.push(t); }
+                t.subtasks.push(s);
+            });
+            return normalizeTasks(topics);
+        }
+        const isDefaultOnly = list => !list.length || (list.length === 1 && list[0].id === 101 && list[0].subtasks.length <= 1 && (!list[0].subtasks[0] || list[0].subtasks[0].id === 201));
+        function syncMergeTasks(localList, cloudList) {
+            // 相同的主題／單字：以雲端為準，但兩邊各自獨有的例句都保留；兩邊獨有的主題、單字也都保留
+            const out = JSON.parse(JSON.stringify(cloudList));
+            const topicById = {}, wordById = {};
+            out.forEach(t => { topicById[t.id] = t; t.subtasks.forEach(s => wordById[s.id] = s); });
+            localList.forEach(lt => {
+                let t = topicById[lt.id];
+                if (!t) { t = JSON.parse(JSON.stringify(Object.assign({}, lt, { subtasks: [] }))); out.push(t); topicById[t.id] = t; }
+                lt.subtasks.forEach(ls => {
+                    const cs = wordById[ls.id];
+                    if (!cs) { const c = JSON.parse(JSON.stringify(ls)); t.subtasks.push(c); wordById[c.id] = c; return; }
+                    const have = new Set(cs.grandtasks.map(g => g.id));
+                    ls.grandtasks.forEach(g => { if (!have.has(g.id)) cs.grandtasks.push(JSON.parse(JSON.stringify(g))); });
+                });
+            });
+            return out;
+        }
+        function syncAskMerge(nLocal, nCloud) {
+            return new Promise(res => {
+                const box = document.getElementById('syncMerge');
+                document.getElementById('smInfo').innerHTML = `這台裝置有 <b>${nLocal.w}</b> 個單字（${nLocal.s} 句例句），雲端已有 <b>${nCloud.w}</b> 個單字（${nCloud.s} 句例句）。<br>要怎麼合併？（合併前會自動在這台裝置保留一份備份）`;
+                box.style.display = 'flex';
+                window.__smResolve = v => { box.style.display = 'none'; window.__smResolve = null; res(v); };
+            });
+        }
+        const countList = list => ({ w: list.reduce((a, t) => a + t.subtasks.length, 0), s: list.reduce((a, t) => a + t.subtasks.reduce((b, s) => b + s.grandtasks.length, 0), 0) });
+        async function syncFirstMerge(remote) {
+            const cloud = syncTasksFromRemote(remote);
+            const sh = {};
+            const cloudEmpty = !remote.some(r => !r.del);
+            let mode;
+            if (cloudEmpty) mode = 'device';
+            else if (isDefaultOnly(tasks)) mode = 'cloud';
+            else mode = await syncAskMerge(countList(tasks), countList(cloud));
+            if (!mode) return false;
+            if (mode !== 'device' || !cloudEmpty) {
+                try { localStorage.setItem('eng_presync_backup', JSON.stringify({ at: Date.now(), tasks })); } catch (e) {}
+            }
+            // 雲端每一筆目前的雜湊（之後只上傳有差異的）
+            remote.forEach(r => { sh[r.key] = docHash(r); });
+            if (mode === 'cloud') tasks = cloud;
+            else if (mode === 'merge') tasks = syncMergeTasks(tasks, cloud);
+            // mode === 'device'：保留這台的資料；雲端多出來的會在上傳時標成已刪除
+            syncState.shadow = sh; saveSyncState();
+            sync.applying = true;
+            try { saveData(); } finally { sync.applying = false; }
+            if (mode !== 'device' || !cloudEmpty) showToast(mode === 'cloud' ? '☁️ 已載入雲端的筆記' : mode === 'merge' ? '☁️ 已合併這台裝置與雲端的筆記' : '☁️ 已用這台裝置的筆記覆蓋雲端', 2500);
+            return true;
+        }
+        function restorePresyncBackup() {
+            let b = null; try { b = JSON.parse(localStorage.getItem('eng_presync_backup')); } catch (e) {}
+            if (!b || !Array.isArray(b.tasks)) { showToast('沒有找到同步前的備份'); return; }
+            if (!confirm(`要把筆記還原成 ${new Date(b.at).toLocaleString()} 第一次同步前的內容嗎？\n（開著同步的話，還原的內容也會同步到其他裝置）`)) return;
+            tasks = normalizeTasks(b.tasks); saveData(); showToast('↩ 已還原同步前的筆記');
+        }
+
+        // ---- 同步設定畫面 ----
+        function openSyncModal() { closeMenu(); renderSyncModal(); document.getElementById('syncModal').style.display = 'flex'; }
+        function closeSyncModal() { document.getElementById('syncModal').style.display = 'none'; }
+        function renderSyncModal() {
+            const st = sync.status, on = syncState.on;
+            const label = { off: '尚未開啟', loading: '⏳ 連線中…', idle: '✅ 已同步', pushing: '⬆ 上傳中…', offline: '📴 離線中（連上網路後自動同步）', error: '⚠ 發生問題', login: '🔑 需要登入' }[st] || st;
+            const last = syncState.lastAt ? new Date(syncState.lastAt).toLocaleString() : '—';
+            document.getElementById('syncInfo').innerHTML = `<div>狀態：<b>${label}</b></div>${syncState.email ? `<div>帳號：${escapeHtml(syncState.email)}</div>` : ''}${on ? `<div>上次同步：${last}</div>` : ''}${sync.msg ? `<div class="warn">${escapeHtml(sync.msg)}</div>` : ''}`;
+            document.getElementById('syncLoginBtn').style.display = on && sync.ready ? 'none' : 'flex';
+            document.getElementById('syncNowBtn').style.display = on && sync.ready ? 'flex' : 'none';
+            document.getElementById('syncOutBtn').style.display = on || syncState.email ? 'flex' : 'none';
+            document.getElementById('syncUndoBtn').style.display = localStorage.getItem('eng_presync_backup') ? 'flex' : 'none';
+        }
+        function syncLoginClick() {
+            if (!navigator.onLine) { showToast('目前沒有網路，連上網路後再登入'); return; }
+            syncStart(true);
+        }
+        function syncNowClick() { if (!sync.ready) return; clearTimeout(sync.timer); syncPush(); showToast('☁️ 已檢查並上傳最新改動'); }
+        async function syncOutClick() {
+            if (!confirm('要登出並停止同步嗎？\n這台裝置的筆記會保留，只是之後不再和其他裝置同步。')) return;
+            await syncStop(true); renderSyncModal(); showToast('已停止同步');
+        }
+        window.addEventListener('online', () => { if (syncState.on && !sync.ready) syncStart(false); else if (sync.ready) { setSyncStatus('idle'); syncNotify(); } });
+        window.addEventListener('offline', () => { if (syncState.on) setSyncStatus('offline', '目前沒有網路，連上後會自動同步。'); });
+        if (syncState.on) setTimeout(() => { if (navigator.onLine) syncStart(false); else setSyncStatus('offline', '目前沒有網路，連上後會自動同步。'); }, 300);
+
         // ---- 備份與還原 ----
         function openBackupModal() {
             closeMenu();
@@ -4978,6 +5372,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
             catch (e) { alert("儲存失敗（瀏覽器儲存空間可能已滿）"); }
             renderTasks(); updateToolsBadge();
+            syncNotify();
         }
 
         function toggleSubtasks(id, level, parentId = null) {

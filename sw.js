@@ -1,6 +1,6 @@
 // 英語學習筆記本 - Service Worker（讓 App 可離線開啟）
 // 更新程式後，把版本號改掉，使用者下次開啟就會拿到新版
-const CACHE_NAME = 'eng-notebook-v2.17.1';
+const CACHE_NAME = 'eng-notebook-v2.18.0';
 const APP_FILES = [
   './',
   './index.html',
@@ -36,7 +36,8 @@ self.addEventListener('fetch', event => {
   const url = new URL(req.url);
   const isSameOrigin = url.origin === self.location.origin;
   const isSortable = url.hostname === 'cdn.jsdelivr.net';
-  if (!isSameOrigin && !isSortable) return;              // 其他網站（Gemini、發音）直接連網
+  const isFirebaseSdk = url.hostname === 'www.gstatic.com' && url.pathname.startsWith('/firebasejs/');   // 雲端同步的程式庫（有版本號，不會變）
+  if (!isSameOrigin && !isSortable && !isFirebaseSdk) return;   // 其他網站（Gemini、發音、Firebase 連線）直接連網
 
   if (req.mode === 'navigate' || url.pathname.endsWith('.html')) {
     // 網頁本體：優先連網拿最新版，沒網路時用快取
