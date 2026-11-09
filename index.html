@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.19.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.20.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
@@ -811,23 +811,41 @@
         .rt-auto { margin-top: calc(16px * var(--z)); background: var(--c-ffffff); border-radius: calc(14px * var(--z)); padding: calc(10px * var(--z)) calc(12px * var(--z)); font-size: calc(12px * var(--z)); color: var(--c-5f6368); display: flex; align-items: center; gap: calc(8px * var(--z)); box-shadow: 0 1px 3px var(--c-000000-5); }
         .rt-auto select { margin-left: auto; height: calc(30px * var(--z)); border: 1px solid var(--c-e3e6e8); border-radius: calc(8px * var(--z)); font-size: calc(12px * var(--z)); background: var(--c-ffffff); }
         body.read-open { overflow: hidden; }
-        .rd-tools { display: flex; gap: calc(6px * var(--z)); margin-top: calc(8px * var(--z)); flex-wrap: wrap; }
-        .rd-tools .cz-tool { flex: 1 1 auto; min-width: calc(54px * var(--z)); }
-        .rd-item { display: flex; gap: calc(10px * var(--z)); align-items: flex-start; background: var(--c-ffffff); border-radius: calc(12px * var(--z)); padding: calc(12px * var(--z)); margin-top: calc(10px * var(--z)); box-shadow: 0 1px 2px var(--c-000000-5); }
-        .rd-item.done { background: var(--c-f0faf3); }
-        .rd-no { font-size: calc(12px * var(--z)); font-weight: 700; color: var(--green); background: var(--green-light); border-radius: 50%; min-width: calc(24px * var(--z)); height: calc(24px * var(--z)); display: flex; align-items: center; justify-content: center; margin-top: calc(2px * var(--z)); }
-        .rd-body { flex: 1; min-width: 0; }
-        .rd-en { font-size: var(--rd-font, calc(18px * var(--z))); line-height: 1.55; color: var(--text); word-break: break-word; }
-        .rd-cn { font-size: calc(var(--rd-font, calc(18px * var(--z))) * 0.72); color: var(--c-868b90); margin-top: calc(4px * var(--z)); line-height: 1.45; }
-        .rd-word { font-size: calc(11px * var(--z)); color: var(--blue); margin-top: calc(6px * var(--z)); }
-        .rd-acts { display: flex; flex-direction: column; gap: calc(6px * var(--z)); align-items: center; }
-        .rd-check { width: calc(30px * var(--z)); height: calc(30px * var(--z)); border-radius: 50%; border: 1.5px solid var(--c-dadce0); background: var(--c-ffffff); color: var(--c-80868b); font-size: calc(15px * var(--z)); font-weight: 700; cursor: pointer; }
-        .rd-item.done .rd-check { background: var(--green); border-color: var(--green); color: var(--c-ffffff); }
-        .rd-card-wrap .rd-item { min-height: calc(200px * var(--z)); padding: calc(20px * var(--z)) calc(16px * var(--z)); align-items: center; }
-        .rd-card-wrap .rd-en { font-size: calc(var(--rd-font, calc(18px * var(--z))) * 1.25); }
-        .rd-nav { display: none; align-items: center; justify-content: space-between; gap: calc(8px * var(--z)); margin-top: calc(12px * var(--z)); }
-        .rd-nav button { height: calc(40px * var(--z)); border-radius: calc(20px * var(--z)); padding: 0 calc(16px * var(--z)); }
-        .rd-nav span { font-size: calc(13px * var(--z)); color: var(--muted); }
+        .rd-prog { height: calc(4px * var(--z)); border-radius: calc(2px * var(--z)); background: var(--line); overflow: hidden; margin-top: calc(2px * var(--z)); }
+        .rd-prog i { display: block; height: 100%; width: 0; background: var(--green); border-radius: inherit; transition: width .25s; }
+        .rd-tools { display: flex; flex-wrap: wrap; align-items: center; gap: calc(6px * var(--z)); margin-top: calc(10px * var(--z)); }
+        .rd-seg, .rd-font { display: flex; padding: calc(3px * var(--z)); gap: calc(2px * var(--z)); border-radius: calc(10px * var(--z)); background: var(--line); }
+        .rd-seg button, .rd-font button { border: none; background: transparent; color: var(--c-5f6368); height: calc(30px * var(--z)); padding: 0 calc(10px * var(--z)); border-radius: calc(8px * var(--z)); font-size: calc(12.5px * var(--z)); cursor: pointer; display: inline-flex; align-items: center; gap: calc(4px * var(--z)); white-space: nowrap; }
+        .rd-seg button.on { background: var(--card); color: var(--green); font-weight: 600; box-shadow: 0 1px 2px var(--c-101828-6); }
+        .rd-font button { padding: 0 calc(9px * var(--z)); font-weight: 700; }
+        .rd-font button:active { background: var(--card); }
+        .rd-chip { height: calc(36px * var(--z)); padding: 0 calc(12px * var(--z)); border-radius: calc(10px * var(--z)); border: 1px solid var(--line); background: var(--card); color: var(--c-5f6368); font-size: calc(12.5px * var(--z)); cursor: pointer; white-space: nowrap; }
+        .rd-chip.on { background: var(--green-light); border-color: transparent; color: var(--green); font-weight: 600; }
+        .rd-icon { margin-left: auto; width: calc(36px * var(--z)); height: calc(36px * var(--z)); border-radius: calc(10px * var(--z)); border: 1px solid var(--line); background: var(--card); color: var(--c-5f6368); cursor: pointer; display: flex; align-items: center; justify-content: center; flex: none; }
+        .rd-item { background: var(--card); border-radius: calc(14px * var(--z)); padding: calc(12px * var(--z)) calc(14px * var(--z)) calc(10px * var(--z)); margin-top: calc(10px * var(--z)); box-shadow: 0 1px 2px var(--c-101828-6); border: 1px solid transparent; transition: background .2s; }
+        .rd-item.done { background: var(--c-f0faf3); border-color: var(--c-cfe7d7); }
+        .rd-top { display: flex; align-items: center; gap: calc(8px * var(--z)); margin-bottom: calc(6px * var(--z)); min-width: 0; }
+        .rd-no { flex: none; font-size: calc(11px * var(--z)); font-weight: 700; color: var(--green); background: var(--green-light); border-radius: calc(10px * var(--z)); min-width: calc(22px * var(--z)); height: calc(20px * var(--z)); padding: 0 calc(6px * var(--z)); display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; }
+        .rd-word { font-size: calc(11.5px * var(--z)); color: var(--blue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .rd-en { font-size: calc(var(--rd-font, 18px) * var(--z)); line-height: 1.55; color: var(--text); overflow-wrap: break-word; }
+        .rd-cn { font-size: calc(var(--rd-font, 18px) * var(--z) * 0.72); color: var(--c-868b90); margin-top: calc(4px * var(--z)); line-height: 1.45; }
+        .rd-acts { display: flex; align-items: center; gap: calc(6px * var(--z)); margin-top: calc(10px * var(--z)); padding-top: calc(8px * var(--z)); border-top: 1px solid var(--line); }
+        .rd-act { height: calc(32px * var(--z)); padding: 0 calc(11px * var(--z)); border-radius: calc(16px * var(--z)); border: 1px solid var(--line); background: var(--card); color: var(--c-5f6368); font-size: calc(12.5px * var(--z)); cursor: pointer; display: inline-flex; align-items: center; gap: calc(4px * var(--z)); white-space: nowrap; }
+        .rd-act svg.ic { width: calc(15px * var(--z)); height: calc(15px * var(--z)); }
+        .rd-act.rec.on { background: var(--c-d93025); border-color: var(--c-d93025); color: var(--c-ffffff); animation: blink 1s infinite; }
+        .rd-act.check { margin-left: auto; }
+        .rd-item.done .rd-act.check { background: var(--green); border-color: var(--green); color: var(--c-ffffff); font-weight: 600; }
+        .rd-card-wrap .rd-item { min-height: calc(240px * var(--z)); display: flex; flex-direction: column; padding: calc(16px * var(--z)) calc(18px * var(--z)) calc(12px * var(--z)); }
+        .rd-card-wrap .rd-main { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: calc(14px * var(--z)) 0; }
+        .rd-card-wrap .rd-en { font-size: calc(var(--rd-font, 18px) * var(--z) * 1.25); text-align: center; }
+        .rd-card-wrap .rd-cn { text-align: center; }
+        .rd-nav { display: none; align-items: center; justify-content: center; gap: calc(18px * var(--z)); margin-top: calc(12px * var(--z)); }
+        .rd-navbtn { width: calc(44px * var(--z)); height: calc(44px * var(--z)); border-radius: 50%; border: 1px solid var(--line); background: var(--card); color: var(--green); font-size: calc(24px * var(--z)); line-height: 1; cursor: pointer; }
+        .rd-navbtn:disabled { color: var(--muted); opacity: .5; cursor: default; }
+        .rd-nav span { min-width: calc(60px * var(--z)); text-align: center; font-size: calc(13px * var(--z)); color: var(--muted); font-variant-numeric: tabular-nums; }
+        .rd-foot { display: flex; gap: calc(8px * var(--z)); margin-top: calc(16px * var(--z)); }
+        .rd-foot button { flex: 1; height: calc(44px * var(--z)); border-radius: calc(22px * var(--z)); font-size: calc(14.5px * var(--z)); }
+        .rd-again { border: 1px solid var(--green); background: var(--card); color: var(--green); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: calc(4px * var(--z)); }
         .rd-pick-tools { display: flex; gap: calc(6px * var(--z)); margin-top: calc(12px * var(--z)); }
         .rd-pick-tools .dr-input { flex: 1; }
         .rd-pick-tools .btn-outline { flex-shrink: 0; padding: 0 calc(10px * var(--z)); font-size: calc(12px * var(--z)); }
@@ -838,8 +856,6 @@
         .rd-pick-en { display: block; font-size: calc(13px * var(--z)); line-height: 1.4; color: var(--text); }
         .rd-pick small { font-size: calc(11px * var(--z)); color: var(--blue); }
         /* ---- 朗讀錄音與 AI 評分 ---- */
-        .rd-rec { width: calc(30px * var(--z)); height: calc(30px * var(--z)); border-radius: 50%; border: 1.5px solid var(--c-f2b8b5); background: var(--c-ffffff); font-size: calc(14px * var(--z)); cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .rd-rec.on { background: var(--c-d93025); border-color: var(--c-d93025); animation: blink 1s infinite; }
         .rec-bar { display: flex; flex-wrap: wrap; gap: calc(6px * var(--z)); align-items: center; margin-top: calc(10px * var(--z)); font-size: calc(12px * var(--z)); color: var(--muted); }
         .rec-bar.recording { color: var(--c-d93025); }
         .rec-dot { width: calc(8px * var(--z)); height: calc(8px * var(--z)); border-radius: 50%; background: var(--c-d93025); animation: blink 1s infinite; }
@@ -1083,7 +1099,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.19.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.20.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1542,7 +1558,8 @@
                     <button data-v="done" onclick="setReadOpt('scope','done')">已熟記</button>
                     <button data-v="todo" onclick="setReadOpt('scope','todo')">未熟記</button>
                 </div>
-                <div class="seg" id="rdDate" style="margin-top:6px">
+                <div class="pm-label">日期</div>
+                <div class="seg" id="rdDate">
                     <button data-v="all" onclick="setReadOpt('dateMode','all')">全部日期</button>
                     <button data-v="today" onclick="setReadOpt('dateMode','today')">今天</button>
                     <button data-v="7d" onclick="setReadOpt('dateMode','7d')">最近7天</button>
@@ -1565,9 +1582,10 @@
             </div>
             <div class="pm-label">顯示方式</div>
             <div class="seg" id="rdView">
-                <button data-v="list" onclick="setReadOpt('view','list')"><svg class="hi hi-grip" viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-grip"/></svg> 列表（一次全部）</button>
-                <button data-v="card" onclick="setReadOpt('view','card')"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-cards"/></svg> 卡片（一次一句）</button>
+                <button data-v="list" onclick="setReadOpt('view','list')"><svg class="hi hi-grip" viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-grip"/></svg> 列表</button>
+                <button data-v="card" onclick="setReadOpt('view','card')"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-cards"/></svg> 卡片</button>
             </div>
+            <div class="pm-hint" id="rdViewHint"></div>
             <div class="pm-count" id="rdCountText"></div>
             <button class="btn-primary pm-start" id="rdStart" onclick="startReading()">開始朗讀</button>
         </div>
@@ -1622,21 +1640,29 @@
             <div class="cz-title" id="rdTitle"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-book"/></svg> 朗讀練習</div>
             <div class="cz-score" id="rdProgress"></div>
         </div>
+        <div class="rd-prog"><i id="rdProgBar"></i></div>
         <div class="rd-tools">
-            <button class="cz-tool" onclick="readFont(-2)">A−</button>
-            <button class="cz-tool" onclick="readFont(2)">A＋</button>
-            <button class="cz-tool" id="rdCnBtn" onclick="readToggleCn()">中 中文</button>
-            <button class="cz-tool" id="rdViewBtn" onclick="readToggleView()"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-cards"/></svg> 卡片</button>
-            <button class="cz-tool" onclick="readCopy()"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-clipboard"/></svg> 複製</button>
+            <div class="rd-seg">
+                <button id="rdViewList" onclick="readSetView('list')">☰ 列表</button>
+                <button id="rdViewCard" onclick="readSetView('card')">🃏 卡片</button>
+            </div>
+            <button class="rd-chip" id="rdCnBtn" onclick="readToggleCn()">中文</button>
+            <div class="rd-font">
+                <button onclick="readFont(-2)" title="縮小例句" aria-label="縮小例句">A−</button>
+                <button onclick="readFont(2)" title="放大例句" aria-label="放大例句">A+</button>
+            </div>
+            <button class="rd-icon" onclick="readCopy()" title="複製全部句子" aria-label="複製全部句子">📋</button>
         </div>
         <div id="rdBody"></div>
         <div class="rd-nav" id="rdNav">
-            <button class="btn-outline" onclick="readNav(-1)">← 上一句</button>
+            <button class="rd-navbtn" onclick="readNav(-1)" aria-label="上一句">‹</button>
             <span id="rdNavText"></span>
-            <button class="btn-outline" onclick="readNav(1)">下一句</button>
+            <button class="rd-navbtn" onclick="readNav(1)" aria-label="下一句">›</button>
         </div>
-        <button class="btn-primary cz-btn" id="rdShuffle" onclick="readShuffle()"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-shuffle"/></svg> 換一組</button>
-        <button class="btn-outline cz-btn" onclick="closeReading()">完成</button>
+        <div class="rd-foot">
+            <button class="rd-again" id="rdShuffle" onclick="readShuffle()">🔀 換一組</button>
+            <button class="btn-primary rd-done" onclick="closeReading()">完成</button>
+        </div>
     </div>
 
     <!-- 新增例句：AI 或手動 -->
@@ -4055,6 +4081,7 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
             [['#rdPick', 'pick'], ['#rdScope', 'scope'], ['#rdDate', 'dateMode'], ['#rdView', 'view']].forEach(([sel, k]) =>
                 document.querySelectorAll(sel + ' button').forEach(b => b.classList.toggle('on', b.dataset.v === readSettings[k])));
             document.querySelectorAll('#rdCount button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === Number(readSettings.count)));
+            $('rdViewHint').textContent = readSettings.view === 'list' ? '一次顯示全部句子，可以捲動逐句朗讀。' : '一次一句、大字顯示，念完按「✓ 念過」自動跳下一句。';
             const random = readSettings.pick === 'random';
             $('rdRandomBox').style.display = random ? 'block' : 'none';
             $('rdPickBox').style.display = random ? 'none' : 'block';
@@ -4106,25 +4133,29 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
             const total = rd.list.length;
             $('rdTitle').textContent = `📖 朗讀練習・${total} 句`;
             $('rdProgress').textContent = `念過 ${rd.done.size} / ${total}`;
+            $('rdProgBar').style.width = `${total ? rd.done.size / total * 100 : 0}%`;
             $('readPanel').style.setProperty('--rd-font', readSettings.font + 'px');
             $('rdCnBtn').classList.toggle('on', !!readSettings.showCn);
-            $('rdViewBtn').textContent = readSettings.view === 'list' ? '🃏 卡片' : '☰ 列表';
-            $('rdShuffle').style.display = readSettings.pick === 'random' ? 'block' : 'none';
-            const item = (it, n) => `
-                <div class="rd-item ${rd.done.has(it.id) ? 'done' : ''}">
-                    <div class="rd-no">${n}</div>
-                    <div class="rd-body">
+            $('rdViewList').classList.toggle('on', readSettings.view === 'list');
+            $('rdViewCard').classList.toggle('on', readSettings.view === 'card');
+            $('rdShuffle').style.display = readSettings.pick === 'random' ? '' : 'none';
+            const item = (it, n) => {
+                const done = rd.done.has(it.id), recOn = rec.id === it.id;
+                return `
+                <div class="rd-item ${done ? 'done' : ''}">
+                    <div class="rd-top"><span class="rd-no">${n}</span><span class="rd-word">${escapeHtml(cleanForSpeech(it.word))}</span></div>
+                    <div class="rd-main">
                         <div class="rd-en">${escapeHtml(it.en)}</div>
                         ${readSettings.showCn && it.cn ? `<div class="rd-cn">${escapeHtml(it.cn)}</div>` : ''}
-                        <div class="rd-word">${escapeHtml(cleanForSpeech(it.word))}</div>
-                        ${recBarHtml(it)}
                     </div>
                     <div class="rd-acts">
-                        <button class="icon-btn speak" title="聽一遍" data-speak="${escapeAttr(it.en)}" onclick="speakText(this.dataset.speak, ${it.id})">${ICON.speak}</button>
-                        <button class="rd-rec ${rec.id === it.id ? 'on' : ''}" title="${rec.id === it.id ? '停止錄音' : '錄下自己的朗讀'}" onclick="toggleRecord(${it.id})">🎙️</button>
-                        <button class="rd-check" title="念過了" onclick="toggleReadDone(${it.id})">✓</button>
+                        <button class="rd-act speak" title="聽一遍" data-speak="${escapeAttr(it.en)}" onclick="speakText(this.dataset.speak, ${it.id})">${ICON.speak}聽</button>
+                        <button class="rd-act rec ${recOn ? 'on' : ''}" title="${recOn ? '停止錄音' : '錄下自己的朗讀'}" onclick="toggleRecord(${it.id})">🎙️${recOn ? '停止' : '錄音'}</button>
+                        <button class="rd-act check" title="念過了" onclick="toggleReadDone(${it.id})">✓ ${done ? '已念' : '念過'}</button>
                     </div>
+                    ${recBarHtml(it)}
                 </div>`;
+            };
             if (readSettings.view === 'list') {
                 $('rdBody').innerHTML = rd.list.map((it, k) => item(it, k + 1)).join('');
                 $('rdNav').style.display = 'none';
@@ -4132,6 +4163,8 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
                 $('rdBody').innerHTML = `<div class="rd-card-wrap">${item(rd.list[rd.i], rd.i + 1)}</div>`;
                 $('rdNav').style.display = 'flex';
                 $('rdNavText').textContent = `${rd.i + 1} / ${total}`;
+                const [prev, next] = document.querySelectorAll('#rdNav .rd-navbtn');
+                prev.disabled = rd.i === 0; next.disabled = rd.i >= total - 1;
             }
         }
         function toggleReadDone(id, stay) {
@@ -4148,7 +4181,8 @@ ${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
         function readNav(d) { if (rec.id) stopRecord(); rd.i = Math.max(0, Math.min(rd.list.length - 1, rd.i + d)); renderReading(); }
         function readFont(d) { readSettings.font = Math.max(14, Math.min(30, readSettings.font + d)); saveReadSettings(); renderReading(); }
         function readToggleCn() { readSettings.showCn = !readSettings.showCn; saveReadSettings(); renderReading(); }
-        function readToggleView() { readSettings.view = readSettings.view === 'list' ? 'card' : 'list'; saveReadSettings(); renderReading(); }
+        function readToggleView() { readSetView(readSettings.view === 'list' ? 'card' : 'list'); }
+        function readSetView(v) { if (readSettings.view === v) return; readSettings.view = v; saveReadSettings(); renderReading(); document.getElementById('readPanel').scrollTop = 0; }
         function readShuffle() { startReading(); }
         async function readCopy() {
             const text = rd.list.map((it, k) => `${k + 1}. ${it.en}${readSettings.showCn && it.cn ? `\n   ${it.cn}` : ''}`).join('\n');
