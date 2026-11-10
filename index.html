@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.20.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.21.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
@@ -1092,6 +1092,17 @@
         .zoom-seg span { min-width: calc(44px * var(--z)); text-align: center; font-size: calc(12.5px * var(--z)); color: var(--c-5f6368); font-variant-numeric: tabular-nums; cursor: pointer; }
         /* 放大時長字會自動換行，不會超出畫面 */
         .task-text, .dropdown-item span, .tool-card b, .tool-card small, .pm-hint, .bk-status { overflow-wrap: break-word; }
+
+        /* ---- v2.21.0 繼續上次播放 ---- */
+        .pm-resume { margin: calc(4px * var(--z)) 0 calc(6px * var(--z)); padding: calc(10px * var(--z)) calc(12px * var(--z)); border-radius: calc(12px * var(--z)); background: var(--green-light); color: var(--text); font-size: calc(12.5px * var(--z)); line-height: 1.5; }
+        .pm-resume b { color: var(--green); }
+        .pm-resume .pr-bar { height: calc(4px * var(--z)); border-radius: calc(2px * var(--z)); background: var(--card); margin: calc(6px * var(--z)) 0; overflow: hidden; }
+        .pm-resume .pr-bar i { display: block; height: 100%; background: var(--green); }
+        .pm-resume .pr-row { display: flex; align-items: center; gap: calc(8px * var(--z)); }
+        .pm-resume .pr-row span { flex: 1; min-width: 0; }
+        .pm-resume .pr-go { flex: none; border: none; background: var(--green); color: var(--c-ffffff); height: calc(32px * var(--z)); padding: 0 calc(14px * var(--z)); border-radius: calc(16px * var(--z)); font-size: calc(13px * var(--z)); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: calc(4px * var(--z)); }
+        .pm-resume .pr-new { border: none; background: none; color: var(--green); font-size: calc(12px * var(--z)); padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+        .pm-resume.changed { background: var(--c-fef7e0); color: var(--c-b06000); }
 </style>
 </head>
 <body>
@@ -1099,7 +1110,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.20.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.21.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1176,6 +1187,7 @@
     <div id="playModal" class="modal-overlay play-modal" onclick="if(event.target===this) closePlayModal()">
         <div class="modal-content">
             <div class="pm-title"><h3><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-play"/></svg> 播放例句</h3><button class="pm-close" onclick="closePlayModal()">×</button></div>
+            <div class="pm-resume" id="pmResume" style="display:none"></div>
             <div class="pm-label">語音</div>
             <div class="seg" id="pmEngine">
                 <button data-v="freeai" onclick="setPlayOpt('engine','freeai')">免費 AI 語音</button>
@@ -1274,7 +1286,7 @@
             </div>
             <div class="pm-count" id="pmCount">共 0 句</div>
             <div class="pm-hint" id="pmCacheInfo" style="text-align:center"></div>
-            <button class="btn-primary pm-start" id="pmStart" onclick="startPlayer()">開始播放</button>
+            <button class="btn-primary pm-start" id="pmStart" onclick="pmStartClick()">開始播放</button>
         </div>
     </div>
 
@@ -2354,6 +2366,10 @@ ${ENRICH_RULES}
         }
 
         function openPlayModal() { refreshPlayModal(); document.getElementById('playModal').style.display = 'flex'; }
+        // 開 App 時：上次的複習沒播完就提醒
+        setTimeout(() => {
+            try { const r = sessionResumeInfo(); if (r && r.same) showToast(`⏯ 上次的複習播放到第 ${r.idx + 1} / ${r.items.length} 句\n按左下角 ▶ 可以繼續`, 4000); } catch (e) {}
+        }, 1500);
         function closePlayModal() { document.getElementById('playModal').style.display = 'none'; }
 
         function setPlayOpt(key, val) {
@@ -2408,6 +2424,7 @@ ${ENRICH_RULES}
                 : `共 ${n} 句，每句念 ${playSettings.repeat} 次`;
             document.getElementById('pmStart').disabled = n === 0;
             document.getElementById('pmStart').textContent = player.open ? '套用並從頭播放' : '開始播放';
+            renderResumeBox();
         }
 
         // ---- 背景播放：用一段幾乎無聲的音軌讓 Android 把 App 當成「正在播放音樂」，關螢幕也不暫停 ----
@@ -2484,13 +2501,75 @@ ${ENRICH_RULES}
         }
 
         // 從設定視窗按「開始播放」
-        function startPlayer(custom) {
-            const list = Array.isArray(custom) && custom.length ? custom.slice() : buildPlayList();
+        // ---- v2.21.0：記住複習播放清單與進度（App 突然中斷也能從上次的地方繼續）----
+        // 「決定播哪些句子」的設定沒變，就沿用上次的清單；語速、次數、間隔、語音不影響清單。
+        const SESSION_KEY = 'eng_playSession';
+        const LIST_KEYS = ['scope', 'dateMode', 'day', 'curve', 'curveCatch', 'order', 'limit', 'weights'];
+        function playListSig() {
+            const sig = LIST_KEYS.map(k => playSettings[k]);
+            if (['today', '7d', 'curve'].includes(playSettings.dateMode)) sig.push(dayKey(Date.now()));   // 依日期的複習：換一天就是新清單
+            return JSON.stringify(sig);
+        }
+        let playSession = null;
+        try { playSession = JSON.parse(localStorage.getItem(SESSION_KEY)); } catch (e) {}
+        function saveSession() {
+            if (!player.open || !player.sessionOn || !player.list.length) return;
+            playSession = { sig: player.sig, ids: player.list.map(it => it.id), idx: Math.min(player.idx, player.list.length - 1), at: Date.now() };
+            try { localStorage.setItem(SESSION_KEY, JSON.stringify(playSession)); } catch (e) {}
+        }
+        function clearSession() {
+            if (!player.sessionOn) return;
+            playSession = null;
+            try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+        }
+        // 上次的清單（去掉已刪除的例句）與要從第幾句繼續
+        function sessionResumeInfo() {
+            const ss = playSession;
+            if (!ss || !Array.isArray(ss.ids) || !ss.ids.length) return null;
+            const byId = {};
+            getPlaylist(Object.assign({}, playSettings, { scope: 'all', dateMode: 'all' })).forEach(it => { byId[it.id] = it; });
+            const items = [], before = ss.ids.slice(0, ss.idx);
+            ss.ids.forEach(id => { if (byId[id]) items.push(byId[id]); });
+            const idx = before.filter(id => byId[id]).length;
+            if (!items.length || idx >= items.length) return null;
+            return { items, idx, at: ss.at, same: ss.sig === playListSig() };
+        }
+        function renderResumeBox() {
+            const box = document.getElementById('pmResume'), btn = document.getElementById('pmStart');
+            const r = sessionResumeInfo();
+            if (!r || player.open) { box.style.display = 'none'; return; }   // 播放中開設定：維持「套用並從頭播放」
+            const when = new Date(r.at), t = `${when.getMonth() + 1}/${when.getDate()} ${String(when.getHours()).padStart(2, '0')}:${String(when.getMinutes()).padStart(2, '0')}`;
+            box.style.display = 'block';
+            if (r.same) {
+                box.className = 'pm-resume';
+                box.innerHTML = `<div class="pr-row"><span>⏯ 上次（${t}）播放到第 <b>${r.idx + 1}</b> / ${r.items.length} 句</span><button class="pr-go" onclick="pmStartClick()">▶ 繼續</button></div>
+                    <div class="pr-bar"><i style="width:${(r.idx / r.items.length * 100).toFixed(1)}%"></i></div>
+                    <button class="pr-new" onclick="startPlayer()">不要繼續，重新產生新的播放清單</button>`;
+                btn.textContent = `▶ 繼續播放（從第 ${r.idx + 1} 句）`;
+            } else {
+                box.className = 'pm-resume changed';
+                box.innerHTML = `播放設定已變更，按「開始播放」會產生新的清單（上次 ${t} 的清單播到第 ${r.idx + 1} / ${r.items.length} 句）。`;
+            }
+        }
+        function pmStartClick() {
+            const r = player.open ? null : sessionResumeInfo();
+            if (r && r.same) startPlayer(r.items, { resume: r.idx });
+            else startPlayer();
+        }
+
+        function startPlayer(custom, opts = {}) {
+            const isCustom = Array.isArray(custom) && custom.length;
+            const list = isCustom ? custom.slice() : buildPlayList();
             if (!list.length) return;
             closePlayModal();
             playerPause();
             aiReleaseAudio();
-            Object.assign(player, { open: true, finished: false, list, idx: 0, rep: 0, mode: playSettings.engine === 'phone' ? 'phone' : 'ai' });
+            const sessionOn = !isCustom || opts.resume != null;   // 從播放設定開始的清單才記住；學習報表、評分畫面的清單不覆蓋
+            const startIdx = Math.max(0, Math.min(list.length - 1, opts.resume || 0));
+            Object.assign(player, { open: true, finished: false, list, idx: startIdx, rep: 0, mode: playSettings.engine === 'phone' ? 'phone' : 'ai',
+                                    sessionOn, sig: playListSig(), resumeId: opts.resume ? list[startIdx].id : null });
+            saveSession();
+            if (opts.resume) showToast(`⏯ 從第 ${startIdx + 1} / ${list.length} 句繼續播放`);
             document.body.classList.add('player-open');
             setupMediaSession();
             if (player.mode === 'ai') aiPrepareAndPlay();
@@ -2531,6 +2610,7 @@ ${ENRICH_RULES}
             while (alive()) {
                 if (player.idx >= player.list.length) {   // 播放完畢：視窗保留，按 ▶ 可從頭再播
                     player.playing = false; player.finished = true; player.token++;
+                    clearSession();
                     keepAliveStop(); highlightPlaying(false); updatePlayerView();
                     return;
                 }
@@ -2545,6 +2625,7 @@ ${ENRICH_RULES}
                     if (!alive()) return;
                 }
                 player.idx++; player.rep = 0;
+                if (player.idx < player.list.length) saveSession();
             }
         }
 
@@ -2626,6 +2707,7 @@ ${ENRICH_RULES}
             if ('speechSynthesis' in window) window.speechSynthesis.cancel();
             player.idx = Math.max(0, Math.min(player.list.length - 1, player.idx + delta));
             player.rep = 0;
+            saveSession();
             highlightPlaying(true); updatePlayerView();
             if (wasPlaying && player.playing) runPlayer(player.token);
         }
@@ -2838,6 +2920,7 @@ ${ENRICH_RULES}
             aiAudio.addEventListener('timeupdate', aiOnTime);
             aiAudio.addEventListener('ended', () => {
                 player.playing = false; player.finished = true;
+                clearSession();
                 highlightPlaying(false); updatePlayerView();
             });
             aiAudio.addEventListener('play', () => { player.playing = true; player.finished = false; updatePlayerView(); });
@@ -2857,7 +2940,7 @@ ${ENRICH_RULES}
             if (seg.idx !== player.idx || seg.rep !== player.rep) {
                 const changed = seg.idx !== player.idx;
                 player.idx = seg.idx; player.rep = seg.rep;
-                if (changed) { applyItemRate(); highlightPlaying(true); }
+                if (changed) { applyItemRate(); highlightPlaying(true); saveSession(); }
                 updatePlayerView();
             }
         }
@@ -2868,6 +2951,7 @@ ${ENRICH_RULES}
             aiAudio.currentTime = seg.start;
             player.idx = idx; player.rep = 0; player.finished = false;
             applyItemRate();
+            saveSession();
             highlightPlaying(true); updatePlayerView();
         }
         function aiReleaseAudio() {
@@ -2925,6 +3009,14 @@ ${ENRICH_RULES}
             a.playbackRate = a.defaultPlaybackRate = itemSpeed(ready[0]);
             try { a.preservesPitch = true; } catch (e) {}
             player.idx = 0; player.rep = 0; player.finished = false;
+            if (player.resumeId) {   // 繼續上次：跳到上次播放的那一句（那句沒有語音就從下一句）
+                const origIdx = list.findIndex(it => it.id === player.resumeId);
+                let k = ready.findIndex(it => it.id === player.resumeId);
+                if (k < 0) k = ready.findIndex(it => list.indexOf(it) > origIdx);
+                player.resumeId = null;
+                if (k > 0) { await new Promise(res => { if (a.readyState >= 1) res(); else a.addEventListener('loadedmetadata', res, { once: true }); }); aiSeekTo(k); }
+            }
+            saveSession();
             highlightPlaying(true); updatePlayerView();
             try { await a.play(); }
             catch (e) { player.playing = false; updatePlayerView(); showToast('請按 ▶ 開始播放'); }
