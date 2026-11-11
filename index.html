@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.23.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.24.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
@@ -1148,7 +1148,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.23.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.24.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1410,9 +1410,11 @@
             <div class="pm-hint">先看中文，自己用英文說出整句，再對照正確答案。自己「想出來」比反覆聽、反覆看更能記住，也最接近真正開口說的情境。</div>
             <div class="pm-label">出題順序</div>
             <div class="seg" id="rcOrder">
-                <button data-v="weak" onclick="setRecallOpt('order','weak')">不熟優先<br><small>低分、久沒練的先出</small></button>
+                <button data-v="listen" onclick="setRecallOpt('order','listen')">聽熟優先<br><small>聽力 4～5 分的先練</small></button>
+                <button data-v="weak" onclick="setRecallOpt('order','weak')">口說不熟優先<br><small>不看聽力分數</small></button>
                 <button data-v="random" onclick="setRecallOpt('order','random')">隨機</button>
             </div>
+            <div class="pm-hint" id="rcOrderHint"></div>
             <div class="pm-label">題目範圍</div>
             <div class="seg" id="rcScope">
                 <button data-v="all" onclick="setRecallOpt('scope','all')">全部例句</button>
@@ -3668,8 +3670,10 @@ ${ENRICH_RULES}
         // ================= v2.22.0 口說回想（中→英主動回想）=================
         // 看中文 → 自己說出英文 → 顯示正確句子與逐字比對 → 兩鍵自評（看到答案後才評）
         const RECALL_KEY = 'eng_recallSettings';
-        let recallSettings = { scope: 'all', dateMode: 'all', limit: 10, order: 'weak' };
+        let recallSettings = { scope: 'all', dateMode: 'all', limit: 10, order: 'listen' };
         try { Object.assign(recallSettings, JSON.parse(localStorage.getItem(RECALL_KEY)) || {}); } catch (e) {}
+        // v2.24.0：預設改為「聽熟優先」（先聽得懂、再練說得出來）
+        if (!localStorage.getItem('eng_mig2240')) { recallSettings.order = 'listen'; localStorage.setItem('eng_mig2240', '1'); try { localStorage.setItem(RECALL_KEY, JSON.stringify(recallSettings)); } catch (e) {} }
         const rc = { list: [], i: 0, results: [], hint: 0, rec: null, listening: false, sug: null, typing: false };
 
         function recallPool() { return getPlaylist(recallSettings).filter(it => it.cn && /[A-Za-z]{2,}/.test(it.en)); }
@@ -3683,13 +3687,18 @@ ${ENRICH_RULES}
             const all = getPlaylist(recallSettings).length, n = recallPool().length, lim = Number(recallSettings.limit) || 0, q = lim ? Math.min(lim, n) : n;
             document.getElementById('rcCount').textContent = n ? `共 ${n} 句有中文翻譯，這次練 ${q} 句${all > n ? `（${all - n} 句沒有中文，略過）` : ''}` : '這個範圍沒有附中文翻譯的例句';
             document.getElementById('rcStart').disabled = n === 0;
+            const ready = recallPool().filter(it => (gOf(it.id).fam || 0) >= 4).length;
+            document.getElementById('rcOrderHint').textContent = recallSettings.order === 'listen'
+                ? (ready ? `聽力 4～5 分的有 ${ready} 句，會先出這些（其中口說較不熟的優先）${lim && ready < q ? `；不足 ${q} 題時再補其他句子` : ''}。` : '目前沒有聽力 4～5 分的句子，會改出其他句子。可以先到「聽力熟悉度評分」評分。')
+                : recallSettings.order === 'weak' ? '口說熟悉度低、24 小時內沒練過的先出。' : '';
         }
-        // 不熟優先：分數低的先出（未評分視為 2.5），24 小時內練過的往後排；同分隨機
+        // 口說不熟優先：口說分數低的先出（未評分視為 2.5），24 小時內練過的往後排；同分隨機
+        // 聽熟優先（v2.24.0）：聽力 4～5 分的句子排在最前面，同一組內再依口說不熟優先
         function recallPick() {
             let list = shuffle(recallPool());
-            if (recallSettings.order === 'weak') {
+            if (recallSettings.order === 'weak' || recallSettings.order === 'listen') {
                 const now = Date.now();
-                const key = it => { const g = gOf(it.id); return (g.sfam || 2.5) + (g.lastRecallAt && now - g.lastRecallAt < 86400000 ? 3 : 0); };
+                const key = it => { const g = gOf(it.id); return (recallSettings.order === 'listen' && (g.fam || 0) < 4 ? 100 : 0) + (g.sfam || 2.5) + (g.lastRecallAt && now - g.lastRecallAt < 86400000 ? 3 : 0); };
                 list = list.map(it => ({ it, k: key(it) })).sort((a, b) => a.k - b.k).map(x => x.it);
             }
             const lim = Number(recallSettings.limit) || 0;
