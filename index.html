@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.21.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.22.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
@@ -1093,6 +1093,38 @@
         /* 放大時長字會自動換行，不會超出畫面 */
         .task-text, .dropdown-item span, .tool-card b, .tool-card small, .pm-hint, .bk-status { overflow-wrap: break-word; }
 
+        /* ---- v2.22.0 口說回想（中→英）---- */
+        body.cloze-open .recall-panel { display: none; }
+        body.recall-open .recall-panel { display: block; }
+        body.recall-open { overflow: hidden; }
+        .rc-label { font-size: calc(12px * var(--z)); color: var(--muted); }
+        .rc-cn { font-size: calc(19px * var(--z)); line-height: 1.6; color: var(--text); font-weight: 600; margin-top: calc(6px * var(--z)); word-break: break-word; }
+        .rc-hintline { font-size: calc(13px * var(--z)); color: var(--green); margin-top: calc(6px * var(--z)); letter-spacing: .5px; }
+        .rc-hintline:empty { display: none; }
+        .rc-sub { font-size: calc(11.5px * var(--z)); color: var(--muted); margin-top: calc(12px * var(--z)); padding-top: calc(10px * var(--z)); border-top: 1px dashed var(--c-e3e6e8); }
+        .rc-en { font-size: calc(18px * var(--z)); line-height: 1.6; color: var(--text); margin-top: calc(2px * var(--z)); word-break: break-word; }
+        .rc-en b { color: var(--green); background: var(--green-light); border-radius: calc(4px * var(--z)); padding: 0 calc(3px * var(--z)); }
+        .rc-heard { font-size: calc(14px * var(--z)); line-height: 1.6; margin-top: calc(4px * var(--z)); word-break: break-word; }
+        .rc-heard small { color: var(--muted); }
+        .rc-live { min-height: calc(22px * var(--z)); margin-top: calc(12px * var(--z)); font-size: calc(14px * var(--z)); color: var(--muted); text-align: center; font-style: italic; }
+        .rc-mic { display: flex; align-items: center; justify-content: center; gap: calc(8px * var(--z)); width: 100%; height: calc(56px * var(--z)); margin-top: calc(6px * var(--z)); border: none; border-radius: calc(28px * var(--z)); background: var(--green); color: var(--c-ffffff); font-size: calc(16px * var(--z)); font-weight: 600; cursor: pointer; }
+        .rc-mic svg { width: calc(22px * var(--z)); height: calc(22px * var(--z)); }
+        .rc-mic.listening { background: var(--c-d93025); animation: rcPulse 1.2s ease-in-out infinite; }
+        @keyframes rcPulse { 50% { opacity: .75; } }
+        @media (prefers-reduced-motion: reduce) { .rc-mic.listening { animation: none; } }
+        .rc-tip { font-size: calc(11.5px * var(--z)); color: var(--muted); line-height: 1.55; margin-top: calc(12px * var(--z)); }
+        .rc-listen { width: 100%; margin-top: calc(12px * var(--z)); flex: none; }
+        .rc-sug { font-size: calc(13px * var(--z)); margin-top: calc(12px * var(--z)); padding: calc(9px * var(--z)) calc(12px * var(--z)); border-radius: calc(10px * var(--z)); background: var(--c-ffffff); color: var(--text); line-height: 1.5; }
+        .rc-sug:empty { display: none; }
+        .rc-rate-btns { display: flex; gap: calc(10px * var(--z)); margin-top: calc(12px * var(--z)); }
+        .rc-rate { flex: 1; height: calc(56px * var(--z)); border-radius: calc(16px * var(--z)); font-size: calc(15.5px * var(--z)); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: calc(6px * var(--z)); border: 2px solid; background: var(--c-ffffff); }
+        .rc-rate svg { width: calc(18px * var(--z)); height: calc(18px * var(--z)); }
+        .rc-rate.bad { color: var(--c-b3261e); border-color: var(--c-f28b82); }
+        .rc-rate.ok { color: var(--c-137333); border-color: var(--c-34a853); }
+        .rc-rate.bad.sug { background: var(--c-fce8e6); }
+        .rc-rate.ok.sug { background: var(--c-e8f5ec); }
+        .rc-rate.sug { box-shadow: 0 0 0 3px var(--green-light); }
+
         /* ---- v2.21.0 繼續上次播放 ---- */
         .pm-resume { margin: calc(4px * var(--z)) 0 calc(6px * var(--z)); padding: calc(10px * var(--z)) calc(12px * var(--z)); border-radius: calc(12px * var(--z)); background: var(--green-light); color: var(--text); font-size: calc(12.5px * var(--z)); line-height: 1.5; }
         .pm-resume b { color: var(--green); }
@@ -1110,7 +1142,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.21.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.22.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1128,6 +1160,7 @@
                     <div class="dropdown-item" id="itemEditMode" onclick="toggleEditMode()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-pencil"/></svg></i><span>開啟修改模式</span></div>
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-label">學習與複習</div>
+                    <div class="dropdown-item" onclick="openRecallSetup()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-speech"/></svg></i><span>口說回想（中→英）</span></div>
                     <div class="dropdown-item" onclick="openPlayModal()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-play"/></svg></i><span>播放例句</span></div>
                     <div class="dropdown-item" onclick="openRating()"><i><svg class="hi hi-star" viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-star"/></svg></i><span>熟悉度評分</span></div>
                     <div class="dropdown-item" onclick="openClozeSetup()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-write"/></svg></i><span>克漏字練習</span></div>
@@ -1361,6 +1394,97 @@
             <button class="btn-outline cz-btn" onclick="clozeAgain()">再隨機練一次</button>
             <button class="btn-outline cz-btn" onclick="closeCloze()">完成</button>
             <div id="czWrongList"></div>
+        </div>
+    </div>
+
+    <!-- v2.22.0 口說回想：設定 -->
+    <div id="recallSetup" class="modal-overlay play-modal" onclick="if(event.target===this) closeRecallSetup()">
+        <div class="modal-content">
+            <div class="pm-title"><h3><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-speech"/></svg> 口說回想（中→英）</h3><button class="pm-close" onclick="closeRecallSetup()">×</button></div>
+            <div class="pm-hint">先看中文，自己用英文說出整句，再對照正確答案。自己「想出來」比反覆聽、反覆看更能記住，也最接近真正開口說的情境。</div>
+            <div class="pm-label">出題順序</div>
+            <div class="seg" id="rcOrder">
+                <button data-v="weak" onclick="setRecallOpt('order','weak')">不熟優先<br><small>低分、久沒練的先出</small></button>
+                <button data-v="random" onclick="setRecallOpt('order','random')">隨機</button>
+            </div>
+            <div class="pm-label">題目範圍</div>
+            <div class="seg" id="rcScope">
+                <button data-v="all" onclick="setRecallOpt('scope','all')">全部例句</button>
+                <button data-v="done" onclick="setRecallOpt('scope','done')">已熟記</button>
+                <button data-v="todo" onclick="setRecallOpt('scope','todo')">未熟記</button>
+            </div>
+            <div class="pm-label">日期</div>
+            <div class="seg" id="rcDate">
+                <button data-v="all" onclick="setRecallOpt('dateMode','all')">全部日期</button>
+                <button data-v="today" onclick="setRecallOpt('dateMode','today')">今天</button>
+                <button data-v="7d" onclick="setRecallOpt('dateMode','7d')">最近7天</button>
+            </div>
+            <div class="pm-label">題數</div>
+            <div class="seg" id="rcLimit">
+                <button data-v="5" onclick="setRecallOpt('limit',5)">5 題</button>
+                <button data-v="10" onclick="setRecallOpt('limit',10)">10 題</button>
+                <button data-v="20" onclick="setRecallOpt('limit',20)">20 題</button>
+                <button data-v="0" onclick="setRecallOpt('limit',0)">全部</button>
+            </div>
+            <div class="pm-count" id="rcCount"></div>
+            <button class="btn-primary pm-start" id="rcStart" onclick="startRecall()">開始</button>
+        </div>
+    </div>
+
+    <!-- v2.22.0 口說回想：作答畫面 -->
+    <div id="recallPanel" class="cloze-panel recall-panel">
+        <div class="cz-head">
+            <button class="ps-icon-btn" title="結束" onclick="closeRecall()">×</button>
+            <div class="cz-title"><span id="rcProgressText"></span></div>
+            <div class="cz-score" id="rcScore"></div>
+        </div>
+        <div class="ps-progress"><div id="rcBar"></div></div>
+        <div id="rcQuiz">
+            <div class="cz-card">
+                <div class="rc-label" id="rcLabel">用英文說出這句：</div>
+                <div class="rc-cn" id="rcCn"></div>
+                <div class="rc-hintline" id="rcHintLine"></div>
+                <div id="rcReveal" style="display:none">
+                    <div class="rc-sub">正確句子</div>
+                    <div class="rc-en" id="rcEn"></div>
+                    <div id="rcHeardBox"></div>
+                </div>
+            </div>
+            <div id="rcAsk">
+                <div class="rc-live" id="rcLive"></div>
+                <button class="rc-mic" id="rcMicBtn" onclick="recallListen()"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-mic"/></svg> <span id="rcMicTxt">按一下，說出英文</span></button>
+                <div class="rc-type" id="rcTypeBox" style="display:none">
+                    <input type="text" class="cz-input" id="rcTypeIn" placeholder="輸入英文句子" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+                        onkeydown="if(event.key==='Enter' && !event.isComposing){ event.preventDefault(); recallSubmitTyped(); }">
+                    <button class="btn-primary cz-btn" onclick="recallSubmitTyped()">送出</button>
+                </div>
+                <div class="cz-tools">
+                    <button class="cz-tool" onclick="recallHint()"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-bulb"/></svg> 提示</button>
+                    <button class="cz-tool" id="rcTypeBtn" onclick="recallToggleType()"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-write"/></svg> 改用打字</button>
+                    <button class="cz-tool" onclick="recallGiveUp()"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-eye"/></svg> 想不出來</button>
+                </div>
+                <div class="rc-tip">先在心裡想一下也可以，想好再說。說得和例句不完全一樣沒關係，重點是自己想出來。</div>
+            </div>
+            <div id="rcRate" style="display:none">
+                <button class="cz-tool rc-listen" onclick="recallListenAnswer()"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-volume"/></svg> 聽正確發音</button>
+                <div class="rc-sug" id="rcSug"></div>
+                <div class="rc-rate-btns">
+                    <button class="rc-rate bad" id="rcBadBtn" onclick="recallRate(false)"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-bad"/></svg> 沒想起來</button>
+                    <button class="rc-rate ok" id="rcOkBtn" onclick="recallRate(true)"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-ok"/></svg> 想起來了</button>
+                </div>
+                <div class="rc-tip">意思對、說法略有不同，算「想起來了」。關鍵詞說錯或說不出來，請按「沒想起來」，這句等一下會再出現一次。</div>
+            </div>
+        </div>
+        <div id="rcResult" style="display:none">
+            <div class="cz-res-card">
+                <div class="cz-res-label">第一次就想起來</div>
+                <div class="cz-res-score" id="rcResScore"></div>
+                <div class="cz-res-msg" id="rcResMsg"></div>
+            </div>
+            <button class="btn-primary cz-btn" id="rcRetryWrong" onclick="recallRetryWrong()">再練一次沒想起來的</button>
+            <button class="btn-outline cz-btn" onclick="recallAgain()">再來一組</button>
+            <button class="btn-outline cz-btn" onclick="closeRecall()">完成</button>
+            <div id="rcWrongList"></div>
         </div>
     </div>
 
@@ -1632,7 +1756,8 @@
         </div>
         <div class="rt-redraw"><span id="rtBatchInfo"></span><button onclick="rtRedraw()"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-shuffle"/></svg> 換一批</button></div>
         <div id="rtList"></div>
-        <div class="rt-auto"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-up"/></svg> 自動升級：播放累積
+        <div class="rt-auto rt-recall-note"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-speech"/></svg> <span>熟悉度會依「口說回想」和「克漏字」的結果自動調整：想起來升一級、沒想起來降到 2 分以下。只聽不會升級。</span></div>
+        <div class="rt-auto"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-up"/></svg> 播放累積升級（不建議）：
             <select id="rtAutoSel" onchange="setFamAuto(+this.value)">
                 <option value="0">關閉</option><option value="5">5 次</option><option value="10">10 次</option><option value="15">15 次</option><option value="20">20 次</option>
             </select>就升一級</div>
@@ -3237,7 +3362,27 @@ ${ENRICH_RULES}
 
         // ---- 自動升級：已評分的例句每播放 N 次（預設 10 次）就自動升一級，最高 5 分 ----
         const FAM_AUTO_KEY = 'eng_famAutoN';
-        let famAutoN = (() => { const v = localStorage.getItem(FAM_AUTO_KEY); return v == null ? 10 : Number(v); })();
+        // v2.22.0：只聽不等於記住，播放次數不再自動升級（預設關閉，舊設定一次性改成關閉；仍可手動開啟）
+        let famAutoN = (() => {
+            if (localStorage.getItem('eng_famAutoV') !== '2') { localStorage.setItem(FAM_AUTO_KEY, '0'); localStorage.setItem('eng_famAutoV', '2'); return 0; }
+            const v = localStorage.getItem(FAM_AUTO_KEY); return v == null ? 0 : Number(v);
+        })();
+        // v2.22.0：熟悉度改由「主動回想」的結果調整（口說回想、克漏字）
+        //   想起來／答對：+1（未評分 → 3），用了提示不升；10 分鐘內剛因回想調整過就不再升（同一輪重練不馬上加分）
+        //   沒想起來／答錯：降到最多 2 分（未評分 → 1）
+        function famFromRecall(g, ok, hinted, src) {
+            const before = g.fam || 0, now = Date.now();
+            let n = before;
+            if (ok) {
+                if (hinted) return;
+                const last = (g.famHist || []).slice(-1)[0];
+                if (last && last.src && now - last.t < 10 * 60 * 1000) return;   // 同一輪重練（剛升或剛降）不馬上加分
+                n = before ? Math.min(5, before + 1) : 3;
+            } else n = before ? Math.max(1, Math.min(before - 1, 2)) : 1;
+            if (n === before) return;
+            g.fam = n; g.famAt = now; g.famBase = g.playCount || 0;
+            g.famHist = (g.famHist || []).concat(Object.assign({ s: n, t: now, src }, n < before ? { down: true } : {})).slice(-10);
+        }
         function setFamAuto(n) { famAutoN = n; localStorage.setItem(FAM_AUTO_KEY, String(n)); renderRating(); showToast(n ? `⬆️ 已設定：每播放 ${n} 次自動升一級` : '已關閉自動升級', 2000); }
         let upToastT = null, upList = [];
         function checkAutoUpgrade(g) {
@@ -3487,6 +3632,220 @@ ${ENRICH_RULES}
             saveData();
         }
 
+        // ================= v2.22.0 口說回想（中→英主動回想）=================
+        // 看中文 → 自己說出英文 → 顯示正確句子與逐字比對 → 兩鍵自評（看到答案後才評）
+        const RECALL_KEY = 'eng_recallSettings';
+        let recallSettings = { scope: 'all', dateMode: 'all', limit: 10, order: 'weak' };
+        try { Object.assign(recallSettings, JSON.parse(localStorage.getItem(RECALL_KEY)) || {}); } catch (e) {}
+        const rc = { list: [], i: 0, results: [], hint: 0, rec: null, listening: false, sug: null, typing: false };
+
+        function recallPool() { return getPlaylist(recallSettings).filter(it => it.cn && /[A-Za-z]{2,}/.test(it.en)); }
+        function openRecallSetup() { refreshRecallSetup(); document.getElementById('recallSetup').style.display = 'flex'; }
+        function closeRecallSetup() { document.getElementById('recallSetup').style.display = 'none'; }
+        function setRecallOpt(k, v) { recallSettings[k] = v; localStorage.setItem(RECALL_KEY, JSON.stringify(recallSettings)); refreshRecallSetup(); }
+        function refreshRecallSetup() {
+            [['#rcOrder', 'order'], ['#rcScope', 'scope'], ['#rcDate', 'dateMode']].forEach(([sel, k]) =>
+                document.querySelectorAll(sel + ' button').forEach(b => b.classList.toggle('on', b.dataset.v === recallSettings[k])));
+            document.querySelectorAll('#rcLimit button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === Number(recallSettings.limit)));
+            const all = getPlaylist(recallSettings).length, n = recallPool().length, lim = Number(recallSettings.limit) || 0, q = lim ? Math.min(lim, n) : n;
+            document.getElementById('rcCount').textContent = n ? `共 ${n} 句有中文翻譯，這次練 ${q} 句${all > n ? `（${all - n} 句沒有中文，略過）` : ''}` : '這個範圍沒有附中文翻譯的例句';
+            document.getElementById('rcStart').disabled = n === 0;
+        }
+        // 不熟優先：分數低的先出（未評分視為 2.5），24 小時內練過的往後排；同分隨機
+        function recallPick() {
+            let list = shuffle(recallPool());
+            if (recallSettings.order === 'weak') {
+                const now = Date.now();
+                const key = it => { const g = gOf(it.id); return (g.fam || 2.5) + (g.lastRecallAt && now - g.lastRecallAt < 86400000 ? 3 : 0); };
+                list = list.map(it => ({ it, k: key(it) })).sort((a, b) => a.k - b.k).map(x => x.it);
+            }
+            const lim = Number(recallSettings.limit) || 0;
+            return lim ? list.slice(0, lim) : list;
+        }
+        function startRecall(list) {
+            list = list || recallPick();
+            if (!list.length) return;
+            if (player.playing) playerPause();
+            closeRecallSetup();
+            document.body.classList.remove('report-open');
+            rc.list = list.map(it => ({ ...it, re: false })); rc.i = 0; rc.results = [];
+            document.body.classList.add('recall-open');
+            document.getElementById('rcQuiz').style.display = 'block';
+            document.getElementById('rcResult').style.display = 'none';
+            showRecallQuestion();
+        }
+        // 目標詞（單字／片語）的英文部分
+        const rcTargets = it => clozeTarget(it.word || '').split(' ').filter(w => w.length >= 2 && !STOP_WORDS.has(w));
+
+        function showRecallQuestion() {
+            const it = rc.list[rc.i], $ = id => document.getElementById(id);
+            recallStopListen();
+            rc.hint = 0; rc.sug = null;
+            const firstCount = rc.list.filter(x => !x.re).length;
+            $('rcProgressText').textContent = it.re ? '再試一次' : `第 ${rc.list.slice(0, rc.i + 1).filter(x => !x.re).length} / ${firstCount} 句`;
+            $('rcScore').textContent = `想起來 ${rc.results.filter(r => r.ok).length}`;
+            $('rcBar').style.transform = `scaleX(${rc.i / rc.list.length})`;
+            $('rcLabel').textContent = it.re ? '剛剛沒想起來的，再說一次：' : '用英文說出這句：';
+            $('rcCn').textContent = it.cn;
+            $('rcHintLine').textContent = '';
+            $('rcReveal').style.display = 'none';
+            $('rcAsk').style.display = 'block'; $('rcRate').style.display = 'none';
+            $('rcLive').textContent = '';
+            $('rcTypeIn').value = '';
+            $('rcTypeBox').style.display = rc.typing ? 'block' : 'none';
+            $('rcMicBtn').style.display = SpeechRecognition && !rc.typing ? 'flex' : 'none';
+            $('rcTypeBtn').innerHTML = rc.typing || !SpeechRecognition
+                ? `<svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-mic"/></svg> 改用說的`
+                : `<svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-write"/></svg> 改用打字`;
+            if (!SpeechRecognition) { $('rcTypeBox').style.display = 'block'; $('rcTypeBtn').style.display = 'none'; }
+            if (rc.typing || !SpeechRecognition) setTimeout(() => $('rcTypeIn').focus(), 50);
+        }
+        // 提示：第 1 次顯示目標詞的首字母，第 2 次顯示完整目標詞（用了提示，答對也不升級）
+        function recallHint() {
+            const it = rc.list[rc.i], tw = clozeTarget(it.word || '');
+            if (!tw) { showToast('這句沒有可提示的單字'); return; }
+            rc.hint = Math.min(2, rc.hint + 1);
+            document.getElementById('rcHintLine').textContent = '關鍵詞：' + (rc.hint === 1
+                ? tw.split(' ').map(w => w[0] + '_'.repeat(Math.max(1, w.length - 1))).join(' ')
+                : tw);
+        }
+        function recallToggleType() {
+            if (!SpeechRecognition) return;
+            rc.typing = !rc.typing; recallStopListen();
+            const $ = id => document.getElementById(id);
+            $('rcTypeBox').style.display = rc.typing ? 'block' : 'none';
+            $('rcMicBtn').style.display = rc.typing ? 'none' : 'flex';
+            $('rcTypeBtn').innerHTML = rc.typing
+                ? `<svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-mic"/></svg> 改用說的`
+                : `<svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-write"/></svg> 改用打字`;
+            if (rc.typing) setTimeout(() => $('rcTypeIn').focus(), 50);
+        }
+        function recallSetMic(on) {
+            rc.listening = on;
+            document.getElementById('rcMicBtn').classList.toggle('listening', on);
+            document.getElementById('rcMicTxt').textContent = on ? '聆聽中…說完再按一下' : '按一下，說出英文';
+        }
+        function recallStopListen() {
+            if (rc.rec) { const r = rc.rec; rc.rec = null; r.onresult = r.onerror = r.onend = null; try { r.abort(); } catch (e) {} }
+            if (rc.listening) recallSetMic(false);
+        }
+        function recallListen() {
+            if (rc.listening && rc.rec) { try { rc.rec.stop(); } catch (e) {} return; }
+            if (!SpeechRecognition) { showToast('這個瀏覽器不支援語音辨識，請改用打字'); return; }
+            if (player.playing) playerPause();
+            const r = new SpeechRecognition();
+            r.lang = 'en-US'; r.interimResults = true; r.continuous = false; r.maxAlternatives = 3;
+            let finals = [], alts = [], errMsg = '';
+            r.onresult = e => {
+                let interim = ''; finals = []; alts = [];
+                for (let k = 0; k < e.results.length; k++) {
+                    const res = e.results[k];
+                    if (res.isFinal) { finals.push(res[0].transcript); if (e.results.length === 1) for (let a = 0; a < res.length; a++) alts.push(res[a].transcript); }
+                    else interim += res[0].transcript;
+                }
+                document.getElementById('rcLive').textContent = (finals.join(' ') + ' ' + interim).trim();
+            };
+            r.onerror = e => {
+                errMsg = e.error === 'not-allowed' ? '沒有麥克風權限，請允許麥克風（或改用打字）'
+                    : e.error === 'no-speech' ? '沒有聽到聲音，請再說一次'
+                    : e.error === 'network' ? '語音辨識需要網路，請連線或改用打字'
+                    : e.error === 'aborted' ? '' : '語音辨識錯誤：' + e.error;
+            };
+            r.onend = () => {
+                if (rc.rec !== r) return;
+                rc.rec = null; recallSetMic(false);
+                const text = finals.join(' ').trim();
+                if (text) recallReveal(text, alts.length ? alts : [text]);
+                else { document.getElementById('rcLive').textContent = ''; if (errMsg || !finals.length) showToast(errMsg || '沒有聽到內容，請再說一次', 2500); }
+            };
+            rc.rec = r;
+            try { r.start(); recallSetMic(true); document.getElementById('rcLive').textContent = ''; }
+            catch (e) { rc.rec = null; recallSetMic(false); showToast('語音啟動失敗，請稍後再試或改用打字'); }
+        }
+        function recallSubmitTyped() {
+            const v = document.getElementById('rcTypeIn').value.trim();
+            if (!v) { document.getElementById('rcTypeIn').focus(); return; }
+            recallReveal(v, [v]);
+        }
+        function recallGiveUp() { recallStopListen(); recallReveal('', []); }
+
+        // 顯示答案：正確句子（關鍵詞標示）＋你說的內容與逐字比對＋建議評分
+        function recallReveal(heard, alts) {
+            const it = rc.list[rc.i], $ = id => document.getElementById(id);
+            recallStopListen();
+            const tw = rcTargets(it);
+            // 多個辨識候選中，取和正確句子最接近的一個（降低口音造成的誤判）
+            let best = null;
+            (alts.length ? alts : []).forEach(a => { const d = wordDiff(it.en, a); if (!best || d.accuracy > best.d.accuracy) best = { text: a, d }; });
+            const heardWords = best ? wordsOf(best.text) : [];
+            const keyOk = tw.length ? tw.every(t => heardWords.some(w => czMatch(w, t))) : true;
+            const acc = best ? best.d.accuracy : 0;
+            rc.sug = !best ? false : (keyOk && acc >= 0.7);
+            // 正確句子：關鍵詞加底色
+            $('rcEn').innerHTML = it.en.split(/([A-Za-z]+(?:['’-][A-Za-z]+)*)/).map((part, k) =>
+                k % 2 && tw.some(t => czMatch(part, t)) ? `<b>${escapeHtml(part)}</b>` : escapeHtml(part)).join('');
+            $('rcHeardBox').innerHTML = best ? `
+                <div class="rc-sub">${rc.typing || !SpeechRecognition ? '你寫的' : '你說的（語音辨識結果）'}</div>
+                <div class="rc-heard">${escapeHtml(best.text)}</div>
+                <div class="rc-sub">逐字比對（紅色＝沒說到或不一樣）・吻合 ${Math.round(acc * 100)}%</div>
+                <div class="rc-heard">${best.d.marks.map(m => m.ok ? escapeHtml(m.w) : `<span class="rv-miss">${escapeHtml(m.w)}</span>`).join(' ')}</div>` : '';
+            $('rcReveal').style.display = 'block';
+            $('rcAsk').style.display = 'none'; $('rcRate').style.display = 'block';
+            $('rcSug').innerHTML = !best ? '先看答案、聽一次發音，再按「沒想起來」，等一下會再出現。'
+                : rc.sug ? `建議：<b>想起來了</b>（${tw.length ? '關鍵詞都有說到，' : ''}整句吻合 ${Math.round(acc * 100)}%）`
+                : `建議：<b>沒想起來</b>（${!keyOk ? '關鍵詞沒有說到或說錯' : `整句吻合 ${Math.round(acc * 100)}%`}）。如果只是辨識錯、或換了意思相同的說法，可以按「想起來了」。`;
+            $('rcOkBtn').classList.toggle('sug', rc.sug === true);
+            $('rcBadBtn').classList.toggle('sug', rc.sug === false);
+        }
+        function recallListenAnswer() { const it = rc.list[rc.i]; speakText(it.en, it.id); }
+
+        function recordRecall(id, ok, hinted) {
+            const f = findGrand(id); if (!f) return;
+            if (ok) f.g.rcRight = (f.g.rcRight || 0) + 1; else f.g.rcWrong = (f.g.rcWrong || 0) + 1;
+            f.g.lastRecallAt = Date.now();
+            famFromRecall(f.g, ok, hinted, 'rc');
+            bumpDaily('s'); if (ok) bumpDaily('s1');
+            refreshBadge(id); saveQuiet();
+        }
+        function recallRate(ok) {
+            const it = rc.list[rc.i];
+            recordRecall(it.id, ok, rc.hint > 0);
+            if (!it.re) rc.results.push({ item: it, ok, hinted: rc.hint > 0 });
+            // 沒想起來的句子，在這一輪最後再出現一次（同一回合多次提取，記得更牢）
+            if (!ok && !it.re) rc.list.push({ ...it, re: true });
+            if (rc.i + 1 < rc.list.length) { rc.i++; showRecallQuestion(); }
+            else showRecallResult();
+        }
+        function showRecallResult() {
+            const $ = id => document.getElementById(id);
+            recallStopListen();
+            const right = rc.results.filter(r => r.ok).length, total = rc.results.length;
+            const pct = total ? Math.round(right / total * 100) : 0;
+            $('rcQuiz').style.display = 'none'; $('rcResult').style.display = 'block';
+            $('rcBar').style.transform = 'scaleX(1)';
+            $('rcProgressText').textContent = '練習完成';
+            $('rcScore').textContent = '';
+            $('rcResScore').textContent = `${right} / ${total}`;
+            $('rcResMsg').textContent = pct >= 95 ? '太簡單了？可以改練「未熟記」或最近新增的句子，挑戰一下。'
+                : pct >= 75 ? '👍 難度剛好，這樣練最有效率。'
+                : pct >= 50 ? '💪 有點吃力，沒想起來的句子已經安排再練。'
+                : '📖 有點難，可以先播放、朗讀這些句子，再回來回想。';
+            const wrong = rc.results.filter(r => !r.ok);
+            $('rcWrongList').innerHTML = wrong.length
+                ? '<div class="cz-wrong-title">沒想起來的句子</div>' + wrong.map(r => `<div class="cz-wrong"><div>${escapeHtml(r.item.en)}</div><small>${escapeHtml(r.item.cn)}</small></div>`).join('')
+                : '';
+            $('rcRetryWrong').style.display = wrong.length ? 'block' : 'none';
+        }
+        function recallRetryWrong() { startRecall(rc.results.filter(r => !r.ok).map(r => r.item)); }
+        function recallAgain() { startRecall(); }
+        function closeRecall() {
+            const inQuiz = document.getElementById('rcQuiz').style.display !== 'none';
+            if (inQuiz && rc.results.length && rc.i < rc.list.length - 1 && !confirm('確定要結束這次練習嗎？（已作答的會保留）')) return;
+            recallStopListen();
+            document.body.classList.remove('recall-open');
+            saveData();
+        }
+
         // ================= 學習紀錄（播放次數、克漏字成績）=================
         const DAILY_KEY = 'eng_daily';
         let daily = {};
@@ -3512,7 +3871,7 @@ ${ENRICH_RULES}
         function statBadgeHtml(g) {
             const p = g.playCount || 0, cr = g.czRight || 0, ct = cr + (g.czWrong || 0);
             const rdc = g.readCount || 0, rsc = g.readScore != null ? `・${g.readScore}分` : '';
-            return (g.fam ? `<span class="st-badge fam fam-badge fam-${g.fam}" title="熟悉度 ${g.fam}／5（${FAM_NAME[g.fam]}）">⭐${g.fam}</span>` : '') + (p ? `<span class="st-badge" title="播放次數">▶ ${p}</span>` : '') + (rdc ? `<span class="st-badge" title="朗讀次數・最近一次 AI 評分">🗣️ ${rdc}${rsc}</span>` : '') + (ct ? `<span class="st-badge" title="克漏字 答對／作答">✍️ ${cr}/${ct}</span>` : '');
+            return (g.fam ? `<span class="st-badge fam fam-badge fam-${g.fam}" title="熟悉度 ${g.fam}／5（${FAM_NAME[g.fam]}）">⭐${g.fam}</span>` : '') + (p ? `<span class="st-badge" title="播放次數">▶ ${p}</span>` : '') + (rdc ? `<span class="st-badge" title="朗讀次數・最近一次 AI 評分">🗣️ ${rdc}${rsc}</span>` : '') + (ct ? `<span class="st-badge" title="克漏字 答對／作答">✍️ ${cr}/${ct}</span>` : '') + ((g.rcRight || g.rcWrong) ? `<span class="st-badge" title="口說回想 想起來／作答">🧠 ${g.rcRight || 0}/${(g.rcRight || 0) + (g.rcWrong || 0)}</span>` : '');
         }
         function refreshBadge(id) {
             const f = findGrand(id), el = document.querySelector(`.grandtask-row[data-id="${id}"] .st-badges`);
@@ -3529,6 +3888,7 @@ ${ENRICH_RULES}
             const f = findGrand(id); if (!f) return;
             if (ok) f.g.czRight = (f.g.czRight || 0) + 1; else f.g.czWrong = (f.g.czWrong || 0) + 1;
             f.g.lastClozeAt = Date.now();
+            famFromRecall(f.g, ok, cz.hint > 0, 'cz');
             bumpDaily('q'); if (ok) bumpDaily('r');
             refreshBadge(id); saveQuiet();
         }
@@ -3563,7 +3923,9 @@ ${ENRICH_RULES}
                 tile('例句總數', total, never ? `${never} 句還沒聽過` : '每句都聽過了') +
                 tile('已熟記', done, total ? `佔 ${Math.round(done / total * 100)}%` : '—') +
                 tile('總播放次數', plays, `今天 ${today.p || 0} 次`) +
-                tile('克漏字正確率', czT ? `${Math.round(czR / czT * 100)}%` : '—', czT ? `共 ${czT} 題・今天 ${today.q || 0} 題` : '還沒練習過');
+                tile('克漏字正確率', czT ? `${Math.round(czR / czT * 100)}%` : '—', czT ? `共 ${czT} 題・今天 ${today.q || 0} 題` : '還沒練習過') +
+                (() => { const rR = items.reduce((a, it) => a + (it.g.rcRight || 0), 0), rT = rR + items.reduce((a, it) => a + (it.g.rcWrong || 0), 0);
+                    return tile('口說回想', rT ? `${Math.round(rR / rT * 100)}%` : '—', rT ? `共 ${rT} 題・今天 ${today.s || 0} 題` : '還沒練習過'); })();
             const fc = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }; items.forEach(it => fc[it.g.fam || 0]++);
             const rated = total - fc[0];
             document.getElementById('rpFam').innerHTML = !total ? '<div class="rp-empty">還沒有例句</div>' :
