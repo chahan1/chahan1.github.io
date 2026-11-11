@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.22.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.23.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
@@ -1093,6 +1093,12 @@
         /* 放大時長字會自動換行，不會超出畫面 */
         .task-text, .dropdown-item span, .tool-card b, .tool-card small, .pm-hint, .bk-status { overflow-wrap: break-word; }
 
+        /* ---- v2.23.0 聽力評分：藏字模式 ---- */
+        .rt-hidden { display: flex; align-items: center; gap: calc(10px * var(--z)); margin: calc(8px * var(--z)) 0 calc(4px * var(--z)); padding: calc(12px * var(--z)); border: 1.5px dashed var(--c-dadce0); border-radius: calc(12px * var(--z)); color: var(--muted); font-size: calc(13.5px * var(--z)); }
+        .rt-hidden span { flex: 1; min-width: 0; }
+        .rt-hidden button { flex: none; height: calc(38px * var(--z)); padding: 0 calc(16px * var(--z)); border: none; border-radius: calc(19px * var(--z)); background: var(--green); color: var(--c-ffffff); font-size: calc(14px * var(--z)); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: calc(6px * var(--z)); }
+        .rt-word-hid { opacity: .6; }
+
         /* ---- v2.22.0 口說回想（中→英）---- */
         body.cloze-open .recall-panel { display: none; }
         body.recall-open .recall-panel { display: block; }
@@ -1142,7 +1148,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.22.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.23.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1162,7 +1168,7 @@
                     <div class="dropdown-label">學習與複習</div>
                     <div class="dropdown-item" onclick="openRecallSetup()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-speech"/></svg></i><span>口說回想（中→英）</span></div>
                     <div class="dropdown-item" onclick="openPlayModal()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-play"/></svg></i><span>播放例句</span></div>
-                    <div class="dropdown-item" onclick="openRating()"><i><svg class="hi hi-star" viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-star"/></svg></i><span>熟悉度評分</span></div>
+                    <div class="dropdown-item" onclick="openRating()"><i><svg class="hi hi-star" viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-star"/></svg></i><span>聽力熟悉度評分</span></div>
                     <div class="dropdown-item" onclick="openClozeSetup()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-write"/></svg></i><span>克漏字練習</span></div>
                     <div class="dropdown-item" onclick="openReadSetup()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-mic"/></svg></i><span>朗讀練習</span></div>
                     <div class="dropdown-item" onclick="openReport()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-chart"/></svg></i><span>學習報表</span></div>
@@ -1495,7 +1501,7 @@
             <div class="cz-title"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-chart"/></svg> 學習報表</div>
         </div>
         <div class="rp-tiles" id="rpTiles"></div>
-        <div class="rp-card"><div class="rp-card-title">熟悉度分布 <a class="tool-link" style="float:right" onclick="closeReport(); openRating()"><svg class="hi hi-star" viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-star"/></svg> 去評分</a></div><div id="rpFam"></div></div>
+        <div class="rp-card"><div class="rp-card-title">聽力熟悉度分布 <a class="tool-link" style="float:right" onclick="closeReport(); openRating()"><svg class="hi hi-star" viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-star"/></svg> 去評分</a></div><div id="rpFam"></div></div>
         <div class="rp-card"><div class="rp-card-title">最近 14 天・播放次數</div><div id="rpChartP"></div></div>
         <div class="rp-card"><div class="rp-card-title">最近 14 天・克漏字題數</div><div id="rpChartQ"></div></div>
         <div class="rp-card">
@@ -1731,7 +1737,7 @@
     <div id="ratePanel" class="fs-panel">
         <div class="cz-head">
             <button class="ps-icon-btn" title="結束" onclick="closeRating()">×</button>
-            <div class="cz-title"><svg class="hi hi-star" viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-star"/></svg> 熟悉度評分</div>
+            <div class="cz-title"><svg class="hi hi-star" viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-star"/></svg> 聽力熟悉度評分</div>
             <div class="cz-score"></div>
         </div>
         <div class="rt-sum">
@@ -1751,12 +1757,13 @@
                 <select id="rtRepeat" onchange="rtSet('repeat', +this.value)">
                     <option value="1">念 1 次</option><option value="2">念 2 次</option><option value="3">念 3 次</option>
                 </select>
+                <button class="rt-icon" id="rtHideBtn" onclick="rtSet('hide', !rtSettings.hide)" title="藏字：先聽，看答案後才評分">藏字</button>
                 <button class="rt-icon" id="rtCnBtn" onclick="rtSet('showCn', !rtSettings.showCn)">中</button>
             </div>
         </div>
         <div class="rt-redraw"><span id="rtBatchInfo"></span><button onclick="rtRedraw()"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-shuffle"/></svg> 換一批</button></div>
         <div id="rtList"></div>
-        <div class="rt-auto rt-recall-note"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-speech"/></svg> <span>熟悉度會依「口說回想」和「克漏字」的結果自動調整：想起來升一級、沒想起來降到 2 分以下。只聽不會升級。</span></div>
+        <div class="rt-auto rt-recall-note"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-speech"/></svg> <span>這裡評的是<b>聽力熟悉度</b>（聽到能不能懂）。建議開「藏字」：先聽、想意思，再看答案評分。<b>口說熟悉度</b>另外由「口說回想」和「克漏字」自動調整。</span></div>
         <div class="rt-auto"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-up"/></svg> 播放累積升級（不建議）：
             <select id="rtAutoSel" onchange="setFamAuto(+this.value)">
                 <option value="0">關閉</option><option value="5">5 次</option><option value="10">10 次</option><option value="15">15 次</option><option value="20">20 次</option>
@@ -1828,7 +1835,7 @@
         <div class="ps-progress"><div id="psBar"></div></div>
         <div class="ps-meta"><span id="psMeta"></span><span id="psRep"></span></div>
         <div class="ps-fam" id="psFam">
-            <span class="ps-fam-label">熟悉度</span>
+            <span class="ps-fam-label">聽力熟悉度</span>
             <div class="ps-fam-btns">
                 <button data-v="1" onclick="playerRate(1)">1<small>很陌生</small></button>
                 <button data-v="2" onclick="playerRate(2)">2<small>不太熟</small></button>
@@ -2793,7 +2800,7 @@ ${ENRICH_RULES}
             if (!item) return;
             const g = (findGrand(item.id) || {}).g || {};
             const left = autoLeft(g);
-            box.querySelector('.ps-fam-label').innerHTML = `熟悉度${g.fam ? '' : '<small>未評分</small>'}${left ? `<small>再${left}次升級</small>` : ''}`;
+            box.querySelector('.ps-fam-label').innerHTML = `聽力熟悉度${g.fam ? '' : '<small>未評分</small>'}${left ? `<small>再${left}次升級</small>` : ''}`;
             box.querySelectorAll('button').forEach(b => {
                 const n = +b.dataset.v;
                 b.style.setProperty('--sc', FAM_COLOR[n]);
@@ -3183,12 +3190,12 @@ ${ENRICH_RULES}
 
         // ================= 例句熟悉度評分 =================
         const RATE_KEY = 'eng_rateSettings';
-        let rtSettings = { scope: 'all', order: 'random', repeat: 1, showCn: false, batch: 20 };
+        let rtSettings = { scope: 'all', order: 'random', repeat: 1, showCn: false, batch: 20, hide: true };
         try { Object.assign(rtSettings, JSON.parse(localStorage.getItem(RATE_KEY)) || {}); } catch (e) {}
         // v2.12.0：評分卡片預設隨機出現
         if (!localStorage.getItem('eng_mig2120')) { rtSettings.order = 'random'; localStorage.setItem('eng_mig2120', '1'); try { localStorage.setItem(RATE_KEY, JSON.stringify(rtSettings)); } catch (e) {} }
         const FAM_COLOR = { 0: 'var(--c-dadce0)', 1: 'var(--c-d93025)', 2: 'var(--c-e8710a)', 3: 'var(--c-f9ab00)', 4: 'var(--c-34a853)', 5: 'var(--c-137333)' };
-        const rt = { list: [], playing: false, idx: -1, waiting: false, token: 0, audio: null, seen: new Set() };
+        const rt = { list: [], playing: false, idx: -1, waiting: false, token: 0, audio: null, seen: new Set(), shown: new Set() };   // shown：藏字模式下已「看答案」的句子
         const gOf = id => ((findGrand(id) || {}).g) || {};
         function rtAll() { return getPlaylist({ scope: 'all', dateMode: 'all' }); }
         function rtMatch(it) {
@@ -3212,17 +3219,18 @@ ${ENRICH_RULES}
         }
         function openRating() {
             if (player.playing) playerPause();
-            rt.seen.clear(); rt.idx = -1;
+            rt.seen.clear(); rt.shown.clear(); rt.idx = -1;
             rt.list = rtDraw(false);
             document.body.classList.add('rate-open');
             document.getElementById('ratePanel').scrollTop = 0;
             renderRating();
         }
         function closeRating() { rtStop(); document.body.classList.remove('rate-open'); saveData(); renderTasks(); }
-        function rtRedraw() { rtStop(); rt.list = rtDraw(true); renderRating(); document.getElementById('ratePanel').scrollTo({ top: 0, behavior: 'smooth' }); }
+        function rtRedraw() { rtStop(); rt.shown.clear(); rt.list = rtDraw(true); renderRating(); document.getElementById('ratePanel').scrollTo({ top: 0, behavior: 'smooth' }); }
         function rtSet(k, v) {
             rtSettings[k] = v; localStorage.setItem(RATE_KEY, JSON.stringify(rtSettings));
             if (k === 'scope' || k === 'order' || k === 'batch') { rtStop(); rt.seen.clear(); rt.list = rtDraw(false); }
+            if (k === 'hide') rt.shown.clear();
             renderRating();
         }
         function rtSummary() {
@@ -3247,13 +3255,15 @@ ${ENRICH_RULES}
             const cls = rt.idx === i ? (rt.waiting ? 'waiting' : 'active') : '';
             const left = autoLeft(g);
             const hist = (g.famHist || []).slice(-6);
+            const hidden = rtSettings.hide && !rt.shown.has(it.id);
             return `<div class="rt-card ${cls}" id="rtc-${it.id}" style="--fc:${FAM_COLOR[f]}">
-                <div class="rt-meta-top"><span>#${i + 1}</span><span class="rt-word">${escapeHtml(cleanForSpeech(it.word))}</span>
+                <div class="rt-meta-top"><span>#${i + 1}</span>${hidden ? '<span class="rt-word rt-word-hid">？</span>' : `<span class="rt-word">${escapeHtml(cleanForSpeech(it.word))}</span>`}
                     <span class="rt-plays">▶ ${g.playCount || 0}${left ? `・再 ${left} 次升級` : ''}</span>
                     <button class="icon-btn speak" title="聽一遍" onclick="rtSpeakOne(${i})">${ICON.speak}</button></div>
+                ${hidden ? `<div class="rt-hidden"><span>🎧 先聽，想一想意思</span><button onclick="rtReveal(${i})"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-eye"/></svg> 看答案</button></div>` : `
                 <div class="rt-en">${escapeHtml(it.en)}</div>
-                ${rtSettings.showCn && it.cn ? `<div class="rt-cn">${escapeHtml(it.cn)}</div>` : ''}
-                <div class="rt-stars">${[1, 2, 3, 4, 5].map(n => `<button class="${f === n ? 'on' : ''}" style="--sc:${FAM_COLOR[n]}" onclick="rateCard(${i}, ${n})"><b>${n}</b><small>${FAM_NAME[n]}</small></button>`).join('')}</div>
+                ${(rtSettings.showCn || rtSettings.hide) && it.cn ? `<div class="rt-cn">${escapeHtml(it.cn)}</div>` : ''}`}
+                ${hidden ? '' : `<div class="rt-stars">${[1, 2, 3, 4, 5].map(n => `<button class="${f === n ? 'on' : ''}" style="--sc:${FAM_COLOR[n]}" onclick="rateCard(${i}, ${n})"><b>${n}</b><small>${FAM_NAME[n]}</small></button>`).join('')}</div>`}
                 ${g.famAt ? `<div class="rt-hist"><span>${hist.length > 1 ? '紀錄 ' + hist.map(h => h.auto ? `<span class="up">⬆${h.s}</span>` : h.s).join(' → ') : ''}</span><span>${new Date(g.famAt).toLocaleDateString()}</span></div>` : ''}
             </div>`;
         }
@@ -3263,6 +3273,8 @@ ${ENRICH_RULES}
             document.getElementById('rtBatch').value = String(rtSettings.batch);
             document.getElementById('rtRepeat').value = String(rtSettings.repeat);
             document.getElementById('rtCnBtn').classList.toggle('on', !!rtSettings.showCn);
+            document.getElementById('rtHideBtn').classList.toggle('on', !!rtSettings.hide);
+            document.getElementById('rtCnBtn').style.display = rtSettings.hide ? 'none' : '';   // 藏字時，看答案後一律顯示中文
             document.getElementById('rtAutoSel').value = String(famAutoN);
             const pool = rtAll().filter(rtMatch).length;
             document.getElementById('rtBatchInfo').textContent = rt.list.length ? `這一批 ${rt.list.length} 張${pool > rt.list.length ? `（共 ${pool} 句可抽）` : ''}` : '';
@@ -3274,11 +3286,12 @@ ${ENRICH_RULES}
             btn.innerHTML = rt.playing ? '<svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-stop"/></svg>' : '<svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-play"/></svg>'; btn.classList.toggle('stop', rt.playing);
             const main = document.getElementById('rtStateMain'), sub = document.getElementById('rtStateSub');
             document.getElementById('rtSkip').style.display = rt.playing ? '' : 'none';
-            if (!rt.playing) { main.className = ''; main.textContent = '依序播放'; sub.textContent = '一句一句念，念完等你評分，評完自動下一句'; return; }
+            if (!rt.playing) { main.className = ''; main.textContent = '依序播放'; sub.textContent = rtSettings.hide ? '一句一句念，念完先想意思，看答案後評分' : '一句一句念，念完等你評分，評完自動下一句'; return; }
             const it = rt.list[rt.idx];
+            const hid = it && rtSettings.hide && !rt.shown.has(it.id);
             main.className = rt.waiting ? 'wait' : '';
-            main.textContent = rt.waiting ? `👉 請為第 ${rt.idx + 1} 張評分` : `🎧 播放中 ${rt.idx + 1}／${rt.list.length}`;
-            sub.textContent = it ? it.en : '';
+            main.textContent = rt.waiting ? (hid ? `👉 想一想意思，再按「看答案」` : `👉 請為第 ${rt.idx + 1} 張評分`) : `🎧 播放中 ${rt.idx + 1}／${rt.list.length}`;
+            sub.textContent = it ? (hid ? '（藏字中）' : it.en) : '';
         }
         function rtRefreshCard(i) {
             const it = rt.list[i]; if (!it) return;
@@ -3328,6 +3341,7 @@ ${ENRICH_RULES}
             if (start < 0) start = 0;
             rtPlayCard(start);
         }
+        function rtReveal(i) { const it = rt.list[i]; if (!it) return; rt.shown.add(it.id); rtRefreshCard(i); }
         function rtSkip() { if (!rt.playing) return; const i = rt.idx; if (i + 1 < rt.list.length) rtPlayCard(i + 1); else rtStop(true); }
         function rtStop(finished) {
             rt.token++; rt.playing = false; rt.waiting = false;
@@ -3368,21 +3382,40 @@ ${ENRICH_RULES}
             const v = localStorage.getItem(FAM_AUTO_KEY); return v == null ? 0 : Number(v);
         })();
         // v2.22.0：熟悉度改由「主動回想」的結果調整（口說回想、克漏字）
+        // v2.23.0：分成兩種熟悉度 —— fam＝聽力（評分畫面、播放時評分）；sfam＝口說（口說回想、克漏字自動調整）
         //   想起來／答對：+1（未評分 → 3），用了提示不升；10 分鐘內剛因回想調整過就不再升（同一輪重練不馬上加分）
         //   沒想起來／答錯：降到最多 2 分（未評分 → 1）
         function famFromRecall(g, ok, hinted, src) {
-            const before = g.fam || 0, now = Date.now();
+            const before = g.sfam || 0, now = Date.now();
             let n = before;
             if (ok) {
                 if (hinted) return;
-                const last = (g.famHist || []).slice(-1)[0];
+                const last = (g.sfamHist || []).slice(-1)[0];
                 if (last && last.src && now - last.t < 10 * 60 * 1000) return;   // 同一輪重練（剛升或剛降）不馬上加分
                 n = before ? Math.min(5, before + 1) : 3;
             } else n = before ? Math.max(1, Math.min(before - 1, 2)) : 1;
             if (n === before) return;
-            g.fam = n; g.famAt = now; g.famBase = g.playCount || 0;
-            g.famHist = (g.famHist || []).concat(Object.assign({ s: n, t: now, src }, n < before ? { down: true } : {})).slice(-10);
+            g.sfam = n; g.sfamAt = now;
+            g.sfamHist = (g.sfamHist || []).concat(Object.assign({ s: n, t: now, src }, n < before ? { down: true } : {})).slice(-10);
         }
+        // v2.23.0 一次性搬移：v2.22.0 期間由口說回想／克漏字寫進 fam 的結果，移到 sfam；fam 恢復成聽力評分
+        (function migrateSpeakFam() {
+            if (localStorage.getItem('eng_mig2230')) return;
+            let changed = 0;
+            tasks.forEach(t => (t.subtasks || []).forEach(s => (s.grandtasks || []).forEach(g => {
+                const hist = g.famHist || [];
+                const sp = hist.filter(h => h.src), li = hist.filter(h => !h.src);
+                if (!sp.length) return;
+                const lastSp = sp[sp.length - 1], lastLi = li[li.length - 1];
+                g.sfam = lastSp.s; g.sfamAt = lastSp.t; g.sfamHist = sp;
+                g.famHist = li;
+                if (lastLi) { g.fam = lastLi.s; g.famAt = lastLi.t; } else { delete g.fam; delete g.famAt; }
+                g.famBase = g.playCount || 0;
+                changed++;
+            })));
+            if (changed) try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); } catch (e) {}
+            localStorage.setItem('eng_mig2230', '1');
+        })();
         function setFamAuto(n) { famAutoN = n; localStorage.setItem(FAM_AUTO_KEY, String(n)); renderRating(); showToast(n ? `⬆️ 已設定：每播放 ${n} 次自動升一級` : '已關閉自動升級', 2000); }
         let upToastT = null, upList = [];
         function checkAutoUpgrade(g) {
@@ -3656,7 +3689,7 @@ ${ENRICH_RULES}
             let list = shuffle(recallPool());
             if (recallSettings.order === 'weak') {
                 const now = Date.now();
-                const key = it => { const g = gOf(it.id); return (g.fam || 2.5) + (g.lastRecallAt && now - g.lastRecallAt < 86400000 ? 3 : 0); };
+                const key = it => { const g = gOf(it.id); return (g.sfam || 2.5) + (g.lastRecallAt && now - g.lastRecallAt < 86400000 ? 3 : 0); };
                 list = list.map(it => ({ it, k: key(it) })).sort((a, b) => a.k - b.k).map(x => x.it);
             }
             const lim = Number(recallSettings.limit) || 0;
@@ -3871,7 +3904,7 @@ ${ENRICH_RULES}
         function statBadgeHtml(g) {
             const p = g.playCount || 0, cr = g.czRight || 0, ct = cr + (g.czWrong || 0);
             const rdc = g.readCount || 0, rsc = g.readScore != null ? `・${g.readScore}分` : '';
-            return (g.fam ? `<span class="st-badge fam fam-badge fam-${g.fam}" title="熟悉度 ${g.fam}／5（${FAM_NAME[g.fam]}）">⭐${g.fam}</span>` : '') + (p ? `<span class="st-badge" title="播放次數">▶ ${p}</span>` : '') + (rdc ? `<span class="st-badge" title="朗讀次數・最近一次 AI 評分">🗣️ ${rdc}${rsc}</span>` : '') + (ct ? `<span class="st-badge" title="克漏字 答對／作答">✍️ ${cr}/${ct}</span>` : '') + ((g.rcRight || g.rcWrong) ? `<span class="st-badge" title="口說回想 想起來／作答">🧠 ${g.rcRight || 0}/${(g.rcRight || 0) + (g.rcWrong || 0)}</span>` : '');
+            return (g.fam ? `<span class="st-badge fam fam-badge fam-${g.fam}" title="聽力熟悉度 ${g.fam}／5（${FAM_NAME[g.fam]}）">聽${g.fam}</span>` : '') + (g.sfam ? `<span class="st-badge fam fam-badge fam-${g.sfam}" title="口說熟悉度 ${g.sfam}／5（${FAM_NAME[g.sfam]}）">說${g.sfam}</span>` : '') + (p ? `<span class="st-badge" title="播放次數">▶ ${p}</span>` : '') + (rdc ? `<span class="st-badge" title="朗讀次數・最近一次 AI 評分">🗣️ ${rdc}${rsc}</span>` : '') + (ct ? `<span class="st-badge" title="克漏字 答對／作答">✍️ ${cr}/${ct}</span>` : '') + ((g.rcRight || g.rcWrong) ? `<span class="st-badge" title="口說回想 想起來／作答">🧠 ${g.rcRight || 0}/${(g.rcRight || 0) + (g.rcWrong || 0)}</span>` : '');
         }
         function refreshBadge(id) {
             const f = findGrand(id), el = document.querySelector(`.grandtask-row[data-id="${id}"] .st-badges`);
@@ -3931,7 +3964,8 @@ ${ENRICH_RULES}
             document.getElementById('rpFam').innerHTML = !total ? '<div class="rp-empty">還沒有例句</div>' :
                 `<div class="rt-bar">${[5, 4, 3, 2, 1, 0].map(n => fc[n] ? `<i style="width:${fc[n] / total * 100}%;background:${FAM_COLOR[n]}"></i>` : '').join('')}</div>
                  <div class="rp-fam-legend">${[1, 2, 3, 4, 5, 0].map(n => `<span><i style="background:${FAM_COLOR[n]}"></i>${n ? n + ' 分' : '未評'} <b>${fc[n]}</b></span>`).join('')}</div>
-                 <div class="rp-tile-sub">${rated ? `已評 ${rated} 句，平均 ${([1, 2, 3, 4, 5].reduce((a, n) => a + n * fc[n], 0) / rated).toFixed(1)} 分` : '還沒有評分，可以到「⭐ 熟悉度評分」開始'}</div>`;
+                 <div class="rp-tile-sub">${rated ? `已評 ${rated} 句，平均 ${([1, 2, 3, 4, 5].reduce((a, n) => a + n * fc[n], 0) / rated).toFixed(1)} 分` : '還沒有評分，可以到「聽力熟悉度評分」開始'}</div>
+                 ${(() => { const sp = items.filter(it => it.g.sfam); return `<div class="rp-tile-sub">🗣 口說熟悉度：${sp.length ? `已有 ${sp.length} 句，平均 ${(sp.reduce((a, it) => a + it.g.sfam, 0) / sp.length).toFixed(1)} 分（由口說回想、克漏字自動調整）` : '還沒有，做「口說回想」後會自動產生'}</div>`; })()}`;
             renderBars('rpChartP', 'p', '次');
             renderBars('rpChartQ', 'q', '題');
             renderReportList();
