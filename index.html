@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.26.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.27.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
@@ -1160,7 +1160,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.26.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.27.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1434,6 +1434,13 @@
                 <button data-v="phrase" onclick="setRecallOpt('mode','phrase')">關鍵片語<br><small>說出空格</small></button>
             </div>
             <div class="pm-hint" id="rcModeHint"></div>
+            <div class="pm-label">說話停頓多久才結束辨識</div>
+            <div class="seg" id="rcSil">
+                <button data-v="3" onclick="setRcSilence(3)">3 秒</button>
+                <button data-v="6" onclick="setRcSilence(6)">6 秒</button>
+                <button data-v="10" onclick="setRcSilence(10)">10 秒</button>
+                <button data-v="0" onclick="setRcSilence(0)">按了才停</button>
+            </div>
             <div class="pm-label">題目範圍</div>
             <div class="seg" id="rcScope">
                 <button data-v="all" onclick="setRecallOpt('scope','all')">全部例句</button>
@@ -3711,6 +3718,7 @@ ${ENRICH_RULES}
             [['#rcOrder', 'order'], ['#rcMode', 'mode'], ['#rcScope', 'scope'], ['#rcDate', 'dateMode']].forEach(([sel, k]) =>
                 document.querySelectorAll(sel + ' button').forEach(b => b.classList.toggle('on', b.dataset.v === recallSettings[k])));
             document.querySelectorAll('#rcLimit button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === Number(recallSettings.limit)));
+            document.querySelectorAll('#rcSil button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === rcSilence));
             const all = getPlaylist(recallSettings).length, n = recallPool().length, lim = Number(recallSettings.limit) || 0, q = lim ? Math.min(lim, n) : n;
             document.getElementById('rcCount').textContent = n ? `共 ${n} 句有中文翻譯，這次練 ${q} 句${all > n ? `（${all - n} 句沒有中文，略過）` : ''}` : '這個範圍沒有附中文翻譯的例句';
             document.getElementById('rcStart').disabled = n === 0;
@@ -3814,53 +3822,118 @@ ${ENRICH_RULES}
                 : `<svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-write"/></svg> 改用打字`;
             if (rc.typing) setTimeout(() => $('rcTypeIn').focus(), 50);
         }
+        // v2.27.0：語音辨識不會因為短暫停頓就結束 —— 改用連續辨識，引擎自己停下時自動重新接上，
+        //          直到「停頓超過設定秒數」或你再按一下麥克風才結束（最長 60 秒）
+        const RC_SIL_KEY = 'eng_rcSilence';
+        let rcSilence = (() => { const v = localStorage.getItem(RC_SIL_KEY); return v == null ? 6 : Number(v); })();   // 0＝只有手動按才結束
+        function setRcSilence(v) { rcSilence = v; localStorage.setItem(RC_SIL_KEY, String(v)); refreshRecallSetup(); }
         function recallSetMic(on) {
             rc.listening = on;
             document.getElementById('rcMicBtn').classList.toggle('listening', on);
-            document.getElementById('rcMicTxt').textContent = on ? '聆聽中…說完再按一下' : '按一下，說出英文';
+            document.getElementById('rcMicTxt').textContent = on
+                ? (rcSilence ? `聆聽中…說完按一下（停頓 ${rcSilence} 秒自動結束）` : '聆聽中…說完再按一下')
+                : '按一下，說出英文';
         }
-        function recallStopListen() {
-            if (rc.rec) { const r = rc.rec; rc.rec = null; r.onresult = r.onerror = r.onend = null; try { r.abort(); } catch (e) {} }
+        function recallStopListen() {   // 放棄這次辨識（換題、關閉畫面時）
+            const ss = rc.sess;
+            if (ss) {
+                ss.delivered = true; clearInterval(ss.timer); rc.sess = null;
+                const r = ss.engine; if (r) { r.onresult = r.onerror = r.onend = null; try { r.abort(); } catch (e) {} }
+            }
             if (rc.listening) recallSetMic(false);
         }
+        // Android Chrome 的連續辨識常把前一段重複包含進下一段：新段以前一段開頭就取代，已包含就略過
+        function rcMergePush(arr, t) {
+            t = (t || '').trim(); if (!t) return;
+            const last = arr[arr.length - 1], lt = t.toLowerCase();
+            if (last && lt.startsWith(last.toLowerCase())) arr[arr.length - 1] = t;
+            else if (last && last.toLowerCase().includes(lt)) return;
+            else arr.push(t);
+        }
         function recallListen(how) {   // how：undefined＝作答；'retry'＝看答案後重說（辨識錯誤）；'append'＝接在剛才的內容後面說（被切斷）
-            if (rc.listening && rc.rec) { try { rc.rec.stop(); } catch (e) {} return; }
-            const inRate = how === 'retry' || how === 'append';
-            const liveEl = () => document.getElementById(inRate ? 'rcSug' : 'rcLive');
+            if (rc.sess) { recallFinishListen(); return; }   // 聆聽中再按一下＝說完了
             if (!SpeechRecognition) { showToast('這個瀏覽器不支援語音辨識，請改用打字'); return; }
             if (player.playing) playerPause();
+            const inRate = how === 'retry' || how === 'append';
+            const ss = rc.sess = { how, inRate, committed: [], alts: null, segFinals: [], segAlts: null, interim: '', errMsg: '', fatal: false,
+                heardAny: false, startedAt: Date.now(), lastAt: Date.now(), restarts: 0, done: false, delivered: false, engine: null };
+            ss.liveEl = () => document.getElementById(inRate ? 'rcSug' : 'rcLive');
+            recallSetMic(true);
+            ss.liveEl().textContent = inRate ? '🎤 聆聽中…' : '';
+            ss.timer = setInterval(() => {
+                if (rc.sess !== ss) { clearInterval(ss.timer); return; }
+                const idle = (Date.now() - ss.lastAt) / 1000;
+                if ((rcSilence && ss.heardAny && idle >= rcSilence) || (!ss.heardAny && idle >= 12) || Date.now() - ss.startedAt > 60000) recallFinishListen();
+            }, 250);
+            rcStartEngine(ss);
+        }
+        function rcRenderLive(ss) {
+            const parts = ss.committed.concat(ss.segFinals);
+            const txt = ((ss.how === 'append' ? (rc.heardText || '') + ' ' : '') + parts.join(' ') + ' ' + ss.interim).trim();
+            ss.liveEl().textContent = (ss.inRate ? '🎤 ' : '') + (txt || (ss.inRate ? '聆聽中…' : ''));
+        }
+        function rcStartEngine(ss) {
             const r = new SpeechRecognition();
-            r.lang = 'en-US'; r.interimResults = true; r.continuous = false; r.maxAlternatives = 3;
-            let finals = [], alts = [], errMsg = '';
+            r.lang = 'en-US'; r.interimResults = true; r.continuous = true; r.maxAlternatives = 3;
             r.onresult = e => {
-                let interim = ''; finals = []; alts = [];
+                ss.lastAt = Date.now(); ss.heardAny = true;
+                const fin = []; let interim = '', alts = null;
                 for (let k = 0; k < e.results.length; k++) {
                     const res = e.results[k];
-                    if (res.isFinal) { finals.push(res[0].transcript); if (e.results.length === 1) for (let a = 0; a < res.length; a++) alts.push(res[a].transcript); }
-                    else interim += res[0].transcript;
+                    if (res.isFinal) { rcMergePush(fin, res[0].transcript); if (e.results.length === 1) { alts = []; for (let a = 0; a < res.length; a++) alts.push(res[a].transcript.trim()); } }
+                    else interim = res[0].transcript.trim();
                 }
-                liveEl().textContent = (inRate ? '🎤 ' : '') + ((how === 'append' ? rc.heardText + ' ' : '') + finals.join(' ') + ' ' + interim).trim();
+                ss.segFinals = fin; ss.segAlts = alts; ss.interim = interim;
+                rcRenderLive(ss);
             };
             r.onerror = e => {
-                errMsg = e.error === 'not-allowed' ? '沒有麥克風權限，請允許麥克風（或改用打字）'
-                    : e.error === 'no-speech' ? '沒有聽到聲音，請再說一次'
+                if (e.error === 'no-speech' || e.error === 'aborted') return;   // 沒聲音：交給 onend 重新接上
+                ss.errMsg = e.error === 'not-allowed' ? '沒有麥克風權限，請允許麥克風（或改用打字）'
                     : e.error === 'network' ? '語音辨識需要網路，請連線或改用打字'
-                    : e.error === 'aborted' ? '' : '語音辨識錯誤：' + e.error;
+                    : '語音辨識錯誤：' + e.error;
+                if (e.error === 'not-allowed' || e.error === 'network' || e.error === 'service-not-allowed' || e.error === 'audio-capture') ss.fatal = true;
             };
             r.onend = () => {
-                if (rc.rec !== r) return;
-                rc.rec = null; recallSetMic(false);
-                let text = finals.join(' ').trim();
-                if (text && how === 'append') { const pre = rc.heardText || ''; text = (pre + ' ' + text).trim(); alts = (alts.length ? alts : [finals.join(' ')]).map(a => (pre + ' ' + a).trim()); }
-                if (text) recallReveal(text, alts.length ? alts : [text]);
-                else {
-                    if (inRate) recallReveal(rc.heardText || '', rc.heardAlts || []); else liveEl().textContent = '';
-                    if (errMsg || !finals.length) showToast(errMsg || '沒有聽到內容，請再說一次', 2500);
-                }
+                if (rc.sess !== ss || ss.engine !== r) return;
+                rcCommit(ss);
+                if (ss.done || ss.fatal || ss.restarts >= 30) { rcDeliver(ss); return; }
+                ss.restarts++;   // 引擎因為停頓自己停了 → 馬上重新接上，繼續聽
+                setTimeout(() => { if (rc.sess === ss && !ss.done) rcStartEngine(ss); else if (rc.sess === ss) rcDeliver(ss); }, 120);
             };
-            rc.rec = r;
-            try { r.start(); recallSetMic(true); liveEl().textContent = inRate ? '🎤 聆聽中…' : ''; }
-            catch (e) { rc.rec = null; recallSetMic(false); showToast('語音啟動失敗，請稍後再試或改用打字'); }
+            ss.engine = r;
+            try { r.start(); }
+            catch (e) { ss.fatal = true; ss.errMsg = ss.errMsg || '語音啟動失敗，請稍後再試或改用打字'; rcDeliver(ss); }
+        }
+        function rcCommit(ss) {
+            const parts = ss.segFinals.slice();
+            if (ss.interim && !parts.join(' ').toLowerCase().includes(ss.interim.toLowerCase())) parts.push(ss.interim);   // 還沒定稿的最後一段也收下
+            if (parts.length === 1 && !ss.committed.length && ss.segFinals.length === 1 && ss.segAlts) ss.alts = ss.segAlts;
+            else if (parts.length) ss.alts = null;
+            parts.forEach(t => rcMergePush(ss.committed, t));
+            ss.segFinals = []; ss.segAlts = null; ss.interim = '';
+        }
+        function recallFinishListen() {
+            const ss = rc.sess; if (!ss || ss.done) return;
+            ss.done = true; clearInterval(ss.timer);
+            recallSetMic(false);
+            ss.liveEl().textContent = (ss.inRate ? '🎤 ' : '') + '辨識中…';
+            try { ss.engine.stop(); } catch (e) { rcCommit(ss); rcDeliver(ss); return; }
+            setTimeout(() => { if (rc.sess === ss && !ss.delivered) { rcCommit(ss); rcDeliver(ss); } }, 2000);   // 保險：onend 沒回來也照樣結束
+        }
+        function rcDeliver(ss) {
+            if (ss.delivered) return;
+            ss.delivered = true; clearInterval(ss.timer);
+            if (ss.engine) { ss.engine.onresult = ss.engine.onerror = ss.engine.onend = null; }
+            if (rc.sess === ss) rc.sess = null;
+            recallSetMic(false);
+            const said = ss.committed.join(' ').trim();
+            let text = said, alts = ss.alts && ss.committed.length === 1 ? ss.alts : (said ? [said] : []);
+            if (said && ss.how === 'append') { const pre = rc.heardText || ''; text = (pre + ' ' + said).trim(); alts = alts.map(a => (pre + ' ' + a).trim()); }
+            if (text) recallReveal(text, alts.length ? alts : [text]);
+            else {
+                if (ss.inRate) recallReveal(rc.heardText || '', rc.heardAlts || []); else ss.liveEl().textContent = '';
+                showToast(ss.errMsg || '沒有聽到內容，請再說一次', 2500);
+            }
         }
         function recallSubmitTyped() {
             const v = document.getElementById('rcTypeIn').value.trim();
