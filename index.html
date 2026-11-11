@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.24.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.25.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
@@ -1105,6 +1105,10 @@
         body.recall-open { overflow: hidden; }
         .rc-label { font-size: calc(12px * var(--z)); color: var(--muted); }
         .rc-cn { font-size: calc(19px * var(--z)); line-height: 1.6; color: var(--text); font-weight: 600; margin-top: calc(6px * var(--z)); word-break: break-word; }
+        .rc-cloze { font-size: calc(16px * var(--z)); line-height: 1.7; color: var(--text); margin-top: calc(8px * var(--z)); word-break: break-word; }
+        .rc-cloze:empty { display: none; }
+        .rc-blank { color: var(--green); font-weight: 700; letter-spacing: 1px; }
+        .rc-retry { margin-top: calc(8px * var(--z)); }
         .rc-hintline { font-size: calc(13px * var(--z)); color: var(--green); margin-top: calc(6px * var(--z)); letter-spacing: .5px; }
         .rc-hintline:empty { display: none; }
         .rc-sub { font-size: calc(11.5px * var(--z)); color: var(--muted); margin-top: calc(12px * var(--z)); padding-top: calc(10px * var(--z)); border-top: 1px dashed var(--c-e3e6e8); }
@@ -1148,7 +1152,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.24.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.25.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1415,6 +1419,13 @@
                 <button data-v="random" onclick="setRecallOpt('order','random')">隨機</button>
             </div>
             <div class="pm-hint" id="rcOrderHint"></div>
+            <div class="pm-label">作答方式</div>
+            <div class="seg" id="rcMode">
+                <button data-v="auto" onclick="setRecallOpt('mode','auto')">自動<br><small>長句先說片語</small></button>
+                <button data-v="full" onclick="setRecallOpt('mode','full')">整句</button>
+                <button data-v="phrase" onclick="setRecallOpt('mode','phrase')">關鍵片語<br><small>說出空格</small></button>
+            </div>
+            <div class="pm-hint" id="rcModeHint"></div>
             <div class="pm-label">題目範圍</div>
             <div class="seg" id="rcScope">
                 <button data-v="all" onclick="setRecallOpt('scope','all')">全部例句</button>
@@ -1451,6 +1462,7 @@
             <div class="cz-card">
                 <div class="rc-label" id="rcLabel">用英文說出這句：</div>
                 <div class="rc-cn" id="rcCn"></div>
+                <div class="rc-cloze" id="rcClozeLine"></div>
                 <div class="rc-hintline" id="rcHintLine"></div>
                 <div id="rcReveal" style="display:none">
                     <div class="rc-sub">正確句子</div>
@@ -1475,6 +1487,10 @@
             </div>
             <div id="rcRate" style="display:none">
                 <button class="cz-tool rc-listen" onclick="recallListenAnswer()"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-volume"/></svg> 聽正確發音</button>
+                <div class="cz-tools rc-retry" id="rcRetryBox">
+                    <button class="cz-tool" onclick="recallListen('retry')"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-mic"/></svg> 辨識錯了，重說</button>
+                    <button class="cz-tool" onclick="recallListen('append')"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-plus"/></svg> 被切斷了，接著說</button>
+                </div>
                 <div class="rc-sug" id="rcSug"></div>
                 <div class="rc-rate-btns">
                     <button class="rc-rate bad" id="rcBadBtn" onclick="recallRate(false)"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-bad"/></svg> 沒想起來</button>
@@ -3387,14 +3403,14 @@ ${ENRICH_RULES}
         // v2.23.0：分成兩種熟悉度 —— fam＝聽力（評分畫面、播放時評分）；sfam＝口說（口說回想、克漏字自動調整）
         //   想起來／答對：+1（未評分 → 3），用了提示不升；10 分鐘內剛因回想調整過就不再升（同一輪重練不馬上加分）
         //   沒想起來／答錯：降到最多 2 分（未評分 → 1）
-        function famFromRecall(g, ok, hinted, src) {
+        function famFromRecall(g, ok, hinted, src, cap = 5) {   // cap：答對最多升到幾分（v2.25.0：只說關鍵片語最多到 3 分）
             const before = g.sfam || 0, now = Date.now();
             let n = before;
             if (ok) {
-                if (hinted) return;
+                if (hinted || before >= cap) return;
                 const last = (g.sfamHist || []).slice(-1)[0];
                 if (last && last.src && now - last.t < 10 * 60 * 1000) return;   // 同一輪重練（剛升或剛降）不馬上加分
-                n = before ? Math.min(5, before + 1) : 3;
+                n = Math.min(cap, before ? before + 1 : 3);
             } else n = before ? Math.max(1, Math.min(before - 1, 2)) : 1;
             if (n === before) return;
             g.sfam = n; g.sfamAt = now;
@@ -3670,7 +3686,8 @@ ${ENRICH_RULES}
         // ================= v2.22.0 口說回想（中→英主動回想）=================
         // 看中文 → 自己說出英文 → 顯示正確句子與逐字比對 → 兩鍵自評（看到答案後才評）
         const RECALL_KEY = 'eng_recallSettings';
-        let recallSettings = { scope: 'all', dateMode: 'all', limit: 10, order: 'listen' };
+        let recallSettings = { scope: 'all', dateMode: 'all', limit: 10, order: 'listen', mode: 'auto' };
+        const RC_LONG = 8;   // 超過幾個字算長句（自動模式下，口說未滿 3 分的長句先說關鍵片語）
         try { Object.assign(recallSettings, JSON.parse(localStorage.getItem(RECALL_KEY)) || {}); } catch (e) {}
         // v2.24.0：預設改為「聽熟優先」（先聽得懂、再練說得出來）
         if (!localStorage.getItem('eng_mig2240')) { recallSettings.order = 'listen'; localStorage.setItem('eng_mig2240', '1'); try { localStorage.setItem(RECALL_KEY, JSON.stringify(recallSettings)); } catch (e) {} }
@@ -3681,7 +3698,7 @@ ${ENRICH_RULES}
         function closeRecallSetup() { document.getElementById('recallSetup').style.display = 'none'; }
         function setRecallOpt(k, v) { recallSettings[k] = v; localStorage.setItem(RECALL_KEY, JSON.stringify(recallSettings)); refreshRecallSetup(); }
         function refreshRecallSetup() {
-            [['#rcOrder', 'order'], ['#rcScope', 'scope'], ['#rcDate', 'dateMode']].forEach(([sel, k]) =>
+            [['#rcOrder', 'order'], ['#rcMode', 'mode'], ['#rcScope', 'scope'], ['#rcDate', 'dateMode']].forEach(([sel, k]) =>
                 document.querySelectorAll(sel + ' button').forEach(b => b.classList.toggle('on', b.dataset.v === recallSettings[k])));
             document.querySelectorAll('#rcLimit button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === Number(recallSettings.limit)));
             const all = getPlaylist(recallSettings).length, n = recallPool().length, lim = Number(recallSettings.limit) || 0, q = lim ? Math.min(lim, n) : n;
@@ -3691,6 +3708,10 @@ ${ENRICH_RULES}
             document.getElementById('rcOrderHint').textContent = recallSettings.order === 'listen'
                 ? (ready ? `聽力 4～5 分的有 ${ready} 句，會先出這些（其中口說較不熟的優先）${lim && ready < q ? `；不足 ${q} 題時再補其他句子` : ''}。` : '目前沒有聽力 4～5 分的句子，會改出其他句子。可以先到「聽力熟悉度評分」評分。')
                 : recallSettings.order === 'weak' ? '口說熟悉度低、24 小時內沒練過的先出。' : '';
+            document.getElementById('rcModeHint').textContent = recallSettings.mode === 'auto'
+                ? `超過 ${RC_LONG} 個字的長句，口說熟悉度未滿 3 分時只說空格裡的關鍵片語（看得到其他英文）；熟了之後再改說整句。`
+                : recallSettings.mode === 'phrase' ? '顯示英文句子但挖空關鍵片語，只要說出空格。答對口說熟悉度最多升到 3 分，要說整句才能升到 4～5 分。'
+                : '每句都說整句。';
         }
         // 口說不熟優先：口說分數低的先出（未評分視為 2.5），24 小時內練過的往後排；同分隨機
         // 聽熟優先（v2.24.0）：聽力 4～5 分的句子排在最前面，同一組內再依口說不熟優先
@@ -3710,7 +3731,14 @@ ${ENRICH_RULES}
             if (player.playing) playerPause();
             closeRecallSetup();
             document.body.classList.remove('report-open');
-            rc.list = list.map(it => ({ ...it, re: false })); rc.i = 0; rc.results = [];
+            rc.list = list.map(it => {
+                const long = wordsOf(it.en).length > RC_LONG, m = recallSettings.mode;
+                let phrase = m === 'phrase' || (m === 'auto' && long && (gOf(it.id).sfam || 0) < 3);
+                const cl = phrase ? makeCloze(it.en, it.word || '', 2) : null;
+                if (!cl) phrase = false;
+                return { ...it, re: false, phrase, cloze: cl };
+            });
+            rc.i = 0; rc.results = [];
             document.body.classList.add('recall-open');
             document.getElementById('rcQuiz').style.display = 'block';
             document.getElementById('rcResult').style.display = 'none';
@@ -3727,8 +3755,9 @@ ${ENRICH_RULES}
             $('rcProgressText').textContent = it.re ? '再試一次' : `第 ${rc.list.slice(0, rc.i + 1).filter(x => !x.re).length} / ${firstCount} 句`;
             $('rcScore').textContent = `想起來 ${rc.results.filter(r => r.ok).length}`;
             $('rcBar').style.transform = `scaleX(${rc.i / rc.list.length})`;
-            $('rcLabel').textContent = it.re ? '剛剛沒想起來的，再說一次：' : '用英文說出這句：';
+            $('rcLabel').textContent = (it.re ? '剛剛沒想起來的，再試一次・' : '') + (it.phrase ? '說出空格裡的英文（說整句也可以）：' : '用英文說出這句：');
             $('rcCn').textContent = it.cn;
+            $('rcClozeLine').innerHTML = it.phrase ? it.cloze.segs.map(sg => sg.t === 'x' ? escapeHtml(sg.v) : `<span class="rc-blank">${'＿'.repeat(Math.min(8, Math.max(3, it.cloze.answers[sg.i].length / 2 | 0)))}</span>`).join('') : '';
             $('rcHintLine').textContent = '';
             $('rcReveal').style.display = 'none';
             $('rcAsk').style.display = 'block'; $('rcRate').style.display = 'none';
@@ -3742,14 +3771,27 @@ ${ENRICH_RULES}
             if (!SpeechRecognition) { $('rcTypeBox').style.display = 'block'; $('rcTypeBtn').style.display = 'none'; }
             if (rc.typing || !SpeechRecognition) setTimeout(() => $('rcTypeIn').focus(), 50);
         }
-        // 提示：第 1 次顯示目標詞的首字母，第 2 次顯示完整目標詞（用了提示，答對也不升級）
+        // 提示（用了提示，答對也不升級）
+        //   整句：① 關鍵詞首字母 → ② 完整關鍵詞 → ③ 每個字的首字母（句子骨架）→ ④ 前半句
+        //   片語：① 空格的首字母 → ② 完整答案
+        const rcSkel = str => str.replace(/[A-Za-z]+(?:['’-][A-Za-z]+)*/g, w => w[0] + '_'.repeat(Math.max(1, w.length - 1)));
         function recallHint() {
-            const it = rc.list[rc.i], tw = clozeTarget(it.word || '');
-            if (!tw) { showToast('這句沒有可提示的單字'); return; }
-            rc.hint = Math.min(2, rc.hint + 1);
-            document.getElementById('rcHintLine').textContent = '關鍵詞：' + (rc.hint === 1
-                ? tw.split(' ').map(w => w[0] + '_'.repeat(Math.max(1, w.length - 1))).join(' ')
-                : tw);
+            const it = rc.list[rc.i], el = document.getElementById('rcHintLine');
+            if (it.phrase) {
+                const ans = it.cloze.answers[0];
+                rc.hint = Math.min(2, rc.hint + 1);
+                el.textContent = '空格：' + (rc.hint === 1 ? rcSkel(ans) : ans);
+                return;
+            }
+            const tw = clozeTarget(it.word || '');
+            const steps = [];
+            if (tw) steps.push('關鍵詞：' + rcSkel(tw), '關鍵詞：' + tw);
+            steps.push('句子骨架：' + rcSkel(it.en));
+            const words = it.en.split(/\s+/), half = Math.ceil(words.length / 2);
+            steps.push('前半句：' + words.slice(0, half).join(' ') + ' ' + rcSkel(words.slice(half).join(' ')));
+            if (rc.hint >= steps.length) { showToast('已經是最多的提示了，可以按「想不出來」看答案'); return; }
+            rc.hint++;
+            el.textContent = steps[rc.hint - 1];
         }
         function recallToggleType() {
             if (!SpeechRecognition) return;
@@ -3771,8 +3813,10 @@ ${ENRICH_RULES}
             if (rc.rec) { const r = rc.rec; rc.rec = null; r.onresult = r.onerror = r.onend = null; try { r.abort(); } catch (e) {} }
             if (rc.listening) recallSetMic(false);
         }
-        function recallListen() {
+        function recallListen(how) {   // how：undefined＝作答；'retry'＝看答案後重說（辨識錯誤）；'append'＝接在剛才的內容後面說（被切斷）
             if (rc.listening && rc.rec) { try { rc.rec.stop(); } catch (e) {} return; }
+            const inRate = how === 'retry' || how === 'append';
+            const liveEl = () => document.getElementById(inRate ? 'rcSug' : 'rcLive');
             if (!SpeechRecognition) { showToast('這個瀏覽器不支援語音辨識，請改用打字'); return; }
             if (player.playing) playerPause();
             const r = new SpeechRecognition();
@@ -3785,7 +3829,7 @@ ${ENRICH_RULES}
                     if (res.isFinal) { finals.push(res[0].transcript); if (e.results.length === 1) for (let a = 0; a < res.length; a++) alts.push(res[a].transcript); }
                     else interim += res[0].transcript;
                 }
-                document.getElementById('rcLive').textContent = (finals.join(' ') + ' ' + interim).trim();
+                liveEl().textContent = (inRate ? '🎤 ' : '') + ((how === 'append' ? rc.heardText + ' ' : '') + finals.join(' ') + ' ' + interim).trim();
             };
             r.onerror = e => {
                 errMsg = e.error === 'not-allowed' ? '沒有麥克風權限，請允許麥克風（或改用打字）'
@@ -3796,12 +3840,16 @@ ${ENRICH_RULES}
             r.onend = () => {
                 if (rc.rec !== r) return;
                 rc.rec = null; recallSetMic(false);
-                const text = finals.join(' ').trim();
+                let text = finals.join(' ').trim();
+                if (text && how === 'append') { const pre = rc.heardText || ''; text = (pre + ' ' + text).trim(); alts = (alts.length ? alts : [finals.join(' ')]).map(a => (pre + ' ' + a).trim()); }
                 if (text) recallReveal(text, alts.length ? alts : [text]);
-                else { document.getElementById('rcLive').textContent = ''; if (errMsg || !finals.length) showToast(errMsg || '沒有聽到內容，請再說一次', 2500); }
+                else {
+                    if (inRate) recallReveal(rc.heardText || '', rc.heardAlts || []); else liveEl().textContent = '';
+                    if (errMsg || !finals.length) showToast(errMsg || '沒有聽到內容，請再說一次', 2500);
+                }
             };
             rc.rec = r;
-            try { r.start(); recallSetMic(true); document.getElementById('rcLive').textContent = ''; }
+            try { r.start(); recallSetMic(true); liveEl().textContent = inRate ? '🎤 聆聽中…' : ''; }
             catch (e) { rc.rec = null; recallSetMic(false); showToast('語音啟動失敗，請稍後再試或改用打字'); }
         }
         function recallSubmitTyped() {
@@ -3811,47 +3859,62 @@ ${ENRICH_RULES}
         }
         function recallGiveUp() { recallStopListen(); recallReveal('', []); }
 
+        // v2.25.0：比對前展開縮寫（I'll = I will、can't = can not…），避免辨識結果寫法不同被判錯
+        const rcExpand = str => (' ' + String(str).toLowerCase().replace(/[’`]/g, "'") + ' ')
+            .replace(/\bwon't\b/g, 'will not').replace(/\bcan't\b/g, 'can not').replace(/\bcannot\b/g, 'can not').replace(/\bshan't\b/g, 'shall not')
+            .replace(/n't\b/g, ' not').replace(/'m\b/g, ' am').replace(/'re\b/g, ' are').replace(/'ve\b/g, ' have').replace(/'ll\b/g, ' will').replace(/'d\b/g, ' would')
+            .replace(/\b(it|that|what|there|here|he|she|who|where|how)'s\b/g, '$1 is')
+            .replace(/\bgonna\b/g, 'going to').replace(/\bwanna\b/g, 'want to').replace(/\bgotta\b/g, 'got to').trim();
+        const rcDiff = (target, heard) => wordDiff(rcExpand(target), rcExpand(heard));
+
         // 顯示答案：正確句子（關鍵詞標示）＋你說的內容與逐字比對＋建議評分
         function recallReveal(heard, alts) {
             const it = rc.list[rc.i], $ = id => document.getElementById(id);
             recallStopListen();
-            const tw = rcTargets(it);
-            // 多個辨識候選中，取和正確句子最接近的一個（降低口音造成的誤判）
+            rc.heardAlts = alts; rc.heardText = heard;
+            // 片語模式：比對對象是空格裡的答案；整句模式：比對整句
+            const target = it.phrase ? it.cloze.answers[0] : it.en;
+            const tw = it.phrase ? wordsOf(target).filter(w => w.length >= 2 && !STOP_WORDS.has(w)) : rcTargets(it);
+            // 多個辨識候選中，取和答案最接近的一個（降低口音造成的誤判）；片語模式下說整句也可以
             let best = null;
-            (alts.length ? alts : []).forEach(a => { const d = wordDiff(it.en, a); if (!best || d.accuracy > best.d.accuracy) best = { text: a, d }; });
-            const heardWords = best ? wordsOf(best.text) : [];
+            (alts.length ? alts : []).forEach(a => {
+                const d = rcDiff(target, a);   // 片語模式下說整句時，多出來的字不扣分
+                if (!best || d.accuracy > best.d.accuracy) best = { text: a, d };
+            });
+            const heardWords = best ? wordsOf(rcExpand(best.text)) : [];
             const keyOk = tw.length ? tw.every(t => heardWords.some(w => czMatch(w, t))) : true;
             const acc = best ? best.d.accuracy : 0;
-            rc.sug = !best ? false : (keyOk && acc >= 0.7);
+            rc.sug = !best ? false : (keyOk && acc >= 0.6);
             // 正確句子：關鍵詞加底色
             $('rcEn').innerHTML = it.en.split(/([A-Za-z]+(?:['’-][A-Za-z]+)*)/).map((part, k) =>
                 k % 2 && tw.some(t => czMatch(part, t)) ? `<b>${escapeHtml(part)}</b>` : escapeHtml(part)).join('');
             $('rcHeardBox').innerHTML = best ? `
                 <div class="rc-sub">${rc.typing || !SpeechRecognition ? '你寫的' : '你說的（語音辨識結果）'}</div>
                 <div class="rc-heard">${escapeHtml(best.text)}</div>
-                <div class="rc-sub">逐字比對（紅色＝沒說到或不一樣）・吻合 ${Math.round(acc * 100)}%</div>
+                <div class="rc-sub">${it.phrase ? '空格答案' : '逐字'}比對（紅色＝沒說到或不一樣）・吻合 ${Math.round(acc * 100)}%</div>
                 <div class="rc-heard">${best.d.marks.map(m => m.ok ? escapeHtml(m.w) : `<span class="rv-miss">${escapeHtml(m.w)}</span>`).join(' ')}</div>` : '';
             $('rcReveal').style.display = 'block';
             $('rcAsk').style.display = 'none'; $('rcRate').style.display = 'block';
             $('rcSug').innerHTML = !best ? '先看答案、聽一次發音，再按「沒想起來」，等一下會再出現。'
-                : rc.sug ? `建議：<b>想起來了</b>（${tw.length ? '關鍵詞都有說到，' : ''}整句吻合 ${Math.round(acc * 100)}%）`
-                : `建議：<b>沒想起來</b>（${!keyOk ? '關鍵詞沒有說到或說錯' : `整句吻合 ${Math.round(acc * 100)}%`}）。如果只是辨識錯、或換了意思相同的說法，可以按「想起來了」。`;
+                : rc.sug ? `建議：<b>想起來了</b>（${tw.length ? '關鍵詞都有說到，' : ''}${it.phrase ? '空格' : '整句'}吻合 ${Math.round(acc * 100)}%）`
+                : `建議：<b>沒想起來</b>（${!keyOk ? '關鍵詞沒有說到或說錯' : `${it.phrase ? '空格' : '整句'}吻合 ${Math.round(acc * 100)}%`}）。如果只是辨識錯、或換了意思相同的說法，可以按「想起來了」。`;
+            $('rcRetryBox').style.display = best && SpeechRecognition && !rc.typing ? 'flex' : 'none';
             $('rcOkBtn').classList.toggle('sug', rc.sug === true);
             $('rcBadBtn').classList.toggle('sug', rc.sug === false);
         }
         function recallListenAnswer() { const it = rc.list[rc.i]; speakText(it.en, it.id); }
 
-        function recordRecall(id, ok, hinted) {
+        function recordRecall(id, ok, hinted, phrase) {
             const f = findGrand(id); if (!f) return;
             if (ok) f.g.rcRight = (f.g.rcRight || 0) + 1; else f.g.rcWrong = (f.g.rcWrong || 0) + 1;
             f.g.lastRecallAt = Date.now();
-            famFromRecall(f.g, ok, hinted, 'rc');
+            famFromRecall(f.g, ok, hinted, phrase ? 'rcp' : 'rc', phrase ? 3 : 5);
             bumpDaily('s'); if (ok) bumpDaily('s1');
             refreshBadge(id); saveQuiet();
         }
         function recallRate(ok) {
             const it = rc.list[rc.i];
-            recordRecall(it.id, ok, rc.hint > 0);
+            recordRecall(it.id, ok, rc.hint > 0, it.phrase);
             if (!it.re) rc.results.push({ item: it, ok, hinted: rc.hint > 0 });
             // 沒想起來的句子，在這一輪最後再出現一次（同一回合多次提取，記得更牢）
             if (!ok && !it.re) rc.list.push({ ...it, re: true });
