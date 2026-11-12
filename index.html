@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.27.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.28.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
@@ -1110,6 +1110,8 @@
         .rc-blank { color: var(--green); font-weight: 700; letter-spacing: 1px; }
         .rc-saved { font-size: calc(12px * var(--z)); color: var(--muted); text-align: center; margin: calc(8px * var(--z)) 0; }
         .rc-saved:empty { display: none; }
+        .rc-hist-empty { font-size: calc(12px * var(--z)); color: var(--muted); line-height: 1.55; }
+        .rc-hist-more { display: block; margin: calc(8px * var(--z)) auto 0; border: none; background: none; color: var(--green); font-size: calc(13px * var(--z)); cursor: pointer; }
         .rc-hist { border: 1px solid var(--c-e3e6e8); border-radius: calc(12px * var(--z)); padding: calc(10px * var(--z)) calc(12px * var(--z)); margin-top: calc(8px * var(--z)); }
         .rc-hist-info { font-size: calc(13px * var(--z)); color: var(--text); line-height: 1.5; }
         .rc-hist-info small { color: var(--muted); }
@@ -1160,7 +1162,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.27.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.28.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1420,6 +1422,7 @@
         <div class="modal-content">
             <div class="pm-title"><h3><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-speech"/></svg> 口說回想（中→英）</h3><button class="pm-close" onclick="closeRecallSetup()">×</button></div>
             <div class="pm-hint">先看中文，自己用英文說出整句，再對照正確答案。自己「想出來」比反覆聽、反覆看更能記住，也最接近真正開口說的情境。</div>
+            <div id="rcHistBox"></div>
             <div class="pm-label">出題順序</div>
             <div class="seg" id="rcOrder">
                 <button data-v="listen" onclick="setRecallOpt('order','listen')">聽熟優先<br><small>聽力 4～5 分的先練</small></button>
@@ -1462,7 +1465,7 @@
             </div>
             <div class="pm-count" id="rcCount"></div>
             <button class="btn-primary pm-start" id="rcStart" onclick="rc.fromHist = null; startRecall()">開始</button>
-            <div id="rcHistBox"></div>
+
         </div>
     </div>
 
@@ -3876,7 +3879,7 @@ ${ENRICH_RULES}
             const r = new SpeechRecognition();
             r.lang = 'en-US'; r.interimResults = true; r.continuous = true; r.maxAlternatives = 3;
             r.onresult = e => {
-                ss.lastAt = Date.now(); ss.heardAny = true;
+                ss.lastAt = Date.now(); ss.heardAny = true; r.gotResult = true;
                 const fin = []; let interim = '', alts = null;
                 for (let k = 0; k < e.results.length; k++) {
                     const res = e.results[k];
@@ -3897,12 +3900,22 @@ ${ENRICH_RULES}
                 if (rc.sess !== ss || ss.engine !== r) return;
                 rcCommit(ss);
                 if (ss.done || ss.fatal || ss.restarts >= 30) { rcDeliver(ss); return; }
+                // v2.28.0：不要說完了還一直重新啟動 ——
+                //   ① 已經說到和答案幾乎一樣（整句 ≥ 90%／片語全對）→ 直接結束
+                //   ② 已經說過話，而這一輪重新接上後什麼都沒聽到 → 視為說完了
+                if (ss.heardAny && (rcLooksComplete(ss) || (ss.restarts > 0 && !r.gotResult))) { rcDeliver(ss); return; }
                 ss.restarts++;   // 引擎因為停頓自己停了 → 馬上重新接上，繼續聽
                 setTimeout(() => { if (rc.sess === ss && !ss.done) rcStartEngine(ss); else if (rc.sess === ss) rcDeliver(ss); }, 120);
             };
             ss.engine = r;
             try { r.start(); }
             catch (e) { ss.fatal = true; ss.errMsg = ss.errMsg || '語音啟動失敗，請稍後再試或改用打字'; rcDeliver(ss); }
+        }
+        function rcLooksComplete(ss) {
+            const it = rc.list[rc.i]; if (!it) return false;
+            const said = ((ss.how === 'append' ? (rc.heardText || '') + ' ' : '') + ss.committed.join(' ')).trim();
+            if (!said) return false;
+            return it.phrase ? rcDiff(it.cloze.answers[0], said).accuracy >= 1 : rcDiff(it.en, said).accuracy >= 0.9;
         }
         function rcCommit(ss) {
             const parts = ss.segFinals.slice();
@@ -4065,9 +4078,9 @@ ${ENRICH_RULES}
         function renderRecallHist() {
             const box = document.getElementById('rcHistBox'); if (!box) return;
             const h = rcHistLoad();
-            if (!h.length) { box.innerHTML = ''; return; }
+            if (!h.length) { box.innerHTML = '<div class="pm-label">📋 練習清單</div><div class="rc-hist-empty">還沒有清單。練習結束（或中途按 × 結束）後，這組句子會自動存在這裡，之後可以再練同一組。</div>'; return; }
             const fmt = t => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
-            box.innerHTML = `<div class="pm-label">練習清單（每次練完自動儲存）</div>` + h.slice(0, 10).map(r => {
+            box.innerHTML = `<div class="pm-label">📋 練習清單（每次練習自動儲存，共 ${h.length} 份）</div>` + h.slice(0, rcHistShowAll ? 30 : 3).map(r => {
                 const total = r.ids.length, ok = rcItemsByIds(r.ids).length;
                 return `<div class="rc-hist">
                     <div class="rc-hist-info"><b>${fmt(r.t)}</b>・${total} 句・第一次想起來 ${r.right}/${total}${r.n ? `・重練 ${r.n} 次` : ''}${ok < total ? `<small>（${total - ok} 句已刪除）</small>` : ''}</div>
@@ -4076,13 +4089,22 @@ ${ENRICH_RULES}
                         ${r.wrong.length ? `<button onclick="rcHistStart(${r.id}, true)">只練沒想起來的 ${r.wrong.length}</button>` : ''}
                         <button class="rc-hist-del" title="刪除這份清單" onclick="rcHistDelete(${r.id})">×</button>
                     </div></div>`;
-            }).join('');
+            }).join('') + (h.length > 3 ? `<button class="rc-hist-more" onclick="rcHistShowAll = !rcHistShowAll; renderRecallHist()">${rcHistShowAll ? '只顯示最近 3 份' : `顯示全部 ${h.length} 份`}</button>` : '');
         }
+        let rcHistShowAll = false;
         function recallAgain() { rc.fromHist = null; startRecall(); }
         function closeRecall() {
             const inQuiz = document.getElementById('rcQuiz').style.display !== 'none';
-            if (inQuiz && rc.results.length && rc.i < rc.list.length - 1 && !confirm('確定要結束這次練習嗎？（已作答的會保留）')) return;
+            if (inQuiz && rc.results.length && rc.i < rc.list.length - 1 && !confirm('確定要結束這次練習嗎？（已作答的會保留，並存成練習清單）')) return;
             recallStopListen();
+            // 中途結束：已作答的句子也存成練習清單（重練舊清單時則更新原清單）
+            if (inQuiz && rc.results.length) {
+                if (rc.fromHist) {
+                    const h = rcHistLoad(), rec = h.find(x => x.id === rc.fromHist);
+                    if (rec) { const wr = new Set(rc.results.filter(r => !r.ok).map(r => r.item.id)), done = new Set(rc.results.map(r => r.item.id)); rec.wrong = rec.ids.filter(id => done.has(id) ? wr.has(id) : rec.wrong.includes(id)); rcHistSave(h); }
+                } else { rcHistAdd(); showToast('已作答的句子已存成練習清單'); }
+                rc.fromHist = null;
+            }
             document.body.classList.remove('recall-open');
             saveData();
         }
