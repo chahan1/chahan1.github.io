@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.34.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.34.1 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1194,7 +1194,9 @@
         .ps-hidden { display: flex; align-items: center; gap: calc(10px * var(--z)); padding: calc(12px * var(--z)); border: 1.5px dashed var(--c-dadce0); border-radius: calc(12px * var(--z)); color: var(--muted); font-size: calc(14px * var(--z)); }
         .ps-hidden span { flex: 1; min-width: 0; }
         .ps-hidden button { flex: none; height: calc(38px * var(--z)); padding: 0 calc(16px * var(--z)); border: none; border-radius: calc(19px * var(--z)); background: var(--green); color: var(--c-ffffff); font-size: calc(14px * var(--z)); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: calc(6px * var(--z)); }
-        body.player-open.ps-hide #taskList { filter: blur(7px); }
+        /* v2.34.1：改用「整個清單不繪製」取代模糊濾鏡（模糊大面積清單非常耗電） */
+        body.player-open.ps-hide #taskList { visibility: hidden; }
+        body.player-open.ps-hide #taskList::before { content: '🙈 藏字中，筆記暫時隱藏（關閉播放或關掉藏字就會出現）'; visibility: visible; display: block; position: sticky; top: calc(140px * var(--z)); text-align: center; color: var(--muted); font-size: calc(13px * var(--z)); padding: calc(24px * var(--z)) calc(16px * var(--z)); }
 
         /* ---- v2.32.0 已保存的播放清單 ---- */
         .pl-row { display: flex; align-items: center; gap: calc(6px * var(--z)); padding: calc(8px * var(--z)) calc(10px * var(--z)); margin-top: calc(6px * var(--z)); border: 1px solid var(--c-e3e6e8); border-radius: calc(12px * var(--z)); }
@@ -1223,7 +1225,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.34.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.34.1</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
