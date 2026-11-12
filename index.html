@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.31.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.32.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1170,6 +1170,16 @@
         .rc-rate.ok.sug { background: var(--c-e8f5ec); }
         .rc-rate.sug { box-shadow: 0 0 0 3px var(--green-light); }
 
+        /* ---- v2.32.0 已保存的播放清單 ---- */
+        .pl-row { display: flex; align-items: center; gap: calc(6px * var(--z)); padding: calc(8px * var(--z)) calc(10px * var(--z)); margin-top: calc(6px * var(--z)); border: 1px solid var(--c-e3e6e8); border-radius: calc(12px * var(--z)); }
+        .pl-info { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: calc(13px * var(--z)); color: var(--text); }
+        .pl-info b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pl-info small { color: var(--muted); font-size: calc(11.5px * var(--z)); }
+        .pl-play { flex: none; height: calc(32px * var(--z)); padding: 0 calc(12px * var(--z)); border: none; border-radius: calc(16px * var(--z)); background: var(--green); color: var(--c-ffffff); font-size: calc(13px * var(--z)); font-weight: 600; cursor: pointer; }
+        .pl-ic { flex: none; width: calc(30px * var(--z)); height: calc(30px * var(--z)); border: none; background: none; color: var(--muted); font-size: calc(16px * var(--z)); cursor: pointer; border-radius: 50%; }
+        .pl-more { display: block; margin: calc(6px * var(--z)) auto 0; border: none; background: none; color: var(--green); font-size: calc(12.5px * var(--z)); cursor: pointer; }
+        .pm-savebtn { display: block; width: 100%; margin-top: calc(8px * var(--z)); border: none; background: none; color: var(--green); font-size: calc(13px * var(--z)); padding: calc(6px * var(--z)); cursor: pointer; }
+
         /* ---- v2.21.0 繼續上次播放 ---- */
         .pm-resume { margin: calc(4px * var(--z)) 0 calc(6px * var(--z)); padding: calc(10px * var(--z)) calc(12px * var(--z)); border-radius: calc(12px * var(--z)); background: var(--green-light); color: var(--text); font-size: calc(12.5px * var(--z)); line-height: 1.5; }
         .pm-resume b { color: var(--green); }
@@ -1187,7 +1197,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.31.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.32.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1266,6 +1276,7 @@
         <div class="modal-content">
             <div class="pm-title"><h3><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-play"/></svg> 播放例句</h3><button class="pm-close" onclick="closePlayModal()">×</button></div>
             <div class="pm-resume" id="pmResume" style="display:none"></div>
+            <div id="pmSaved"></div>
             <div class="pm-label">語音</div>
             <div class="seg" id="pmEngine">
                 <button data-v="freeai" onclick="setPlayOpt('engine','freeai')">免費 AI 語音</button>
@@ -1365,6 +1376,7 @@
             <div class="pm-count" id="pmCount">共 0 句</div>
             <div class="pm-hint" id="pmCacheInfo" style="text-align:center"></div>
             <button class="btn-primary pm-start" id="pmStart" onclick="pmStartClick()">開始播放</button>
+            <button class="pm-savebtn" onclick="savePlaylistFromSettings()">💾 先保存這個設定產生的清單（不播放）</button>
         </div>
     </div>
 
@@ -1924,6 +1936,7 @@
         <div class="ps-head">
             <div class="ps-title" id="psTitle"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-play"/></svg> 例句播放</div>
             <div class="ps-speed" title="播放速度（可在播放中直接調整）"><button onclick="changeSpeed(-0.1)">−</button><span id="psSpeed">1.0x</span><button onclick="changeSpeed(0.1)">＋</button></div>
+            <button class="ps-icon-btn" title="保存這份播放清單" onclick="savePlaylistNow()"><svg aria-hidden="true" class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></button>
             <button class="ps-icon-btn" title="播放設定" onclick="openPlayModal()"><svg aria-hidden="true" class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
             <button class="ps-icon-btn" title="關閉" onclick="closePlayer()">×</button>
         </div>
@@ -2595,7 +2608,66 @@ ${ENRICH_RULES}
             sel.style.display = playSettings.dateMode === 'day' ? 'block' : 'none';
         }
 
-        function openPlayModal() { refreshPlayModal(); document.getElementById('playModal').style.display = 'flex'; }
+        // ---- v2.32.0 保存播放清單：一鍵把目前的清單存起來，之後隨時再播同一份 ----
+        const SAVED_PL_KEY = 'eng_savedPlaylists', SAVED_PL_MAX = 30;
+        let pmSavedAll = false;
+        function plLoad() { try { return JSON.parse(localStorage.getItem(SAVED_PL_KEY)) || []; } catch (e) { return []; } }
+        function plStore(a) { try { localStorage.setItem(SAVED_PL_KEY, JSON.stringify(a.slice(0, SAVED_PL_MAX))); } catch (e) {} }
+        function plFmt(t) { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }
+        function plItems(ids) {
+            const byId = {};
+            getPlaylist(Object.assign({}, playSettings, { scope: 'all', dateMode: 'all' })).forEach(it => { byId[it.id] = it; });
+            return ids.map(id => byId[id]).filter(Boolean);
+        }
+        function plSave(list, how) {
+            if (!list || !list.length) { showToast('目前沒有可保存的清單'); return; }
+            const ids = list.map(it => it.id);
+            const a = plLoad();
+            const dup = a.find(x => x.ids.length === ids.length && x.ids.every((id, i) => id === ids[i]));
+            if (dup) { showToast(`這份清單已經保存過了（${dup.name}）`); return; }
+            const rec = { id: Date.now(), name: `${plFmt(Date.now())}・${ids.length} 句${how ? '・' + how : ''}`, ids, at: Date.now(), n: 0 };
+            a.unshift(rec); plStore(a);
+            showToast(`💾 已保存播放清單（${ids.length} 句）\n在「播放設定」最上方可以再播放或改名`, 3500);
+            renderSavedPlaylists();
+        }
+        function playOrderName() { return { seq: '依序', random: '隨機', weighted: '依熟悉度' }[playSettings.order] || ''; }
+        function savePlaylistNow() { plSave(player.list, playOrderName()); }
+        function savePlaylistFromSettings() { plSave(buildPlayList(), playOrderName()); }
+        function plPlay(id) {
+            const a = plLoad(), rec = a.find(x => x.id === id); if (!rec) return;
+            const items = plItems(rec.ids);
+            if (!items.length) { showToast('這份清單的例句都已刪除'); return; }
+            rec.n = (rec.n || 0) + 1; rec.last = Date.now(); plStore(a);
+            startPlayer(items);
+            showToast(`▶ 播放「${rec.name}」（${items.length} 句）`);
+        }
+        async function plRename(id) {
+            const a = plLoad(), rec = a.find(x => x.id === id); if (!rec) return;
+            const v = await uiPrompt('清單名稱', rec.name, { hint: '例如：週末複習、易錯句、會議用語' });
+            if (v == null || !v.trim()) return;
+            rec.name = v.trim(); plStore(a); renderSavedPlaylists();
+        }
+        function plDelete(id) {
+            const a = plLoad(), rec = a.find(x => x.id === id); if (!rec) return;
+            if (!confirm(`刪除清單「${rec.name}」？（例句本身不會被刪除）`)) return;
+            plStore(a.filter(x => x.id !== id)); renderSavedPlaylists();
+        }
+        function renderSavedPlaylists() {
+            const box = document.getElementById('pmSaved'); if (!box) return;
+            const a = plLoad();
+            if (!a.length) { box.innerHTML = ''; return; }
+            box.innerHTML = `<div class="pm-label">📌 已保存的播放清單（${a.length}）</div>` + a.slice(0, pmSavedAll ? SAVED_PL_MAX : 3).map(r => {
+                const ok = plItems(r.ids).length;
+                return `<div class="pl-row">
+                    <div class="pl-info"><b>${escapeHtml(r.name)}</b><small>${ok} 句${ok < r.ids.length ? `（${r.ids.length - ok} 句已刪除）` : ''}${r.n ? `・播過 ${r.n} 次` : ''}</small></div>
+                    <button class="pl-play" onclick="plPlay(${r.id})">▶ 播放</button>
+                    <button class="pl-ic" title="改名" onclick="plRename(${r.id})">✎</button>
+                    <button class="pl-ic" title="刪除" onclick="plDelete(${r.id})">×</button>
+                </div>`;
+            }).join('') + (a.length > 3 ? `<button class="pl-more" onclick="pmSavedAll = !pmSavedAll; renderSavedPlaylists()">${pmSavedAll ? '只顯示最近 3 份' : `顯示全部 ${a.length} 份`}</button>` : '');
+        }
+
+        function openPlayModal() { refreshPlayModal(); renderSavedPlaylists(); document.getElementById('playModal').style.display = 'flex'; }
         // 開 App 時：上次的複習沒播完就提醒
         setTimeout(() => {
             try { const r = sessionResumeInfo(); if (r && r.same) showToast(`⏯ 上次的複習播放到第 ${r.idx + 1} / ${r.items.length} 句\n按左下角 ▶ 可以繼續`, 4000); } catch (e) {}
