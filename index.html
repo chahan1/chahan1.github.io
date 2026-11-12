@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.33.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.34.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1170,6 +1170,24 @@
         .rc-rate.ok.sug { background: var(--c-e8f5ec); }
         .rc-rate.sug { box-shadow: 0 0 0 3px var(--green-light); }
 
+        /* ---- v2.34.0 選擇從第幾句開始播 ---- */
+        .ps-meta-btn { border: none; background: none; padding: calc(2px * var(--z)) 0; color: var(--green); font-size: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; font-family: inherit; }
+        .ps-picker { z-index: 2600; }
+        .ps-picker .modal-content { max-height: 86vh; display: flex; flex-direction: column; }
+        .pk-jump { display: flex; align-items: center; gap: calc(8px * var(--z)); font-size: calc(14px * var(--z)); color: var(--text); }
+        .pk-jump input { width: calc(80px * var(--z)); height: calc(38px * var(--z)); border: 1.5px solid var(--c-dadce0); border-radius: calc(10px * var(--z)); padding: 0 calc(8px * var(--z)); font-size: calc(16px * var(--z)); text-align: center; background: var(--c-ffffff); color: var(--text); }
+        .pk-jump button { margin-left: auto; height: calc(38px * var(--z)); padding: 0 calc(14px * var(--z)); border: none; border-radius: calc(19px * var(--z)); background: var(--green); color: var(--c-ffffff); font-size: calc(14px * var(--z)); font-weight: 600; cursor: pointer; }
+        .pk-tools { display: flex; align-items: center; justify-content: space-between; margin: calc(10px * var(--z)) 0 calc(6px * var(--z)); font-size: calc(12px * var(--z)); color: var(--muted); }
+        .pk-tools button { border: none; background: none; color: var(--green); font-size: calc(12.5px * var(--z)); cursor: pointer; }
+        .pk-list { overflow-y: auto; flex: 1; min-height: 0; border-top: 1px solid var(--c-e3e6e8); }
+        .pk-row { display: flex; align-items: center; gap: calc(10px * var(--z)); width: 100%; text-align: left; border: none; border-bottom: 1px solid var(--c-e3e6e8); background: none; padding: calc(10px * var(--z)) calc(4px * var(--z)); cursor: pointer; color: var(--text); font-family: inherit; }
+        .pk-row.cur { background: var(--green-light); }
+        .pk-n { flex: none; min-width: calc(30px * var(--z)); text-align: right; font-weight: 700; color: var(--green); font-size: calc(14px * var(--z)); }
+        .pk-t { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: calc(13.5px * var(--z)); line-height: 1.45; }
+        .pk-t b { font-weight: 500; }
+        .pk-t small, .pk-t i { color: var(--muted); font-size: calc(12px * var(--z)); font-style: normal; }
+        .pk-cur { flex: none; font-size: calc(11px * var(--z)); color: var(--green); font-weight: 600; }
+
         /* ---- v2.33.0 播放時藏字 ---- */
         .ps-hide-btn { flex: none; height: calc(30px * var(--z)); padding: 0 calc(10px * var(--z)); border-radius: calc(15px * var(--z)); border: 1.5px solid var(--c-dadce0); background: transparent; color: var(--muted); font-size: calc(12.5px * var(--z)); font-weight: 600; cursor: pointer; }
         .ps-hide-btn.on { border-color: var(--green); background: var(--green-light); color: var(--green); }
@@ -1205,7 +1223,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.33.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.34.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1459,6 +1477,21 @@
             <button class="btn-outline cz-btn" onclick="clozeAgain()">再隨機練一次</button>
             <button class="btn-outline cz-btn" onclick="closeCloze()">完成</button>
             <div id="czWrongList"></div>
+        </div>
+    </div>
+
+    <!-- v2.34.0 播放清單：選擇從第幾句開始播 -->
+    <div id="psPicker" class="modal-overlay ps-picker" onclick="if(event.target===this) closePsPicker()">
+        <div class="modal-content">
+            <div class="pm-title"><h3>選擇要播放的句子</h3><button class="pm-close" onclick="closePsPicker()">×</button></div>
+            <div class="pk-jump">
+                <span>跳到第</span>
+                <input type="number" id="pkNum" min="1" inputmode="numeric" onkeydown="if(event.key==='Enter'){ event.preventDefault(); pkJumpNum(); }">
+                <span id="pkTotal">句</span>
+                <button onclick="pkJumpNum()">▶ 播放</button>
+            </div>
+            <div class="pk-tools"><span id="pkHint"></span><button id="pkShowBtn" onclick="pkToggleShow()"></button></div>
+            <div class="pk-list" id="pkList"></div>
         </div>
     </div>
 
@@ -1953,7 +1986,7 @@
         <div class="ps-text" id="psText"></div>
         <div class="ps-cn" id="psCn"></div>
         <div class="ps-progress"><div id="psBar"></div></div>
-        <div class="ps-meta"><span id="psMeta"></span><span id="psRep"></span></div>
+        <div class="ps-meta"><button class="ps-meta-btn" id="psMeta" onclick="openPsPicker()" title="選擇要播放第幾句"></button><span id="psRep"></span></div>
         <div class="ps-fam" id="psFam">
             <span class="ps-fam-label">聽力熟悉度</span>
             <div class="ps-fam-btns">
@@ -2970,7 +3003,7 @@ ${ENRICH_RULES}
                     $('psCn').textContent = item.cn;
                 }
                 $('psBar').style.transform = 'scaleX(' + (parseFloat(`${(player.idx / total) * 100}%`) / 100) + ')';
-                $('psMeta').textContent = `第 ${player.idx + 1} / ${total} 句　${dayLabel(item.day)}`;
+                $('psMeta').textContent = `第 ${player.idx + 1} / ${total} 句 ▾　${dayLabel(item.day)}`;
                 const rr = itemRepeat(item);
                 $('psRep').textContent = `第 ${Math.min(player.rep + 1, rr)} / ${rr} 次` + (lvActive() ? `　🎚️ ${famText(item.fam)}` : '');
             }
@@ -3042,6 +3075,58 @@ ${ENRICH_RULES}
             saveSession();
             highlightPlaying(true); updatePlayerView();
             if (wasPlaying && player.playing) runPlayer(player.token);
+        }
+
+        // ---- v2.34.0 選擇從第幾句開始播 ----
+        let pkShow = false;   // 藏字時清單預設只顯示編號，可按「顯示內容」
+        function playerJumpTo(i) {
+            if (!player.open || !player.list.length) return;
+            i = Math.max(0, Math.min(player.list.length - 1, i));
+            if (player.mode === 'ai') {
+                if (!player.segments) { showToast('AI 語音還在準備中，請稍候再選'); return; }
+                aiSeekTo(i); if (aiAudio && aiAudio.paused) aiAudio.play().catch(() => {});
+                return;
+            }
+            const base = player.finished ? player.list.length : player.idx;
+            if (player.finished || !player.playing) {   // 暫停中或已播完：直接從選的那句開始播
+                player.finished = false; player.idx = i; player.rep = 0; saveSession();
+                highlightPlaying(true); playerPlay();
+                return;
+            }
+            playerJump(i - base);
+        }
+        function openPsPicker() {
+            if (!player.open || !player.list.length) return;
+            pkShow = !psHide;
+            renderPsPicker();
+            document.getElementById('psPicker').style.display = 'flex';
+            const cur = document.querySelector('#pkList .pk-row.cur'); if (cur) cur.scrollIntoView({ block: 'center' });
+        }
+        function closePsPicker() { document.getElementById('psPicker').style.display = 'none'; }
+        function pkToggleShow() { pkShow = !pkShow; renderPsPicker(); const cur = document.querySelector('#pkList .pk-row.cur'); if (cur) cur.scrollIntoView({ block: 'center' }); }
+        function renderPsPicker() {
+            const total = player.list.length, cur = player.finished ? -1 : player.idx;
+            const num = document.getElementById('pkNum');
+            num.max = total; num.value = cur >= 0 ? cur + 1 : 1; num.placeholder = '1～' + total;
+            document.getElementById('pkTotal').textContent = `/ ${total} 句`;
+            document.getElementById('pkHint').textContent = '點一句就從那句開始播';
+            const btn = document.getElementById('pkShowBtn');
+            btn.style.display = psHide ? '' : 'none';
+            btn.textContent = pkShow ? '🙈 隱藏內容' : '👀 顯示內容';
+            document.getElementById('pkList').innerHTML = player.list.map((it, i) => {
+                const g = gOf(it.id) || {};
+                return `<button class="pk-row${i === cur ? ' cur' : ''}" onclick="pkPick(${i})">
+                    <span class="pk-n">${i + 1}</span>
+                    <span class="pk-t">${pkShow ? `<b>${escapeHtml(it.en)}</b>${it.cn ? `<small>${escapeHtml(it.cn)}</small>` : ''}` : `<i>${g.fam ? '聽' + g.fam + '　' : ''}${dayLabel(it.day)}</i>`}</span>
+                    ${i === cur ? '<span class="pk-cur">播放中</span>' : ''}
+                </button>`;
+            }).join('');
+        }
+        function pkPick(i) { closePsPicker(); playerJumpTo(i); }
+        function pkJumpNum() {
+            const n = parseInt(document.getElementById('pkNum').value, 10);
+            if (!n || n < 1 || n > player.list.length) { showToast(`請輸入 1～${player.list.length}`); return; }
+            pkPick(n - 1);
         }
 
         function playerRestart() {
