@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.32.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.33.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1170,6 +1170,14 @@
         .rc-rate.ok.sug { background: var(--c-e8f5ec); }
         .rc-rate.sug { box-shadow: 0 0 0 3px var(--green-light); }
 
+        /* ---- v2.33.0 播放時藏字 ---- */
+        .ps-hide-btn { flex: none; height: calc(30px * var(--z)); padding: 0 calc(10px * var(--z)); border-radius: calc(15px * var(--z)); border: 1.5px solid var(--c-dadce0); background: transparent; color: var(--muted); font-size: calc(12.5px * var(--z)); font-weight: 600; cursor: pointer; }
+        .ps-hide-btn.on { border-color: var(--green); background: var(--green-light); color: var(--green); }
+        .ps-hidden { display: flex; align-items: center; gap: calc(10px * var(--z)); padding: calc(12px * var(--z)); border: 1.5px dashed var(--c-dadce0); border-radius: calc(12px * var(--z)); color: var(--muted); font-size: calc(14px * var(--z)); }
+        .ps-hidden span { flex: 1; min-width: 0; }
+        .ps-hidden button { flex: none; height: calc(38px * var(--z)); padding: 0 calc(16px * var(--z)); border: none; border-radius: calc(19px * var(--z)); background: var(--green); color: var(--c-ffffff); font-size: calc(14px * var(--z)); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: calc(6px * var(--z)); }
+        body.player-open.ps-hide #taskList { filter: blur(7px); }
+
         /* ---- v2.32.0 已保存的播放清單 ---- */
         .pl-row { display: flex; align-items: center; gap: calc(6px * var(--z)); padding: calc(8px * var(--z)) calc(10px * var(--z)); margin-top: calc(6px * var(--z)); border: 1px solid var(--c-e3e6e8); border-radius: calc(12px * var(--z)); }
         .pl-info { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: calc(13px * var(--z)); color: var(--text); }
@@ -1197,7 +1205,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.32.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.33.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1936,6 +1944,7 @@
         <div class="ps-head">
             <div class="ps-title" id="psTitle"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-play"/></svg> 例句播放</div>
             <div class="ps-speed" title="播放速度（可在播放中直接調整）"><button onclick="changeSpeed(-0.1)">−</button><span id="psSpeed">1.0x</span><button onclick="changeSpeed(0.1)">＋</button></div>
+            <button class="ps-hide-btn" id="psHideBtn" title="藏字：先只聽，需要時再看" onclick="togglePsHide()">藏字</button>
             <button class="ps-icon-btn" title="保存這份播放清單" onclick="savePlaylistNow()"><svg aria-hidden="true" class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></button>
             <button class="ps-icon-btn" title="播放設定" onclick="openPlayModal()"><svg aria-hidden="true" class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
             <button class="ps-icon-btn" title="關閉" onclick="closePlayer()">×</button>
@@ -2951,9 +2960,15 @@ ${ENRICH_RULES}
             } else if (item) {
                 updatePlayerFam();
                 $('psTitle').textContent = (player.playing ? '▶️ 播放中' : '⏸ 已暫停') + (playSettings.order === 'random' ? '　🔀 隨機' : '');
-                $('psWord').textContent = item.word;
-                $('psText').textContent = item.en;
-                $('psCn').textContent = item.cn;
+                if (psHide && player.shownId !== item.id) {   // v2.33.0 藏字：只聽，按「看答案」才顯示這一句
+                    $('psWord').textContent = '';
+                    $('psText').innerHTML = `<div class="ps-hidden"><span>🎧 藏字中，先聽聽看</span><button onclick="psReveal()"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-eye"/></svg> 看答案</button></div>`;
+                    $('psCn').textContent = '';
+                } else {
+                    $('psWord').textContent = item.word;
+                    $('psText').textContent = item.en;
+                    $('psCn').textContent = item.cn;
+                }
                 $('psBar').style.transform = 'scaleX(' + (parseFloat(`${(player.idx / total) * 100}%`) / 100) + ')';
                 $('psMeta').textContent = `第 ${player.idx + 1} / ${total} 句　${dayLabel(item.day)}`;
                 const rr = itemRepeat(item);
@@ -2987,7 +3002,22 @@ ${ENRICH_RULES}
             showToast(old && old !== n ? `⭐ 已從 ${old} 分改成 ${n} 分` : `⭐ 已評為 ${n} 分（${FAM_NAME[n]}）`, 1200);
         }
 
+        // ---- v2.33.0 播放時藏字 ----
+        let psHide = (() => { const v = localStorage.getItem('eng_psHide'); return v == null ? true : v === '1'; })();
+        function applyPsHide() {
+            document.body.classList.toggle('ps-hide', psHide);
+            const b = document.getElementById('psHideBtn'); if (b) b.classList.toggle('on', psHide);
+        }
+        function togglePsHide() {
+            psHide = !psHide; localStorage.setItem('eng_psHide', psHide ? '1' : '0');
+            player.shownId = null; applyPsHide(); updatePlayerView(); highlightPlaying(!psHide);
+            showToast(psHide ? '🙈 藏字：只聽聲音，按「看答案」才顯示' : '👀 顯示文字');
+        }
+        function psReveal() { const it = player.list[Math.min(player.idx, player.list.length - 1)]; if (!it) return; player.shownId = it.id; updatePlayerView(); }
+        applyPsHide();
+
         function highlightPlaying(scroll) {
+            if (psHide) scroll = false;   // 藏字時不把清單捲到正在播的句子（避免從背後看到答案）
             document.querySelectorAll('.grandtask-row.playing').forEach(r => r.classList.remove('playing'));
             if (!player.open || player.finished) return;
             const item = player.list[player.idx]; if (!item) return;
