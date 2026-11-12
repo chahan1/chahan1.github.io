@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.29.1 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.30.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1181,7 +1181,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.29.1</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.30.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1473,13 +1473,15 @@
                 <button data-v="phrase" onclick="setRecallOpt('mode','phrase')">關鍵片語<br><small>說出空格</small></button>
             </div>
             <div class="pm-hint" id="rcModeHint"></div>
-            <div class="pm-label">說話停頓多久才結束辨識</div>
+            <div class="pm-label">延長語音辨識時間</div>
             <div class="seg" id="rcSil">
+                <button data-v="-1" onclick="setRcSilence(-1)">不延長<br><small>建議</small></button>
                 <button data-v="3" onclick="setRcSilence(3)">3 秒</button>
                 <button data-v="6" onclick="setRcSilence(6)">6 秒</button>
                 <button data-v="10" onclick="setRcSilence(10)">10 秒</button>
                 <button data-v="0" onclick="setRcSilence(0)">按了才停</button>
             </div>
+            <div class="pm-hint">不延長：手機判斷你說完就結束；句子被切斷時，看答案後按「被切斷了，接著說」補完。延長：停頓時會自動重新接上（Android 會多「嗶」一聲）。</div>
             <div class="pm-label">題目範圍</div>
             <div class="seg" id="rcScope">
                 <button data-v="all" onclick="setRecallOpt('scope','all')">全部例句</button>
@@ -3864,13 +3866,17 @@ ${ENRICH_RULES}
         // v2.27.0：語音辨識不會因為短暫停頓就結束 —— 改用連續辨識，引擎自己停下時自動重新接上，
         //          直到「停頓超過設定秒數」或你再按一下麥克風才結束（最長 60 秒）
         const RC_SIL_KEY = 'eng_rcSilence';
-        let rcSilence = (() => { const v = localStorage.getItem(RC_SIL_KEY); return v == null ? 6 : Number(v); })();   // 0＝只有手動按才結束
+        // v2.30.0：預設改回「不延長」（-1）：手機辨識自己停下就結束，不再重新接上（Android 停頓即重啟會多「嗶」一次）；被切斷時可按「接著說」
+        let rcSilence = (() => {
+            if (!localStorage.getItem('eng_mig2300')) { localStorage.setItem('eng_mig2300', '1'); localStorage.setItem(RC_SIL_KEY, '-1'); return -1; }
+            const v = localStorage.getItem(RC_SIL_KEY); return v == null ? -1 : Number(v);
+        })();   // -1＝不延長；0＝只有手動按才結束；3／6／10＝停頓幾秒結束
         function setRcSilence(v) { rcSilence = v; localStorage.setItem(RC_SIL_KEY, String(v)); refreshRecallSetup(); }
         function recallSetMic(on) {
             rc.listening = on;
             document.getElementById('rcMicBtn').classList.toggle('listening', on);
             document.getElementById('rcMicTxt').textContent = on
-                ? (rcSilence ? `聆聽中…說完按一下（停頓 ${rcSilence} 秒自動結束）` : '聆聽中…說完再按一下')
+                ? (rcSilence < 0 ? '聆聽中…說完會自動結束' : rcSilence ? `聆聽中…說完按一下（停頓 ${rcSilence} 秒自動結束）` : '聆聽中…說完再按一下')
                 : '按一下，說出英文';
         }
         function recallStopListen() {   // 放棄這次辨識（換題、關閉畫面時）
@@ -3902,7 +3908,7 @@ ${ENRICH_RULES}
             ss.timer = setInterval(() => {
                 if (rc.sess !== ss) { clearInterval(ss.timer); return; }
                 const idle = (Date.now() - ss.lastAt) / 1000;
-                if ((rcSilence && ss.heardAny && idle >= rcSilence) || (!ss.heardAny && idle >= 12) || Date.now() - ss.startedAt > 60000) recallFinishListen();
+                if ((rcSilence > 0 && ss.heardAny && idle >= rcSilence) || (!ss.heardAny && idle >= 12) || Date.now() - ss.startedAt > 60000) recallFinishListen();
             }, 250);
             rcStartEngine(ss);
         }
@@ -3935,7 +3941,7 @@ ${ENRICH_RULES}
             r.onend = () => {
                 if (rc.sess !== ss || ss.engine !== r) return;
                 rcCommit(ss);
-                if (ss.done || ss.fatal || ss.restarts >= 30) { rcDeliver(ss); return; }
+                if (ss.done || ss.fatal || ss.restarts >= 30 || (rcSilence < 0 && ss.heardAny)) { rcDeliver(ss); return; }   // 不延長：說過話後引擎一停就結束
                 // v2.28.0：不要說完了還一直重新啟動 ——
                 //   ① 已經說到和答案幾乎一樣（整句 ≥ 90%／片語全對）→ 直接結束
                 //   ② 已經說過話，而這一輪重新接上後什麼都沒聽到 → 視為說完了
