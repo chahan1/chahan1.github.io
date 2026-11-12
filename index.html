@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.28.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.29.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <style>
@@ -1093,6 +1093,25 @@
         /* 放大時長字會自動換行，不會超出畫面 */
         .task-text, .dropdown-item span, .tool-card b, .tool-card small, .pm-hint, .bk-status { overflow-wrap: break-word; }
 
+        /* ---- v2.29.0 文字輸入視窗 ---- */
+        .ui-prompt { z-index: 3000; align-items: center; }
+        .ui-prompt .modal-content { max-width: calc(520px * var(--z)); padding: calc(20px * var(--z)) calc(18px * var(--z)) calc(16px * var(--z)); }
+        .up-head { display: flex; align-items: flex-start; gap: calc(10px * var(--z)); margin-bottom: calc(14px * var(--z)); }
+        .up-icon { width: calc(22px * var(--z)); height: calc(22px * var(--z)); color: var(--green); flex: none; margin-top: calc(3px * var(--z)); }
+        .up-titles { flex: 1; min-width: 0; }
+        .up-title { font-size: calc(19px * var(--z)); font-weight: 700; color: var(--text); }
+        .up-sub { font-size: calc(13px * var(--z)); color: var(--muted); margin-top: calc(4px * var(--z)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .up-x { border: none; background: none; font-size: calc(26px * var(--z)); line-height: 1; color: var(--muted); cursor: pointer; padding: 0 calc(4px * var(--z)); }
+        .modal-content textarea.up-ta { display: block; width: 100%; height: auto; margin: 0; font-family: inherit; box-sizing: border-box; min-height: calc(96px * var(--z)); resize: none; overflow-y: auto;
+            font-size: calc(17px * var(--z)); line-height: 1.6; color: var(--text); background: var(--c-ffffff);
+            border: 2px solid var(--green); border-radius: calc(12px * var(--z)); padding: calc(10px * var(--z)) calc(12px * var(--z));
+            box-shadow: 0 0 0 4px var(--green-light); outline: none; }
+        .up-hint { font-size: calc(12.5px * var(--z)); color: var(--muted); margin-top: calc(8px * var(--z)); line-height: 1.5; }
+        .up-btns { display: flex; justify-content: flex-end; gap: calc(10px * var(--z)); margin-top: calc(16px * var(--z)); }
+        .up-btns button { height: calc(46px * var(--z)); padding: 0 calc(22px * var(--z)); border-radius: calc(23px * var(--z)); font-size: calc(16px * var(--z)); cursor: pointer; }
+        .up-cancel { border: 1.5px solid var(--c-dadce0); background: var(--c-ffffff); color: var(--text); }
+        .up-ok { border: none; background: var(--green); color: var(--c-ffffff); font-weight: 700; }
+
         /* ---- v2.23.0 聽力評分：藏字模式 ---- */
         .rt-hidden { display: flex; align-items: center; gap: calc(10px * var(--z)); margin: calc(8px * var(--z)) 0 calc(4px * var(--z)); padding: calc(12px * var(--z)); border: 1.5px dashed var(--c-dadce0); border-radius: calc(12px * var(--z)); color: var(--muted); font-size: calc(13.5px * var(--z)); }
         .rt-hidden span { flex: 1; min-width: 0; }
@@ -1162,7 +1181,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.28.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.29.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1414,6 +1433,23 @@
             <button class="btn-outline cz-btn" onclick="clozeAgain()">再隨機練一次</button>
             <button class="btn-outline cz-btn" onclick="closeCloze()">完成</button>
             <div id="czWrongList"></div>
+        </div>
+    </div>
+
+    <!-- v2.29.0 文字輸入視窗 -->
+    <div id="uiPromptOv" class="modal-overlay ui-prompt">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="uiPromptTitle">
+            <div class="up-head">
+                <svg class="hi up-icon" viewBox="0 0 24 24" aria-hidden="true"><use id="uiPromptIcon" href="#hi-pencil"/></svg>
+                <div class="up-titles"><div class="up-title" id="uiPromptTitle"></div><div class="up-sub" id="uiPromptSub"></div></div>
+                <button class="up-x" id="uiPromptX" aria-label="關閉">×</button>
+            </div>
+            <textarea id="uiPromptTa" class="up-ta" rows="3" autocomplete="off" spellcheck="false"></textarea>
+            <div class="up-hint" id="uiPromptHint"></div>
+            <div class="up-btns">
+                <button class="up-cancel" id="uiPromptCancel">取消</button>
+                <button class="up-ok" id="uiPromptOk">確定</button>
+            </div>
         </div>
     </div>
 
@@ -5220,8 +5256,40 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
         document.addEventListener('click', e => { if (!e.target.isConnected) return; if (!e.target.closest('#searchResults') && !e.target.closest('.search-group')) closeSearchResults(); });
 
         // 新增主題（移到選單）
-        function addMainTaskPrompt() {
-            const text = prompt('新增主題\n請輸入主題名稱（例如：職場開會、旅遊英語）：');
+        // ---- v2.29.0 文字輸入視窗：取代瀏覽器內建的 prompt()（太小、看不到完整內容）----
+        // 多行自動長高的輸入框，長句也能完整顯示；按 Enter 確定（Shift+Enter 也不換行，內容一律存成一行）
+        function uiPrompt(title, def = '', opts = {}) {
+            return new Promise(resolve => {
+                const ov = document.getElementById('uiPromptOv');
+                const ta = document.getElementById('uiPromptTa');
+                document.getElementById('uiPromptTitle').textContent = title;
+                document.getElementById('uiPromptIcon').setAttribute('href', '#' + (opts.icon || 'hi-pencil'));
+                const sub = document.getElementById('uiPromptSub'); sub.textContent = opts.sub || ''; sub.style.display = opts.sub ? '' : 'none';
+                const hint = document.getElementById('uiPromptHint'); hint.textContent = opts.hint || ''; hint.style.display = opts.hint ? '' : 'none';
+                ta.value = def || '';
+                const fit = () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight + 2, window.innerHeight * 0.55) + 'px'; };
+                const done = v => {
+                    ov.style.display = 'none';
+                    ta.oninput = ta.onkeydown = null; ov.onclick = null;
+                    document.getElementById('uiPromptOk').onclick = document.getElementById('uiPromptCancel').onclick = document.getElementById('uiPromptX').onclick = null;
+                    resolve(v === null ? null : v.replace(/\s*\n+\s*/g, ' '));
+                };
+                ta.oninput = fit;
+                ta.onkeydown = e => {
+                    if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); done(ta.value); }
+                    else if (e.key === 'Escape') { e.preventDefault(); done(null); }
+                };
+                document.getElementById('uiPromptOk').onclick = () => done(ta.value);
+                document.getElementById('uiPromptCancel').onclick = document.getElementById('uiPromptX').onclick = () => done(null);
+                ov.onclick = e => { if (e.target === ov) done(null); };
+                ov.style.display = 'flex';
+                fit();
+                setTimeout(() => { ta.focus(); const n = ta.value.length; try { ta.setSelectionRange(n, n); } catch (e) {} fit(); }, 30);
+            });
+        }
+
+        async function addMainTaskPrompt() {
+            const text = await uiPrompt('新增主題', '', { hint: '請輸入主題名稱（例如：職場開會、旅遊英語）', icon: 'hi-folder' });
             if (!text || !text.trim()) return;
             tasks.unshift({ id: newId(), text: text.trim(), checked: false, collapsed: false, createdAt: Date.now(), subtasks: [] });
             saveData();
@@ -6178,32 +6246,32 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
         }
 
 
-        function editDefinition(subTaskId, mainTaskId) {
+        async function editDefinition(subTaskId, mainTaskId) {
             const sub = findSub(mainTaskId, subTaskId);
             if (sub) {
-                const newDef = prompt("請修改英文定義/註釋：", sub.definition || "");
+                const newDef = await uiPrompt('修改英文釋義', sub.definition || '', { sub: cleanForSpeech(sub.text) || sub.text, hint: '清空即刪除' });
                 if (newDef !== null) { sub.definition = newDef.trim(); saveData(); if (!sub.definition) showToast('釋義已清空。之後可從 ⋮ →「📖 一鍵補齊…」重建', 3500); }
             }
         }
 
-        function editEtym(subTaskId, mainTaskId) {
+        async function editEtym(subTaskId, mainTaskId) {
             const sub = findSub(mainTaskId, subTaskId); if (!sub) return;
-            const v = prompt('請修改字源（清空即刪除）：', sub.etym || '');
+            const v = await uiPrompt('修改字源', sub.etym || '', { sub: cleanForSpeech(sub.text) || sub.text, hint: '清空即刪除' });
             if (v === null) return;
             if (v.trim()) sub.etym = v.trim(); else delete sub.etym;
             saveData();
         }
-        function editListField(subTaskId, mainTaskId, field) {
+        async function editListField(subTaskId, mainTaskId, field) {
             const sub = findSub(mainTaskId, subTaskId); if (!sub) return;
             const name = { common: '日常更常用的說法', collocations: '常見搭配' }[field];
-            const v = prompt(`請修改${name}（用逗號分開，清空即刪除）：`, (sub[field] || []).join(', '));
+            const v = await uiPrompt(`修改${name}`, (sub[field] || []).join(', '), { sub: cleanForSpeech(sub.text) || sub.text, hint: '用逗號分開，清空即刪除' });
             if (v === null) return;
             sub[field] = v.split(/[,，、;；]/).map(x => x.trim()).filter(Boolean).slice(0, 5);
             saveData();
         }
-        function editSynonyms(subTaskId, mainTaskId) {
+        async function editSynonyms(subTaskId, mainTaskId) {
             const sub = findSub(mainTaskId, subTaskId); if (!sub) return;
-            const v = prompt("請修改同義字（用逗號分開，清空即刪除）：", (sub.synonyms || []).join(', '));
+            const v = await uiPrompt('修改同義字', (sub.synonyms || []).join(', '), { sub: cleanForSpeech(sub.text) || sub.text, hint: '用逗號分開，清空即刪除' });
             if (v === null) return;
             const list = v.split(/[,，、;；]/).map(x => x.trim()).filter(Boolean).slice(0, 4);
             if (list.length) sub.synonyms = list; else delete sub.synonyms;
@@ -6397,13 +6465,13 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
                     text = await listenOnceEnglish();
                     voiceStatus.style.display = 'none';
                     // 讓使用者確認/修改辨識結果
-                    text = prompt("辨識結果如下，可修改後按確定：", text);
+                    text = await uiPrompt('新增單字／片語', text, { sub: task.text, hint: '語音辨識結果，可修改後按確定', icon: 'hi-mic' });
                 } catch(e) {
                     voiceStatus.style.display = 'none';
-                    text = prompt("語音失敗，請手動輸入【單字 / 短語】：");
+                    text = await uiPrompt('新增單字／片語', '', { sub: task.text, hint: '語音辨識失敗，請直接輸入' });
                 }
             } else {
-                text = prompt("請輸入【單字 / 短語】：");
+                text = await uiPrompt('新增單字／片語', '', { sub: task.text });
             }
 
             if (!text || !text.trim()) return;
@@ -6598,8 +6666,9 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
             return await chooseSentence(result, cleanWord, rvWords);
         }
 
-        function addGrandTaskManual(mainTaskId, subTaskId) {
-            const text = prompt("請輸入【例句 / 用法】：\n（可在後面加上中文翻譯，例如：I like it. (我喜歡它。)）"); if (!text || !text.trim()) return;
+        async function addGrandTaskManual(mainTaskId, subTaskId) {
+            const sub0 = findSub(mainTaskId, subTaskId);
+            const text = await uiPrompt('新增例句', '', { sub: sub0 ? (cleanForSpeech(sub0.text) || sub0.text) : '', hint: '可在後面加上中文翻譯，例如：I like it. (我喜歡它。)' }); if (!text || !text.trim()) return;
             const sub = findSub(mainTaskId, subTaskId);
             if (sub) {
                 sub.grandtasks.unshift({ id: newId(), text: text.trim(), checked: false, createdAt: Date.now() });
@@ -6615,10 +6684,12 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
             return null;
         }
 
-        function editTask(id, level, parentId = null, grandParentId = null) {
+        async function editTask(id, level, parentId = null, grandParentId = null) {
             const target = getTarget(id, level, parentId, grandParentId);
             if (!target) return;
-            const nt = prompt("請修改內容：", target.text);
+            const where = level === 'main' ? '主題' : level === 'sub' ? '單字／片語' + (findMain(parentId) ? ' · ' + findMain(parentId).text : '')
+                : '例句' + (findSub(grandParentId, parentId) ? ' · ' + (cleanForSpeech(findSub(grandParentId, parentId).text) || '') : '');
+            const nt = await uiPrompt('修改內容', target.text, { sub: where, icon: 'hi-pencil' });
             if (!nt || !nt.trim() || nt.trim() === target.text) return;
             const oldText = target.text;
             target.text = nt.trim();
