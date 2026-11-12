@@ -264,6 +264,7 @@
 | 檔案 | 說明 |
 |---|---|
 | `index.html` | 主程式（所有功能與畫面） |
+| `sortable.min.js` | 拖曳排序程式庫（SortableJS 1.15.6，MIT 授權） |
 | `sw.js` | Service Worker：讓 App 可以離線開啟，並負責版本更新 |
 | `manifest.json` | App 設定（名稱、圖示、主題色） |
 | `icon-192.png`、`icon-512.png` | App 圖示 |
@@ -327,6 +328,7 @@ v2.14.0 起分別集中在「🧰 AI 工具箱」「👀 顯示設定」「💾 
 
 | 版本 | 更新內容 |
 |---|---|
+| v2.29.1 | 資安：拖曳排序程式庫 SortableJS 改放在本倉庫（`sortable.min.js`），不再從外部 CDN 載入，避免外部檔案被竄改時讀取到手機裡的 AI 金鑰 |
 | v2.29.0 | 修改／新增視窗改版（比照工作記錄表）：取代瀏覽器內建的小輸入框，改用會自動長高的多行輸入框，長例句可完整顯示；標題下顯示所在位置（例如「例句 · agenda」）；按 Enter 確定。適用於修改主題／單字／例句、新增主題／單字／例句、修改釋義、字源、同義字、搭配 |
 | v2.28.0 | 練習清單移到口說回想設定畫面最上方，中途結束也會儲存；語音辨識說完答案或重新接上後沒聲音就結束，不再反覆啟動 |
 | v2.27.0 | 口說回想的語音辨識不再因短暫停頓就結束：連續辨識＋自動重新接上，停頓超過設定秒數（3／6／10 秒或手動）才結束，最長 60 秒 |
@@ -385,5 +387,5 @@ v2.14.0 起分別集中在「🧰 AI 工具箱」「👀 顯示設定」「💾 
 - 資料儲存：`localStorage`（筆記、學習紀錄）、`IndexedDB`（AI 語音快取）；雲端同步：Firebase Authentication（Google 登入）＋ Cloud Firestore（JS SDK 12.12.0，從 gstatic CDN 載入）
 - AI：Groq、Free.ai、Google Gemini（文字生成）；Free.ai Kokoro、Gemini TTS（語音）
 - 語音：Web Speech API（語音辨識、系統朗讀）、MediaRecorder（朗讀錄音）、Groq Whisper（錄音轉文字）
-- 拖曳排序：[SortableJS](https://github.com/SortableJS/Sortable)
+- 拖曳排序：[SortableJS](https://github.com/SortableJS/Sortable) 1.15.6（放在本倉庫的 `sortable.min.js`，不從外部 CDN 載入）
 - 部署：GitHub Pages；Android 安裝檔由 PWABuilder（Trusted Web Activity）產生
