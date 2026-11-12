@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.30.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.31.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1137,6 +1137,12 @@
         .rc-hist-btns { display: flex; flex-wrap: wrap; gap: calc(6px * var(--z)); margin-top: calc(8px * var(--z)); }
         .rc-hist-btns button { height: calc(34px * var(--z)); padding: 0 calc(12px * var(--z)); border-radius: calc(17px * var(--z)); border: 1px solid var(--green); background: transparent; color: var(--green); font-size: calc(13px * var(--z)); cursor: pointer; }
         .rc-hist-btns .rc-hist-del { margin-left: auto; border-color: var(--c-dadce0); color: var(--muted); width: calc(34px * var(--z)); padding: 0; }
+        .rc-en b.rc-b-ok { color: var(--c-137333); background: var(--c-e8f5ec); }
+        .rc-en b.rc-b-bad { color: var(--c-b3261e); background: var(--c-fce8e6); }
+        .rc-chip { display: inline-block; margin: calc(2px * var(--z)) calc(4px * var(--z)) calc(2px * var(--z)) 0; padding: calc(2px * var(--z)) calc(8px * var(--z)); border-radius: calc(10px * var(--z)); background: var(--c-f1f3f4); font-size: calc(13.5px * var(--z)); }
+        .rc-chip small { color: var(--muted); font-size: .8em; }
+        .rc-chip.ok { background: var(--c-e8f5ec); color: var(--c-137333); }
+        .rc-chip.bad { background: var(--c-fce8e6); color: var(--c-b3261e); }
         .rc-retry { margin-top: calc(8px * var(--z)); }
         .rc-hintline { font-size: calc(13px * var(--z)); color: var(--green); margin-top: calc(6px * var(--z)); letter-spacing: .5px; }
         .rc-hintline:empty { display: none; }
@@ -1181,7 +1187,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.30.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.31.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1470,9 +1476,25 @@
             <div class="seg" id="rcMode">
                 <button data-v="auto" onclick="setRecallOpt('mode','auto')">自動<br><small>長句先說片語</small></button>
                 <button data-v="full" onclick="setRecallOpt('mode','full')">整句</button>
-                <button data-v="phrase" onclick="setRecallOpt('mode','phrase')">關鍵片語<br><small>說出空格</small></button>
+                <button data-v="phrase" onclick="setRecallOpt('mode','phrase')">克漏字<br><small>說出空格</small></button>
             </div>
             <div class="pm-hint" id="rcModeHint"></div>
+            <div id="rcBlankOpts">
+                <div class="pm-label">空格要挖什麼（可複選）</div>
+                <div class="seg" id="rcBlankTypes">
+                    <button data-v="phrase" onclick="toggleRcBlankType('phrase')">慣用詞組<br><small>單字、片語、搭配</small></button>
+                    <button data-v="prep" onclick="toggleRcBlankType('prep')">介詞<br><small>in、on、for…</small></button>
+                    <button data-v="word" onclick="toggleRcBlankType('word')">重要單字<br><small>其他關鍵字</small></button>
+                </div>
+                <div class="pm-label">每句幾個空格</div>
+                <div class="seg" id="rcBlanks">
+                    <button data-v="auto" onclick="setRecallOpt('blanks','auto')">自動<br><small>依句長</small></button>
+                    <button data-v="1" onclick="setRecallOpt('blanks','1')">1</button>
+                    <button data-v="2" onclick="setRecallOpt('blanks','2')">2</button>
+                    <button data-v="3" onclick="setRecallOpt('blanks','3')">3</button>
+                    <button data-v="4" onclick="setRecallOpt('blanks','4')">4</button>
+                </div>
+            </div>
             <div class="pm-label">延長語音辨識時間</div>
             <div class="seg" id="rcSil">
                 <button data-v="-1" onclick="setRcSilence(-1)">不延長<br><small>建議</small></button>
@@ -3744,7 +3766,7 @@ ${ENRICH_RULES}
         // ================= v2.22.0 口說回想（中→英主動回想）=================
         // 看中文 → 自己說出英文 → 顯示正確句子與逐字比對 → 兩鍵自評（看到答案後才評）
         const RECALL_KEY = 'eng_recallSettings';
-        let recallSettings = { scope: 'all', dateMode: 'all', limit: 10, order: 'listen', mode: 'auto' };
+        let recallSettings = { scope: 'all', dateMode: 'all', limit: 10, order: 'listen', mode: 'auto', blankTypes: { phrase: true, prep: true, word: true }, blanks: 'auto' };
         const RC_LONG = 8;   // 超過幾個字算長句（自動模式下，口說未滿 3 分的長句先說關鍵片語）
         try { Object.assign(recallSettings, JSON.parse(localStorage.getItem(RECALL_KEY)) || {}); } catch (e) {}
         // v2.24.0：預設改為「聽熟優先」（先聽得懂、再練說得出來）
@@ -3754,9 +3776,15 @@ ${ENRICH_RULES}
         function recallPool() { return getPlaylist(recallSettings).filter(it => it.cn && /[A-Za-z]{2,}/.test(it.en)); }
         function openRecallSetup() { refreshRecallSetup(); renderRecallHist(); document.getElementById('recallSetup').style.display = 'flex'; }
         function closeRecallSetup() { document.getElementById('recallSetup').style.display = 'none'; }
+        function toggleRcBlankType(k) {
+            const bt = Object.assign({ phrase: true, prep: true, word: true }, recallSettings.blankTypes);
+            bt[k] = !bt[k];
+            if (!bt.phrase && !bt.prep && !bt.word) { showToast('至少要選一種'); return; }
+            setRecallOpt('blankTypes', bt);
+        }
         function setRecallOpt(k, v) { recallSettings[k] = v; localStorage.setItem(RECALL_KEY, JSON.stringify(recallSettings)); refreshRecallSetup(); }
         function refreshRecallSetup() {
-            [['#rcOrder', 'order'], ['#rcMode', 'mode'], ['#rcScope', 'scope'], ['#rcDate', 'dateMode']].forEach(([sel, k]) =>
+            [['#rcOrder', 'order'], ['#rcMode', 'mode'], ['#rcBlanks', 'blanks'], ['#rcScope', 'scope'], ['#rcDate', 'dateMode']].forEach(([sel, k]) =>
                 document.querySelectorAll(sel + ' button').forEach(b => b.classList.toggle('on', b.dataset.v === recallSettings[k])));
             document.querySelectorAll('#rcLimit button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === Number(recallSettings.limit)));
             document.querySelectorAll('#rcSil button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === rcSilence));
@@ -3768,9 +3796,12 @@ ${ENRICH_RULES}
                 ? (ready ? `聽力 4～5 分的有 ${ready} 句，會先出這些（其中口說較不熟的優先）${lim && ready < q ? `；不足 ${q} 題時再補其他句子` : ''}。` : '目前沒有聽力 4～5 分的句子，會改出其他句子。可以先到「聽力熟悉度評分」評分。')
                 : recallSettings.order === 'weak' ? '口說熟悉度低、24 小時內沒練過的先出。' : '';
             document.getElementById('rcModeHint').textContent = recallSettings.mode === 'auto'
-                ? `超過 ${RC_LONG} 個字的長句，口說熟悉度未滿 3 分時只說空格裡的關鍵片語（看得到其他英文）；熟了之後再改說整句。`
-                : recallSettings.mode === 'phrase' ? '顯示英文句子但挖空關鍵片語，只要說出空格。答對口說熟悉度最多升到 3 分，要說整句才能升到 4～5 分。'
+                ? `超過 ${RC_LONG} 個字的長句，口說熟悉度未滿 3 分時改成克漏字（看得到其他英文，只說空格）；熟了之後再改說整句。`
+                : recallSettings.mode === 'phrase' ? '顯示英文句子並挖空，說出空格裡的字（依序說，或直接說整句都可以）。答對口說熟悉度最多升到 3 分，要說整句才能升到 4～5 分。'
                 : '每句都說整句。';
+            const bt = recallSettings.blankTypes || {};
+            document.querySelectorAll('#rcBlankTypes button').forEach(b => b.classList.toggle('on', !!bt[b.dataset.v]));
+            document.getElementById('rcBlankOpts').style.display = recallSettings.mode === 'full' ? 'none' : '';
         }
         // 口說不熟優先：口說分數低的先出（未評分視為 2.5），24 小時內練過的往後排；同分隨機
         // 聽熟優先（v2.24.0）：聽力 4～5 分的句子排在最前面，同一組內再依口說不熟優先
@@ -3793,7 +3824,7 @@ ${ENRICH_RULES}
             rc.list = list.map(it => {
                 const long = wordsOf(it.en).length > RC_LONG, m = recallSettings.mode;
                 let phrase = m === 'phrase' || (m === 'auto' && long && (gOf(it.id).sfam || 0) < 3);
-                const cl = phrase ? makeCloze(it.en, it.word || '', 2) : null;
+                const cl = phrase ? makeRecallCloze(it.en, it) : null;
                 if (!cl) phrase = false;
                 return { ...it, re: false, phrase, cloze: cl };
             });
@@ -3803,6 +3834,57 @@ ${ENRICH_RULES}
             document.getElementById('rcResult').style.display = 'none';
             showRecallQuestion();
         }
+        // ---- v2.31.0 多空格克漏字：慣用詞組（單字／片語／常見搭配）、介詞、重要單字，可挖多個 ----
+        const RC_PREPS = new Set(('about above across after against along among around at before behind below beneath beside between beyond by down during ' +
+            'except for from in inside into like near of off on onto out outside over past since through throughout till to toward towards under until up upon with within without back away').split(' '));
+        function makeRecallCloze(sentence, item) {
+            const tokens = [...sentence.matchAll(/[A-Za-z]+(?:['’-][A-Za-z]+)*/g)].map(m => ({ w: m[0], i: m.index }));
+            if (tokens.length < 3) return null;
+            const bt = Object.assign({ phrase: true, prep: true, word: true }, recallSettings.blankTypes);
+            const want = recallSettings.blanks === 'auto' ? Math.max(1, Math.min(4, Math.round(tokens.length / 6))) : Number(recallSettings.blanks) || 1;
+            const used = new Set(), blanks = [];
+            const free = (a, b) => { for (let x = a - 1; x <= b + 1; x++) if (used.has(x)) return false; return true; };   // 空格之間至少隔一個字
+            const take = (a, b, type) => { if (blanks.length >= want || !free(a, b)) return false; blanks.push({ a, b, type }); for (let x = a; x <= b; x++) used.add(x); return true; };
+            const findSpan = phrase => {
+                const pw = clozeTarget(phrase).split(' ').filter(Boolean);
+                if (!pw.length || pw.length > 5) return null;
+                for (let k = 0; k + pw.length <= tokens.length; k++) if (pw.every((t, j) => czMatch(tokens[k + j].w, t))) return [k, k + pw.length - 1];
+                return null;
+            };
+            if (bt.phrase) {
+                const f = findGrand(item.id);
+                const sp = findSpan(item.word || '');
+                if (sp) take(sp[0], sp[1], 'phrase');
+                ((f && f.s.collocations) || []).forEach(c => { const p2 = findSpan(c); if (p2) take(p2[0], p2[1], 'phrase'); });
+            }
+            const shuffleIdx = arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
+            if (bt.prep) shuffleIdx(tokens.map((t, k) => k).filter(k => RC_PREPS.has(tokens[k].w.toLowerCase()))).forEach(k => take(k, k, 'prep'));
+            if (bt.word) tokens.map((t, k) => k).filter(k => isContent(tokens[k].w) && !RC_PREPS.has(tokens[k].w.toLowerCase()))
+                .sort((x, y) => tokens[y].w.length - tokens[x].w.length + (Math.random() - 0.5)).forEach(k => take(k, k, 'word'));
+            if (!blanks.length) return null;
+            blanks.sort((x, y) => x.a - y.a);
+            const segs = [], answers = [], types = [];
+            let pos = 0;
+            blanks.forEach(({ a, b, type }) => {
+                const start = tokens[a].i, end = tokens[b].i + tokens[b].w.length;
+                segs.push({ t: 'x', v: sentence.slice(pos, start) });
+                segs.push({ t: 'b', i: answers.length });
+                answers.push(sentence.slice(start, end)); types.push(type);
+                pos = end;
+            });
+            segs.push({ t: 'x', v: sentence.slice(pos) });
+            return { segs, answers, types };
+        }
+        const RC_NUM = ['①', '②', '③', '④', '⑤'];
+        // 逐空格比對：把所有空格答案依序接起來，和說出的內容對齊，每個空格的字都對到才算對
+        function rcBlankCheck(cl, heard) {
+            const parts = cl.answers.map(a => rcExpand(a).split(/\s+/).filter(Boolean));
+            const d = wordDiff(parts.map(p => p.join(' ')).join(' '), rcExpand(heard));
+            let k = 0;
+            const ok = parts.map(p => { const sl = d.marks.slice(k, k + p.length); k += p.length; return sl.length > 0 && sl.every(m => m.ok); });
+            return { ok, right: ok.filter(Boolean).length, total: ok.length, accuracy: d.accuracy };
+        }
+
         // 目標詞（單字／片語）的英文部分
         const rcTargets = it => clozeTarget(it.word || '').split(' ').filter(w => w.length >= 2 && !STOP_WORDS.has(w));
 
@@ -3814,9 +3896,9 @@ ${ENRICH_RULES}
             $('rcProgressText').textContent = it.re ? '再試一次' : `第 ${rc.list.slice(0, rc.i + 1).filter(x => !x.re).length} / ${firstCount} 句`;
             $('rcScore').textContent = `想起來 ${rc.results.filter(r => r.ok).length}`;
             $('rcBar').style.transform = `scaleX(${rc.i / rc.list.length})`;
-            $('rcLabel').textContent = (it.re ? '剛剛沒想起來的，再試一次・' : '') + (it.phrase ? '說出空格裡的英文（說整句也可以）：' : '用英文說出這句：');
+            $('rcLabel').textContent = (it.re ? '剛剛沒想起來的，再試一次・' : '') + (it.phrase ? (it.cloze.answers.length > 1 ? `依序說出 ${it.cloze.answers.length} 個空格（說整句也可以）：` : '說出空格裡的英文（說整句也可以）：') : '用英文說出這句：');
             $('rcCn').textContent = it.cn;
-            $('rcClozeLine').innerHTML = it.phrase ? it.cloze.segs.map(sg => sg.t === 'x' ? escapeHtml(sg.v) : `<span class="rc-blank">${'＿'.repeat(Math.min(8, Math.max(3, it.cloze.answers[sg.i].length / 2 | 0)))}</span>`).join('') : '';
+            $('rcClozeLine').innerHTML = it.phrase ? it.cloze.segs.map(sg => sg.t === 'x' ? escapeHtml(sg.v) : `<span class="rc-blank">${it.cloze.answers.length > 1 ? RC_NUM[sg.i] : ''}${'＿'.repeat(Math.min(8, Math.max(3, it.cloze.answers[sg.i].length / 2 | 0)))}</span>`).join('') : '';
             $('rcHintLine').textContent = '';
             $('rcReveal').style.display = 'none';
             $('rcAsk').style.display = 'block'; $('rcRate').style.display = 'none';
@@ -3837,9 +3919,9 @@ ${ENRICH_RULES}
         function recallHint() {
             const it = rc.list[rc.i], el = document.getElementById('rcHintLine');
             if (it.phrase) {
-                const ans = it.cloze.answers[0];
+                const multi = it.cloze.answers.length > 1;
                 rc.hint = Math.min(2, rc.hint + 1);
-                el.textContent = '空格：' + (rc.hint === 1 ? rcSkel(ans) : ans);
+                el.textContent = '空格：' + it.cloze.answers.map((a, i) => (multi ? RC_NUM[i] + ' ' : '') + (rc.hint === 1 ? rcSkel(a) : a)).join('　');
                 return;
             }
             const tw = clozeTarget(it.word || '');
@@ -3957,7 +4039,7 @@ ${ENRICH_RULES}
             const it = rc.list[rc.i]; if (!it) return false;
             const said = ((ss.how === 'append' ? (rc.heardText || '') + ' ' : '') + ss.committed.join(' ')).trim();
             if (!said) return false;
-            return it.phrase ? rcDiff(it.cloze.answers[0], said).accuracy >= 1 : rcDiff(it.en, said).accuracy >= 0.9;
+            return it.phrase ? rcBlankCheck(it.cloze, said).ok.every(Boolean) : rcDiff(it.en, said).accuracy >= 0.9;
         }
         function rcCommit(ss) {
             const parts = ss.segFinals.slice();
@@ -4010,7 +4092,8 @@ ${ENRICH_RULES}
             const it = rc.list[rc.i], $ = id => document.getElementById(id);
             recallStopListen();
             rc.heardAlts = alts; rc.heardText = heard;
-            // 片語模式：比對對象是空格裡的答案；整句模式：比對整句
+            if (it.phrase) { recallRevealCloze(it, alts); return; }
+            // 整句模式：比對整句
             const target = it.phrase ? it.cloze.answers[0] : it.en;
             const tw = it.phrase ? wordsOf(target).filter(w => w.length >= 2 && !STOP_WORDS.has(w)) : rcTargets(it);
             // 多個辨識候選中，取和答案最接近的一個（降低口音造成的誤判）；片語模式下說整句也可以
@@ -4036,6 +4119,30 @@ ${ENRICH_RULES}
             $('rcSug').innerHTML = !best ? '先看答案、聽一次發音，再按「沒想起來」，等一下會再出現。'
                 : rc.sug ? `建議：<b>想起來了</b>（${tw.length ? '關鍵詞都有說到，' : ''}${it.phrase ? '空格' : '整句'}吻合 ${Math.round(acc * 100)}%）`
                 : `建議：<b>沒想起來</b>（${!keyOk ? '關鍵詞沒有說到或說錯' : `${it.phrase ? '空格' : '整句'}吻合 ${Math.round(acc * 100)}%`}）。如果只是辨識錯、或換了意思相同的說法，可以按「想起來了」。`;
+            $('rcRetryBox').style.display = best && SpeechRecognition && !rc.typing ? 'flex' : 'none';
+            $('rcOkBtn').classList.toggle('sug', rc.sug === true);
+            $('rcBadBtn').classList.toggle('sug', rc.sug === false);
+        }
+        // 克漏字模式的答案畫面：每個空格標出對錯
+        function recallRevealCloze(it, alts) {
+            const $ = id => document.getElementById(id), cl = it.cloze, multi = cl.answers.length > 1;
+            let best = null;
+            alts.forEach(a => { const c = rcBlankCheck(cl, a); if (!best || c.right > best.c.right || (c.right === best.c.right && c.accuracy > best.c.accuracy)) best = { text: a, c }; });
+            const okArr = best ? best.c.ok : cl.answers.map(() => false);
+            rc.sug = !best ? false : okArr.every(Boolean);
+            $('rcEn').innerHTML = cl.segs.map(sg => sg.t === 'x' ? escapeHtml(sg.v)
+                : `<b class="${okArr[sg.i] ? 'rc-b-ok' : 'rc-b-bad'}">${multi ? RC_NUM[sg.i] : ''}${escapeHtml(cl.answers[sg.i])}</b>`).join('');
+            const TYPE = { phrase: '詞組', prep: '介詞', word: '單字' };
+            $('rcHeardBox').innerHTML = (best ? `
+                <div class="rc-sub">${rc.typing || !SpeechRecognition ? '你寫的' : '你說的（語音辨識結果）'}</div>
+                <div class="rc-heard">${escapeHtml(best.text)}</div>` : '') + `
+                <div class="rc-sub">空格${best ? `・對了 ${best.c.right} / ${best.c.total}` : ''}</div>
+                <div class="rc-heard">${cl.answers.map((a, i) => `<span class="rc-chip ${best ? (okArr[i] ? 'ok' : 'bad') : ''}">${multi ? RC_NUM[i] + ' ' : ''}${escapeHtml(a)} <small>${TYPE[cl.types[i]] || ''}</small>${best ? (okArr[i] ? ' ✓' : ' ✗') : ''}</span>`).join(' ')}</div>`;
+            $('rcReveal').style.display = 'block';
+            $('rcAsk').style.display = 'none'; $('rcRate').style.display = 'block';
+            $('rcSug').innerHTML = !best ? '先看答案、聽一次發音，再按「沒想起來」，等一下會再出現。'
+                : rc.sug ? `建議：<b>想起來了</b>（${multi ? `${best.c.total} 個空格都說對了` : '空格說對了'}）`
+                : `建議：<b>沒想起來</b>（空格對了 ${best.c.right} / ${best.c.total}）。如果只是辨識錯、或換了意思相同的說法，可以按「想起來了」。`;
             $('rcRetryBox').style.display = best && SpeechRecognition && !rc.typing ? 'flex' : 'none';
             $('rcOkBtn').classList.toggle('sug', rc.sug === true);
             $('rcBadBtn').classList.toggle('sug', rc.sug === false);
