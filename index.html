@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.34.1 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.34.2 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1094,8 +1094,9 @@
         .task-text, .dropdown-item span, .tool-card b, .tool-card small, .pm-hint, .bk-status { overflow-wrap: break-word; }
 
         /* ---- v2.29.0 文字輸入視窗 ---- */
-        .ui-prompt { z-index: 3000; align-items: center; }
-        .ui-prompt .modal-content { max-width: calc(520px * var(--z)); padding: calc(20px * var(--z)) calc(18px * var(--z)) calc(16px * var(--z)); }
+        /* v2.34.2：視窗靠上顯示，鍵盤跳出時自動縮在鍵盤上方，不會被遮住 */
+        .ui-prompt { z-index: 3000; align-items: flex-start; padding-top: max(calc(12px * var(--z)), env(safe-area-inset-top)); box-sizing: border-box; }
+        .ui-prompt .modal-content { max-width: calc(520px * var(--z)); padding: calc(18px * var(--z)) calc(18px * var(--z)) calc(14px * var(--z)); overflow-y: auto; box-sizing: border-box; }
         .up-head { display: flex; align-items: flex-start; gap: calc(10px * var(--z)); margin-bottom: calc(14px * var(--z)); }
         .up-icon { width: calc(22px * var(--z)); height: calc(22px * var(--z)); color: var(--green); flex: none; margin-top: calc(3px * var(--z)); }
         .up-titles { flex: 1; min-width: 0; }
@@ -1225,7 +1226,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.34.1</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.34.2</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -5569,9 +5570,22 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
                 const sub = document.getElementById('uiPromptSub'); sub.textContent = opts.sub || ''; sub.style.display = opts.sub ? '' : 'none';
                 const hint = document.getElementById('uiPromptHint'); hint.textContent = opts.hint || ''; hint.style.display = opts.hint ? '' : 'none';
                 ta.value = def || '';
-                const fit = () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight + 2, window.innerHeight * 0.55) + 'px'; };
+                // 依「扣掉鍵盤後的可見高度」調整：視窗高度不超過可見範圍，輸入框最多佔可見高度扣掉標題與按鈕
+                const box = ov.querySelector('.modal-content');
+                const fit = () => {
+                    const vv = window.visualViewport, vh = vv ? vv.height : window.innerHeight;
+                    ov.style.height = vh + 'px'; ov.style.top = (vv ? vv.offsetTop : 0) + 'px';
+                    box.style.maxHeight = (vh - 24) + 'px';
+                    const chrome = box.offsetHeight - ta.offsetHeight;   // 標題、提示、按鈕佔的高度
+                    ta.style.height = 'auto';
+                    ta.style.height = Math.max(72, Math.min(ta.scrollHeight + 2, vh - 24 - chrome)) + 'px';
+                };
+                const onVV = () => fit();
+                if (window.visualViewport) { visualViewport.addEventListener('resize', onVV); visualViewport.addEventListener('scroll', onVV); }
                 const done = v => {
                     ov.style.display = 'none';
+                    if (window.visualViewport) { visualViewport.removeEventListener('resize', onVV); visualViewport.removeEventListener('scroll', onVV); }
+                    ov.style.height = ''; ov.style.top = ''; box.style.maxHeight = '';
                     ta.oninput = ta.onkeydown = null; ov.onclick = null;
                     document.getElementById('uiPromptOk').onclick = document.getElementById('uiPromptCancel').onclick = document.getElementById('uiPromptX').onclick = null;
                     resolve(v === null ? null : v.replace(/\s*\n+\s*/g, ' '));
