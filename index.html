@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.34.2 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.34.3 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1095,7 +1095,7 @@
 
         /* ---- v2.29.0 文字輸入視窗 ---- */
         /* v2.34.2：視窗靠上顯示，鍵盤跳出時自動縮在鍵盤上方，不會被遮住 */
-        .ui-prompt { z-index: 3000; align-items: flex-start; padding-top: max(calc(12px * var(--z)), env(safe-area-inset-top)); box-sizing: border-box; }
+        .ui-prompt { z-index: 3000; align-items: flex-start; box-sizing: border-box; }
         .ui-prompt .modal-content { max-width: calc(520px * var(--z)); padding: calc(18px * var(--z)) calc(18px * var(--z)) calc(14px * var(--z)); overflow-y: auto; box-sizing: border-box; }
         .up-head { display: flex; align-items: flex-start; gap: calc(10px * var(--z)); margin-bottom: calc(14px * var(--z)); }
         .up-icon { width: calc(22px * var(--z)); height: calc(22px * var(--z)); color: var(--green); flex: none; margin-top: calc(3px * var(--z)); }
@@ -1226,7 +1226,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.34.2</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.34.3</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -5572,6 +5572,7 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
                 ta.value = def || '';
                 // 依「扣掉鍵盤後的可見高度」調整：視窗高度不超過可見範圍，輸入框最多佔可見高度扣掉標題與按鈕
                 const box = ov.querySelector('.modal-content');
+                const H0 = window.innerHeight;   // 鍵盤出現前的畫面高度
                 const fit = () => {
                     const vv = window.visualViewport, vh = vv ? vv.height : window.innerHeight;
                     ov.style.height = vh + 'px'; ov.style.top = (vv ? vv.offsetTop : 0) + 'px';
@@ -5579,16 +5580,24 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
                     const chrome = box.offsetHeight - ta.offsetHeight;   // 標題、提示、按鈕佔的高度
                     ta.style.height = 'auto';
                     ta.style.height = Math.max(72, Math.min(ta.scrollHeight + 2, vh - 24 - chrome)) + 'px';
+                    // v2.34.3：視窗底部放在畫面一半再上面一點（約 45%）；鍵盤佔掉空間時再往上移，不被遮住
+                    const bh = box.offsetHeight;
+                    let top = H0 * 0.45 - bh;
+                    top = Math.min(top, vh - bh - 12);
+                    box.style.marginTop = Math.max(12, top) + 'px';
                 };
                 const onVV = () => fit();
                 if (window.visualViewport) { visualViewport.addEventListener('resize', onVV); visualViewport.addEventListener('scroll', onVV); }
                 const done = v => {
                     ov.style.display = 'none';
                     if (window.visualViewport) { visualViewport.removeEventListener('resize', onVV); visualViewport.removeEventListener('scroll', onVV); }
-                    ov.style.height = ''; ov.style.top = ''; box.style.maxHeight = '';
+                    ov.style.height = ''; ov.style.top = ''; box.style.maxHeight = ''; box.style.marginTop = '';
+                    ta.blur();
                     ta.oninput = ta.onkeydown = null; ov.onclick = null;
                     document.getElementById('uiPromptOk').onclick = document.getElementById('uiPromptCancel').onclick = document.getElementById('uiPromptX').onclick = null;
-                    resolve(v === null ? null : v.replace(/\s*\n+\s*/g, ' '));
+                    // v2.34.3：先讓畫面把視窗關掉、鍵盤收起，再接著存檔與重畫清單（不然按確定後視窗會卡住一下才消失）
+                    const out = v === null ? null : v.replace(/\s*\n+\s*/g, ' ');
+                    requestAnimationFrame(() => setTimeout(() => resolve(out), 30));
                 };
                 ta.oninput = fit;
                 ta.onkeydown = e => {
