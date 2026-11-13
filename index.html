@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.34.3 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.35.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -593,7 +593,9 @@
         .add-fab { position: fixed; right: max(calc(16px * var(--zc)), calc(50% - calc(324px * var(--zc)))); bottom: calc(18px * var(--zc)); width: calc(52px * var(--zc)); height: calc(52px * var(--zc)); border-radius: 50%; border: none; background: var(--green); color: var(--c-ffffff); box-shadow: 0 4px 12px var(--c-107c41-40); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 800; }
         .add-fab svg { width: calc(26px * var(--zc)); height: calc(26px * var(--zc)); fill: currentColor; }
         .add-fab:active { transform: scale(0.94); }
-        body.player-open .add-fab { bottom: calc(150px * var(--z)); }
+        body.player-open .add-fab { bottom: calc(var(--ps-h, 150px) + 12px); z-index: 950; }   /* v2.35.0：播放時浮在播放視窗上方，不被遮住 */
+        .ap-ex { width: 100%; text-align: left; border: 1.5px dashed var(--green); background: transparent; color: var(--green); border-radius: calc(10px * var(--z)); padding: calc(9px * var(--z)) calc(12px * var(--z)); font-size: calc(14px * var(--z)); font-weight: 600; margin: calc(4px * var(--z)) 0 calc(6px * var(--z)); cursor: pointer; line-height: 1.35; }
+        .ap-ex small { display: block; font-weight: 400; color: var(--muted); font-size: calc(11.5px * var(--z)); }
         #taskList { padding-bottom: calc(76px * var(--z)); }
         .ap-modal { max-width: calc(340px * var(--z)); }
         .ap-main { width: 100%; text-align: left; border: 1.5px solid var(--green); background: var(--c-eef7f1); color: var(--c-0b5c30); border-radius: calc(10px * var(--z)); padding: calc(10px * var(--z)) calc(12px * var(--z)); font-size: calc(14.5px * var(--z)); font-weight: 600; margin: calc(8px * var(--z)) 0 calc(4px * var(--z)); cursor: pointer; line-height: 1.35; }
@@ -1226,7 +1228,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.34.3</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.35.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1290,6 +1292,7 @@
     <div id="addPicker" class="modal-overlay play-modal" onclick="if(event.target===this) closeAddPicker()">
         <div class="modal-content ap-modal">
             <div class="pm-title"><h3>＋ 新增單字／片語</h3><button class="pm-close" onclick="closeAddPicker()">×</button></div>
+            <button class="ap-ex" id="apEx" style="display:none" onclick="addExToPlaying()"></button>
             <div class="pm-hint">要加到哪個主題？</div>
             <button class="ap-main" id="apMain" onclick="addFromPicker(+this.dataset.id)"></button>
             <div class="ap-others-title" id="apOthersTitle">其他主題</div>
@@ -3051,6 +3054,13 @@ ${ENRICH_RULES}
         }
         function psReveal() { const it = player.list[Math.min(player.idx, player.list.length - 1)]; if (!it) return; player.shownId = it.id; updatePlayerView(); }
         applyPsHide();
+        // v2.35.0：記下播放視窗的高度，讓右下角 ＋ 浮在播放視窗上方
+        (function watchSheetHeight() {
+            const sheet = document.getElementById('playerSheet'); if (!sheet) return;
+            const setH = () => document.documentElement.style.setProperty('--ps-h', (sheet.offsetHeight || 150) + 'px');
+            if ('ResizeObserver' in window) new ResizeObserver(setH).observe(sheet); else window.addEventListener('resize', setH);
+            setH();
+        })();
 
         function highlightPlaying(scroll) {
             if (psHide) scroll = false;   // 藏字時不把清單捲到正在播的句子（避免從背後看到答案）
@@ -6753,13 +6763,28 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             for (const c of cards) { if (c.getBoundingClientRect().top <= line) cur = c; else break; }
             return +cur.dataset.id;
         }
+        // v2.35.0：播放中按 ＋，預設加到「正在播的句子」所在的主題，並可直接替正在播的單字新增例句
+        function playingGrand() {
+            if (!player.open || !player.list.length) return null;
+            const it = player.list[Math.min(player.idx, player.list.length - 1)];
+            return it ? findGrand(it.id) : null;
+        }
+        function addExToPlaying() {
+            const f = playingGrand(); closeAddPicker();
+            if (f) addGrandTask(f.t.id, f.s.id);
+        }
         function openAddPicker() {
             if (!tasks.length) return addMainTaskPrompt();
-            const curId = currentTopicId() || lastAddTopic || tasks[0].id;
+            const pf = playingGrand();
+            const ex = document.getElementById('apEx');
+            const hidWord = pf && psHide && player.shownId !== pf.g.id;   // 藏字中且還沒看答案：不顯示單字，避免洩漏答案
+            if (pf) { ex.style.display = ''; ex.innerHTML = `<small>正在播放的單字</small>＋ ${hidWord ? '替正在播放的單字新增例句' : `替「${escapeHtml(cleanForSpeech(pf.s.text) || pf.s.text)}」新增例句`}`; }
+            else ex.style.display = 'none';
+            const curId = (pf && pf.t.id) || currentTopicId() || lastAddTopic || tasks[0].id;
             const cur = findMain(curId) || tasks[0];
             const main = document.getElementById('apMain');
             main.dataset.id = cur.id;
-            main.innerHTML = `<small>目前所在的主題</small>${topicLabel(cur)}`;
+            main.innerHTML = `<small>${pf && pf.t.id === cur.id ? '正在播放的句子所在的主題' : '目前所在的主題'}</small>${topicLabel(cur)}`;
             const others = tasks.filter(t => t.id !== cur.id);
             document.getElementById('apOthersTitle').style.display = others.length ? '' : 'none';
             document.getElementById('apList').innerHTML = others.map(t => `<button onclick="addFromPicker(${t.id})">${topicLabel(t)}<span>${t.subtasks.length} 個</span></button>`).join('');
