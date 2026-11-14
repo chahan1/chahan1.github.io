@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.37.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.37.1 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1246,7 +1246,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.37.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.37.1</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1540,6 +1540,7 @@
             <label class="mv-opt pt-switch"><input type="checkbox" id="ptOn" onchange="setPatternOn(this.checked)"> 每天自動新增一個句型</label>
             <div class="pm-hint" id="ptStatus"></div>
             <button class="btn-primary pm-start" id="ptNow" onclick="generatePattern(true)">現在就新增一個句型</button>
+            <button class="pm-savebtn" id="ptFix" onclick="fixManualPatterns()"></button>
         </div>
     </div>
 
@@ -6956,6 +6957,17 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             const s0 = findSubAnywhere(subId); if (!s0) return;
             const text = s0.text;
             let result = null, failKind = null;
+            // v2.37.1：加在「句型練習」主題裡的，改用句型格式（和每日句型一樣的說明與例句）
+            if (isPatternTopic(topicId) || s0.pattern) {
+                let d = null;
+                try { d = await fetchPatternEntry(cleanForSpeech(text) || text); } catch (e) { failKind = e.kind || classifyError(e); }
+                const sp = findSubAnywhere(subId); if (!sp) return;
+                sp.isLoading = false;
+                if (d) { applyPatternData(sp, d); }
+                else if (failKind === 'offline' || failKind === 'quota') { sp.pendingAI = true; sp.definition = PENDING_DEF_TEXT; showToast("⏳ 暫時無法連線 AI，已排入待補齊\n稍後會自動重試"); }
+                else sp.definition = MANUAL_DEF_TEXT;
+                saveData(); return;
+            }
             try { result = await fetchDefinitionAndSentence(text, { topicId }); }
             catch (e) { failKind = e.kind || classifyError(e); }
 
@@ -7040,9 +7052,15 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
                     target.isLoading = true; target.definition = target.definition === PENDING_DEF_TEXT ? LOADING_TEXT : target.definition;
                     saveData();
                     try {
-                        const result = await fetchDefinitionAndSentence(target.text, { silent: true, topicId });
-                        const sub = findSubAnywhere(id);
-                        if (sub) { sub.isLoading = false; applyAIResult(sub, result); saveData(); }
+                        if (isPatternTopic(topicId) || target.pattern) {
+                            const d = await fetchPatternEntry(cleanForSpeech(target.text) || target.text);
+                            const sub = findSubAnywhere(id);
+                            if (sub) { sub.isLoading = false; applyPatternData(sub, d); saveData(); }
+                        } else {
+                            const result = await fetchDefinitionAndSentence(target.text, { silent: true, topicId });
+                            const sub = findSubAnywhere(id);
+                            if (sub) { sub.isLoading = false; applyAIResult(sub, result); saveData(); }
+                        }
                         done++;
                     } catch (e) {
                         const sub = findSubAnywhere(id);
@@ -7249,7 +7267,29 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
             document.getElementById('ptOn').checked = !!ptCfg.on;
             const t = ptTopic(), n = t ? t.subtasks.length : 0;
             document.getElementById('ptStatus').textContent = (ptCfg.on ? '已開啟：每天第一次打開 App（有網路、有 AI 金鑰）時新增一個。' : '目前關閉。') + (n ? `「句型練習」裡已有 ${n} 個句型。` : '');
+            const nf = t ? t.subtasks.filter(s => !s.pattern && !s.isLoading).length : 0;
+            const fb = document.getElementById('ptFix');
+            fb.style.display = nf ? '' : 'none';
+            fb.textContent = `🔧 把「句型練習」裡自己輸入的 ${nf} 個項目改成句型格式（中文說明＋兩句例句）`;
             document.getElementById('patternModal').style.display = 'flex';
+        }
+        // 舊的手動輸入項目（當時用一般單字格式查詢）→ 改成句型格式；原有例句保留，若已有就不重複加
+        async function fixManualPatterns() {
+            const t = ptTopic(); if (!t) return;
+            const list = t.subtasks.filter(s => !s.pattern && !s.isLoading);
+            if (!list.length) return;
+            if (!navigator.onLine) return showToast('📴 目前離線，連上網路後再試');
+            if (!hasTextKey()) return openKeyModal();
+            if (!confirm(`要把 ${list.length} 個項目改成句型格式嗎？\n會改寫釋義為中文用法說明、加上兩句例句，並移除同義字／搭配／字源；原有例句會保留。`)) return;
+            closePatternModal();
+            let ok = 0, fail = 0;
+            for (const s0 of list) {
+                showToast(`🔧 整理句型中… ${ok + fail + 1} / ${list.length}`, 60000);
+                try { const d = await fetchPatternEntry(cleanForSpeech(s0.text) || s0.text); const s = findSubAnywhere(s0.id); if (s) applyPatternData(s, d); ok++; }
+                catch (e) { fail++; }
+                saveData();
+            }
+            showToast(`🔧 已整理 ${ok} 個句型${fail ? `，${fail} 個失敗（可再按一次重試）` : ''}`, 3500);
         }
         function closePatternModal() { document.getElementById('patternModal').style.display = 'none'; }
         function setPatternOn(on) {
@@ -7260,6 +7300,38 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
         // 今天已經有新增過句型（任何一台裝置；雲端同步後也看得到）就不再新增
         function ptDoneToday() { const t = ptTopic(), today = dayKey(Date.now()); return !!(t && t.subtasks.some(s => s.pattern && dayKey(s.createdAt) === today)); }
         let ptBusy = false;
+        // v2.37.1：每日句型與「在句型練習裡自己輸入」共用同一套 AI 說明格式（中文意思、用法說明、兩句例句）
+        const PT_JSON_SPEC = `Return ONLY JSON:
+{"pattern": "the pattern in English, with placeholders like + V-ing / + S + V / sb / sth",
+ "zh": "short Traditional Chinese meaning (Taiwan usage), under 15 characters",
+ "usage": "1-2 sentences in Traditional Chinese explaining when and how to use it, and a common mistake to avoid",
+ "examples": [{"en": "natural example sentence", "zh": "Traditional Chinese translation"}, {"en": "a second example in a different situation", "zh": "Traditional Chinese translation"}]}`;
+        const ptLevel = () => aiStyle && aiStyle.level === 'upper' ? 'B2' : 'B1';
+        // 使用者自己輸入的句型／說法 → 整理成句型格式（保留原本的說法，只補上代號與修正拼字）
+        async function fetchPatternEntry(input) {
+            const d = await aiJSON(`You are an English teacher for a Taiwanese adult learner (native Mandarin, level about ${ptLevel()}) who wants to SPEAK natural everyday English.
+The learner wants to study this English sentence pattern / expression: "${input}"
+Keep the learner's expression (only fix spelling or grammar mistakes). If it is an incomplete phrase, write it as a reusable pattern with placeholders, e.g. "I'm done with + N / V-ing".
+${PT_JSON_SPEC}`);
+            if (!String(d.pattern || '').trim() || !Array.isArray(d.examples) || !d.examples.length) throw new Error('AI 回傳的格式不完整');
+            return d;
+        }
+        // 把句型資料寫進單字（例句加在最前面；保留使用者原有的例句）
+        function applyPatternData(sub, d) {
+            const now = Date.now(), pat = String(d.pattern).trim();
+            sub.text = `${pat}${d.zh ? ' ' + String(d.zh).trim() : ''}`;
+            sub.definition = String(d.usage || '').trim() || MANUAL_DEF_TEXT;
+            sub.pattern = true; sub.showDef = true;
+            if (d.__engine) sub.aiModel = d.__engine;
+            ['synonyms', 'collocations', 'common', 'etym', 'etymSrc', 'cefr', 'usage', 'pendingAI', 'spellWarn'].forEach(k => delete sub[k]);
+            const exist = new Set((sub.grandtasks || []).map(g => cleanForSpeech(g.text).toLowerCase()));
+            const add = d.examples.filter(x => x && x.en && !exist.has(String(x.en).trim().toLowerCase())).slice(0, 2)
+                .map(x => ({ id: newId(), text: `🤖 ${String(x.en).trim()}${x.zh ? ` (${String(x.zh).trim()})` : ''}`, checked: false, createdAt: now }));
+            sub.grandtasks = add.concat(sub.grandtasks || []);
+            return pat;
+        }
+        const isPatternTopic = topicId => { const t = findMain(topicId); return !!(t && t.patternTopic); };
+
         async function generatePattern(manual) {
             if (ptBusy) return;
             if (!navigator.onLine) { if (manual) showToast('📴 目前離線，無法用 AI 產生句型'); return; }
@@ -7269,22 +7341,16 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
             const have = t.subtasks.map(s => cleanForSpeech(s.text) || s.text).slice(0, 80);
             if (manual) { closePatternModal(); showToast('🧩 AI 正在挑選句型…', 2500); }
             try {
-                const lv = aiStyle && aiStyle.level === 'upper' ? 'B2' : 'B1';
-                const d = await aiJSON(`You are an English teacher for a Taiwanese adult learner (native Mandarin, level about ${lv}) who wants to SPEAK natural everyday English.
+                const d = await aiJSON(`You are an English teacher for a Taiwanese adult learner (native Mandarin, level about ${ptLevel()}) who wants to SPEAK natural everyday English.
 Pick ONE important, high-frequency English sentence pattern that native speakers really use in daily conversation or at work.
 Do NOT pick any of these (already learned): ${JSON.stringify(have)}.
 Write the pattern with placeholders, e.g. "It's worth + V-ing", "I was about to + V when ...", "The thing is, ...".
-Return ONLY JSON:
-{"pattern": "the pattern in English",
- "zh": "short Traditional Chinese meaning (Taiwan usage), under 15 characters",
- "usage": "1-2 sentences in Traditional Chinese explaining when and how to use it, and a common mistake to avoid",
- "examples": [{"en": "natural example sentence", "zh": "Traditional Chinese translation"}, {"en": "a second example in a different situation", "zh": "Traditional Chinese translation"}]}`);
+${PT_JSON_SPEC}`);
                 const pat = String(d.pattern || '').trim();
                 if (!pat || !Array.isArray(d.examples) || !d.examples.length) throw new Error('AI 回傳的格式不完整');
                 const now = Date.now();
-                const sub = { id: newId(), text: `${pat}${d.zh ? ' ' + String(d.zh).trim() : ''}`, definition: String(d.usage || '').trim() || MANUAL_DEF_TEXT,
-                    pattern: true, checked: false, collapsed: false, showDef: true, createdAt: now, aiModel: d.__engine || undefined,
-                    grandtasks: d.examples.filter(x => x && x.en).slice(0, 2).map(x => ({ id: newId(), text: `🤖 ${String(x.en).trim()}${x.zh ? ` (${String(x.zh).trim()})` : ''}`, checked: false, createdAt: now })) };
+                const sub = { id: newId(), text: '', checked: false, collapsed: false, createdAt: now, grandtasks: [] };
+                applyPatternData(sub, d);
                 t.subtasks.unshift(sub); t.collapsed = false;
                 if (!manual) ptCfg.last = dayKey(now); ptSave();
                 saveData(); flashSub(sub.id);
