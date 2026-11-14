@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.37.1 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.37.2 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1113,6 +1113,8 @@
         .up-btns { display: flex; justify-content: flex-end; gap: calc(10px * var(--z)); margin-top: calc(16px * var(--z)); }
         .up-btns button { height: calc(46px * var(--z)); padding: 0 calc(22px * var(--z)); border-radius: calc(23px * var(--z)); font-size: calc(16px * var(--z)); cursor: pointer; }
         .up-cancel { border: 1.5px solid var(--c-dadce0); background: var(--c-ffffff); color: var(--text); }
+        .up-btns .up-clear { margin-right: auto; padding: 0 calc(10px * var(--z)); border: none; background: none; color: var(--c-b3261e); font-size: calc(15px * var(--z)); }
+        .up-btns .up-clear:disabled { color: var(--muted); opacity: .5; cursor: default; }
         .up-ok { border: none; background: var(--green); color: var(--c-ffffff); font-weight: 700; }
 
         /* ---- v2.23.0 聽力評分：藏字模式 ---- */
@@ -1246,7 +1248,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.37.1</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.37.2</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1570,6 +1572,7 @@
             <textarea id="uiPromptTa" class="up-ta" rows="3" autocomplete="off" spellcheck="false"></textarea>
             <div class="up-hint" id="uiPromptHint"></div>
             <div class="up-btns">
+                <button class="up-clear" id="uiPromptClear" title="清除輸入框裡的文字">清除內容</button>
                 <button class="up-cancel" id="uiPromptCancel">取消</button>
                 <button class="up-ok" id="uiPromptOk">確定</button>
             </div>
@@ -5714,7 +5717,8 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
                     ov.style.height = ''; ov.style.top = ''; box.style.maxHeight = ''; box.style.marginTop = '';
                     ta.blur();
                     ta.oninput = ta.onkeydown = null; ov.onclick = null;
-                    document.getElementById('uiPromptOk').onclick = document.getElementById('uiPromptCancel').onclick = document.getElementById('uiPromptX').onclick = null;
+                    document.getElementById('uiPromptOk').onclick = document.getElementById('uiPromptCancel').onclick = document.getElementById('uiPromptX').onclick = document.getElementById('uiPromptClear').onclick = null;
+                    ta.removeEventListener('input', syncClr);
                     // v2.34.3：先讓畫面把視窗關掉、鍵盤收起，再接著存檔與重畫清單（不然按確定後視窗會卡住一下才消失）
                     const out = v === null ? null : v.replace(/\s*\n+\s*/g, ' ');
                     requestAnimationFrame(() => setTimeout(() => resolve(out), 30));
@@ -5725,6 +5729,11 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
                     else if (e.key === 'Escape') { e.preventDefault(); done(null); }
                 };
                 document.getElementById('uiPromptOk').onclick = () => done(ta.value);
+                // v2.37.2：清除內容（只清輸入框，不會關閉視窗；按「確定」才生效）
+                const clr = document.getElementById('uiPromptClear');
+                const syncClr = () => { clr.disabled = !ta.value; };
+                clr.onclick = () => { ta.value = ''; syncClr(); fit(); ta.focus(); };
+                ta.addEventListener('input', syncClr); syncClr();
                 document.getElementById('uiPromptCancel').onclick = document.getElementById('uiPromptX').onclick = () => done(null);
                 ov.onclick = e => { if (e.target === ov) done(null); };
                 ov.style.display = 'flex';
