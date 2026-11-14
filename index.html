@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.36.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.37.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1246,7 +1246,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.36.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.37.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1759,12 +1759,12 @@
                 <button data-v="mid" onclick="setAiStyle('level','mid')">中級<br><small>B1・多益 550 到 750</small></button>
                 <button data-v="upper" onclick="setAiStyle('level','upper')">中高級<br><small>B2・多益 750 到 900</small></button>
             </div>
-            <div class="pm-label">搭配已學單字複習</div>
+            <div class="pm-label">搭配已學句型與單字複習</div>
             <div class="seg" id="stMix">
                 <button data-v="on" onclick="setAiStyle('mixReview', true)">開啟</button>
                 <button data-v="off" onclick="setAiStyle('mixReview', false)">關閉</button>
             </div>
-            <div class="pm-hint">開啟後，AI 會試著把 1 個已學過的單字（優先挑同一主題、未熟記、較少複習的）放進新例句，幫助複習。<b>預設關閉</b>：這類句子比較容易不自然，雖然會經過交叉檢查，仍建議多留意。</div>
+            <div class="pm-hint">開啟後，AI 產生新例句時，會試著套用 1 個「每日句型」裡學過的句型，並放進 1～2 個已學過的單字／片語（優先挑同一主題、未熟記、較少複習的），幫助複習。只有自然度審核與交叉檢查都通過才採用，不自然就改用一般例句，不會硬湊。</div>
             <div class="pm-label">內容品質（交叉檢查）</div>
             <div class="pm-hint" id="stQuality"></div>
             <div class="pm-label">例句範例</div>
@@ -2347,7 +2347,7 @@
 請嚴格使用以下 JSON 格式回傳，不要有任何多餘的文字或 Markdown 標籤：
 {
   "definition": "...",
-  "sentence": "..."${rvWords.length ? ',\n  "review_sentence": "",\n  "review_word": ""' : ''},
+  "sentence": "..."${rvHas(rvWords) ? ',\n  "review_sentence": "",\n  "review_word": "",\n  "review_pattern": ""' : ''},
   "cefr": "B1",
   "synonyms": ["...", "..."],
   "usage": "neutral",
@@ -4680,21 +4680,39 @@ ${ENRICH_RULES}
 
         // ================= AI 例句風格 =================
         const STYLE_KEY = 'eng_aiStyle';
-        let aiStyle = { style: 'daily', level: 'mid', mixReview: false };
+        let aiStyle = { style: 'daily', level: 'mid', mixReview: true };
         try { Object.assign(aiStyle, JSON.parse(localStorage.getItem(STYLE_KEY)) || {}); } catch (e) {}
         // v2.9.0：複習字混搭的例句錯誤率較高，升級時預設改為關閉（之後可自行開啟）
         if (!localStorage.getItem('eng_mig290')) { aiStyle.mixReview = false; try { localStorage.setItem(STYLE_KEY, JSON.stringify(aiStyle)); localStorage.setItem('eng_mig290', '1'); } catch (e) {} }
+        // v2.37.0：新規則「搭配已學句型與單字」，依使用者要求升級時開啟一次（仍會經過自然度與交叉檢查，可再關閉）
+        if (!localStorage.getItem('eng_mig2370')) { aiStyle.mixReview = true; try { localStorage.setItem(STYLE_KEY, JSON.stringify(aiStyle)); localStorage.setItem('eng_mig2370', '1'); } catch (e) {} }
         const STYLE_NAME = { general: '一般', daily: '生活口語', toeic: '多益題型' };
         const LEVEL_NAME = { mid: '中級', upper: '中高級' };
-        function styleLabel() { return `${STYLE_NAME[aiStyle.style]}・${LEVEL_NAME[aiStyle.level]}${aiStyle.mixReview === true ? '・搭配已學單字' : ''}`; }
+        function styleLabel() { return `${STYLE_NAME[aiStyle.style]}・${LEVEL_NAME[aiStyle.level]}${aiStyle.mixReview === true ? '・搭配已學句型與單字' : ''}`; }
 
         // 從筆記中挑出適合複習的已學單字／片語
         // 優先：同一個主題（比較容易自然搭配）→ 未熟記 → 較少播放 → 較久沒複習
+        // v2.37.0：同時挑出「每日句型」裡學過的句型（較少練習、較新的優先），附在回傳陣列的 .patterns 上
+        const rvHas = rv => !!(rv && (rv.length || (rv.patterns && rv.patterns.length)));
+        const patternEn = s => (s.text || '').replace(/[\u3400-\u9fff\uff00-\uffef（）【】「」、，。…].*$/, '').trim();
+        function pickReviewPatterns(currentWord, n = 3) {
+            const cur = (currentWord || '').toLowerCase();
+            const pool = [];
+            tasks.forEach(t => t.subtasks.forEach(s => {
+                if (!s.pattern) return;
+                const p = patternEn(s); if (!p || p.toLowerCase() === cur) return;
+                const plays = s.grandtasks.reduce((a, g) => a + (g.playCount || 0), 0);
+                pool.push({ p, score: plays * 2 - (Date.now() - (s.createdAt || 0) < 7 * 86400000 ? 10 : 0) + Math.random() * 12 });
+            }));
+            return pool.sort((a, b) => a.score - b.score).slice(0, n).map(x => x.p);
+        }
         function pickReviewWords(currentWord, n = 5, topicId = null) {
             if (aiStyle.mixReview !== true) return [];
             const cur = clozeTarget(currentWord || '');
             const seen = new Set([cur]), pool = [];
+            const curSub = tasks.flatMap(t => t.subtasks).find(s => clozeTarget(s.text) === cur);
             tasks.forEach(t => t.subtasks.forEach(s => {
+                if (s.pattern) return;   // 句型另外挑
                 const w = clozeTarget(s.text);
                 if (!w || seen.has(w) || w.length < 3 || w.split(' ').length > 4) return;
                 seen.add(w);
@@ -4702,17 +4720,21 @@ ${ENRICH_RULES}
                 const last = Math.max(0, ...s.grandtasks.map(g => Math.max(g.lastPlayedAt || 0, g.lastClozeAt || 0)));
                 pool.push({ w, score: (topicId && t.id === topicId ? -100 : 0) + (s.checked ? 1000 : 0) + plays * 3 + (last && Date.now() - last < 86400000 ? 20 : 0) + Math.random() * 15 });
             }));
-            return pool.sort((a, b) => a.score - b.score).slice(0, n).map(x => x.w);
+            const out = pool.sort((a, b) => a.score - b.score).slice(0, n).map(x => x.w);
+            out.patterns = curSub && curSub.pattern ? [] : pickReviewPatterns(currentWord, 3);   // 替句型本身造句時不再混入別的句型
+            return out;
         }
         // 請 AI「另外」試寫一句含已學單字的複習句；不自然就留空（主例句永遠只針對目前的單字）
         function reviewPromptText(word, words) {
-            if (!words.length) return '';
-            return `\n\n【選擇性的複習句】另外請「嘗試」寫一句 review_sentence：同樣要使用 "${word}"，並從下列已學單字中挑「最多 1 個」最搭配的自然放進去：${words.join(', ')}
+            if (!rvHas(words)) return '';
+            const pats = words.patterns || [];
+            return `\n\n【選擇性的複習句】另外請「嘗試」寫一句 review_sentence：同樣要使用 "${word}"，並在自然的前提下加入複習內容：
+${pats.length ? `- 已學句型（可挑 1 個最合適的套用）：${pats.map(p => `"${p}"`).join('、')}\n` : ''}${words.length ? `- 已學單字／片語（可挑 1～2 個最搭配的）：${words.join(', ')}\n` : ''}- 至少用到其中一項（1 個句型或 1～2 個單字），能自然地同時用上句型和單字更好，但絕不勉強。
 review_sentence 的規則（非常重要）：
 - 必須像英語母語人士在真實生活或工作中會說的一句話，情境單一、語意合理、邏輯通順。
 - 絕對不可以為了放進單字而拼湊不相關的內容，也不要一句話塞進兩件不相干的事。
 - 只要有一點點不自然，就把 review_sentence 和 review_word 都留空字串 ""（留空完全沒關係）。
-- 格式同 sentence（英文句子＋括號內繁體中文翻譯），review_word 填實際用到的那個已學單字。
+- 格式同 sentence（英文句子＋括號內繁體中文翻譯）。review_word 填實際用到的已學單字（多個用逗號分開，沒用就留空），review_pattern 填實際套用的句型（沒用就留空）。
 注意：sentence 只針對 "${word}"，不要加入上面的已學單字。`;
         }
         // 檢查句子中真的出現了哪些字（容許詞形變化）
@@ -4721,8 +4743,9 @@ review_sentence 的規則（非常重要）：
             const has = part => new RegExp('\\b' + czStem(part).replace(/[^a-z'-]/g, '')).test(sentence);
             return words.filter(w => w.split(' ').every(has));
         }
+        const PH_RE = /^(v-?ing|v-?ed|v\d?|n|adj|adv|sb|sth|someone|something|noun|verb|clause|ving|ved)$/;   // 句型代號
         function hasTarget(sentenceText, word) {
-            const parts = clozeTarget(word).split(' ').filter(p => p.length >= 3 && !STOP_WORDS.has(p));
+            const parts = clozeTarget(word).split(' ').filter(p => p.length >= 3 && !STOP_WORDS.has(p) && !PH_RE.test(p));
             return !parts.length || wordsIn(sentenceText, parts).length > 0;
         }
         // 請 AI 以母語老師的標準替句子的自然度打分（4 分以上才採用）
@@ -4741,10 +4764,16 @@ review_sentence 的規則（非常重要）：
             const rs = String(result.review_sentence || '').trim();
             const fallback = { sentence: base || rs, reviewWords: [] };
             let pick = fallback;
-            if (rs && rvWords.length) {
+            if (rs && rvHas(rvWords)) {
                 const used = wordsIn(rs, rvWords);
+                // 句型：AI 說有用到，而且句型裡的關鍵字（去掉 V-ing、sb、sth、+ 等代號）真的出現在句子裡
+                const pats = rvWords.patterns || [], claimed = String(result.review_pattern || '').trim().toLowerCase();
+                const patKeys = p => p.toLowerCase().replace(/\b(v-?ing|v-?ed|v\d?|n|adj|adv|sb|sth|someone|something|noun|verb|clause|s\+v|to\s+v)\b|[+…\.\/()\[\]]/g, ' ').split(/\s+/).filter(w => w.length >= 2 && !STOP_WORDS.has(w));
+                const usedPat = pats.find(p => (claimed && (p.toLowerCase().includes(claimed) || claimed.includes(p.toLowerCase()))) && wordsIn(rs, patKeys(p)).length === patKeys(p).length)
+                    || pats.find(p => patKeys(p).length && wordsIn(rs, patKeys(p)).length === patKeys(p).length);
                 const len = cleanForSpeech(rs).split(/\s+/).length;
-                if (used.length === 1 && hasTarget(rs, word) && len <= 26 && await checkNatural(rs, gen)) pick = { sentence: rs, reviewWords: used };
+                if ((used.length >= 1 || usedPat) && used.length <= 2 && hasTarget(rs, word) && len <= 28 && await checkNatural(rs, gen))
+                    pick = { sentence: rs, reviewWords: usedPat ? [...used, `句型 ${usedPat}`] : used };
             }
             return await proofPick(pick, word, gen);
         }
@@ -7090,7 +7119,7 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
 例句格式為：英文句子後面加上括號內的繁體中文翻譯，例如 "Let's stick to the plan. (我們照計畫進行吧。)"
 例句風格與程度：${styleInstruction()}${reviewPromptText(cleanWord, rvWords)}
 請嚴格使用以下 JSON 格式回傳，不要有任何多餘的文字或 Markdown 標籤：
-{ "sentence": "..."${rvWords.length ? ', "review_sentence": "", "review_word": ""' : ''} }`;
+{ "sentence": "..."${rvHas(rvWords) ? ', "review_sentence": "", "review_word": "", "review_pattern": ""' : ''} }`;
             const result = await aiJSON(promptText);
             if (!result.sentence && !result.review_sentence) throw new Error('AI 沒有回傳例句');
             return await chooseSentence(result, cleanWord, rvWords);
