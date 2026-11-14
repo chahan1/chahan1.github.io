@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.35.1 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.36.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1173,6 +1173,24 @@
         .rc-rate.ok.sug { background: var(--c-e8f5ec); }
         .rc-rate.sug { box-shadow: 0 0 0 3px var(--green-light); }
 
+        /* ---- v2.36.0 主題選擇、批次搬移、每日句型 ---- */
+        .pm-topic-btn { width: 100%; text-align: left; height: calc(40px * var(--z)); padding: 0 calc(12px * var(--z)); border: 1.5px solid var(--c-dadce0); border-radius: calc(10px * var(--z)); background: var(--c-ffffff); color: var(--text); font-size: calc(14px * var(--z)); cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-family: inherit; }
+        .pm-topic-btn span { color: var(--muted); }
+        .tp-modal { max-height: 86vh; display: flex; flex-direction: column; }
+        .tp-tools { display: flex; gap: calc(12px * var(--z)); margin: calc(6px * var(--z)) 0; }
+        .tp-tools button { border: none; background: none; color: var(--green); font-size: calc(13px * var(--z)); cursor: pointer; padding: 0; }
+        .tp-list { overflow-y: auto; flex: 1; min-height: calc(80px * var(--z)); border-top: 1px solid var(--c-e3e6e8); margin-bottom: calc(8px * var(--z)); }
+        .tp-row { display: flex; align-items: center; gap: calc(10px * var(--z)); padding: calc(10px * var(--z)) calc(4px * var(--z)); border-bottom: 1px solid var(--c-e3e6e8); font-size: calc(14px * var(--z)); color: var(--text); cursor: pointer; }
+        .tp-row input { width: calc(18px * var(--z)); height: calc(18px * var(--z)); accent-color: var(--green); flex: none; }
+        .tp-row span { flex: 1; min-width: 0; }
+        .tp-row small { color: var(--muted); font-size: calc(12px * var(--z)); flex: none; }
+        .mv-topic { font-weight: 700; background: var(--c-f1f3f4); }
+        .mv-word { padding-left: calc(26px * var(--z)); }
+        .mv-select { width: 100%; height: calc(40px * var(--z)); border: 1.5px solid var(--c-dadce0); border-radius: calc(10px * var(--z)); background: var(--c-ffffff); color: var(--text); font-size: calc(14px * var(--z)); padding: 0 calc(8px * var(--z)); }
+        .mv-opt { display: flex; align-items: center; gap: calc(8px * var(--z)); font-size: calc(13px * var(--z)); color: var(--text); margin-top: calc(10px * var(--z)); }
+        .mv-opt input { accent-color: var(--green); width: calc(18px * var(--z)); height: calc(18px * var(--z)); }
+        .pt-switch { font-size: calc(15px * var(--z)); font-weight: 600; margin: calc(12px * var(--z)) 0 calc(4px * var(--z)); }
+
         /* ---- v2.34.0 選擇從第幾句開始播 ---- */
         .ps-meta-btn { border: none; background: none; padding: calc(2px * var(--z)) 0; color: var(--green); font-size: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; font-family: inherit; }
         .ps-picker { z-index: 2600; }
@@ -1228,7 +1246,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.35.1</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.36.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1244,6 +1262,8 @@
                     <div class="dropdown-label">筆記</div>
                     <div class="dropdown-item" onclick="addMainTaskPrompt()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-folder"/></svg></i><span>新增主題</span></div>
                     <div class="dropdown-item" id="itemEditMode" onclick="toggleEditMode()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-pencil"/></svg></i><span>開啟修改模式</span></div>
+                    <div class="dropdown-item" onclick="openMoveModal()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-folder"/></svg></i><span>批次搬移單字</span></div>
+                    <div class="dropdown-item" onclick="openPatternModal()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-ai"/></svg></i><span>每日句型</span></div>
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-label">學習與複習</div>
                     <div class="dropdown-item" onclick="openRecallSetup()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-speech"/></svg></i><span>口說回想（中→英）</span></div>
@@ -1322,6 +1342,8 @@
                 </div>
             </div>
             <div class="pm-hint" id="pmEngineHint"></div>
+            <div class="pm-label">主題</div>
+            <button class="pm-topic-btn" id="pmTopicBtn" onclick="openTopicPick()"></button>
             <div class="pm-label">播放範圍</div>
             <div class="seg" id="pmScope">
                 <button data-v="all" onclick="setPlayOpt('scope','all')">全部例句</button>
@@ -1483,6 +1505,41 @@
             <button class="btn-outline cz-btn" onclick="clozeAgain()">再隨機練一次</button>
             <button class="btn-outline cz-btn" onclick="closeCloze()">完成</button>
             <div id="czWrongList"></div>
+        </div>
+    </div>
+
+    <!-- v2.36.0 播放：選擇主題 -->
+    <div id="topicPick" class="modal-overlay" onclick="if(event.target===this) closeTopicPick()">
+        <div class="modal-content tp-modal">
+            <div class="pm-title"><h3>要播放哪些主題？</h3><button class="pm-close" onclick="closeTopicPick()">×</button></div>
+            <div class="pm-hint">可複選；全部勾選或全部不勾＝播放全部主題。</div>
+            <div class="tp-tools"><button onclick="tpAll(true)">全選</button><button onclick="tpAll(false)">全不選</button></div>
+            <div class="tp-list" id="tpList"></div>
+            <button class="btn-primary pm-start" onclick="tpApply()">確定</button>
+        </div>
+    </div>
+
+    <!-- v2.36.0 批次搬移 -->
+    <div id="moveModal" class="modal-overlay" onclick="if(event.target===this) closeMoveModal()">
+        <div class="modal-content tp-modal">
+            <div class="pm-title"><h3>📦 批次搬移單字</h3><button class="pm-close" onclick="closeMoveModal()">×</button></div>
+            <div class="pm-hint">勾選要搬的單字（連同例句、播放與練習紀錄一起搬），再選要搬到哪個主題。勾選主題名稱可整個主題全選。</div>
+            <div class="tp-list mv-list" id="mvList"></div>
+            <div class="pm-label">搬到</div>
+            <select id="mvTarget" class="mv-select"></select>
+            <label class="mv-opt"><input type="checkbox" id="mvDelEmpty" checked> 搬完後刪除變成空的主題</label>
+            <button class="btn-primary pm-start" id="mvGo" onclick="doBatchMove()">搬移</button>
+        </div>
+    </div>
+
+    <!-- v2.36.0 每日句型 -->
+    <div id="patternModal" class="modal-overlay" onclick="if(event.target===this) closePatternModal()">
+        <div class="modal-content tp-modal">
+            <div class="pm-title"><h3>🧩 每日句型</h3><button class="pm-close" onclick="closePatternModal()">×</button></div>
+            <div class="pm-hint">開啟後會建立「🧩 句型練習」主題，每天第一次打開 App 時，AI 自動新增一個重要句型，附中文說明和兩句例句。要再多例句，和一般單字一樣按 ＋（AI 產生或自己輸入）。</div>
+            <label class="mv-opt pt-switch"><input type="checkbox" id="ptOn" onchange="setPatternOn(this.checked)"> 每天自動新增一個句型</label>
+            <div class="pm-hint" id="ptStatus"></div>
+            <button class="btn-primary pm-start" id="ptNow" onclick="generatePattern(true)">現在就新增一個句型</button>
         </div>
     </div>
 
@@ -2478,7 +2535,8 @@ ${ENRICH_RULES}
             const weekAgo = new Date(); weekAgo.setHours(0, 0, 0, 0); weekAgo.setDate(weekAgo.getDate() - 6);
             const curveSet = opts.dateMode === 'curve' ? curveAcceptDays(opts) : null;
             const list = [];
-            tasks.forEach(t => t.subtasks.forEach(s => s.grandtasks.forEach(g => {
+            const topicSet = Array.isArray(opts.topics) && opts.topics.length ? new Set(opts.topics) : null;   // v2.36.0：只播指定主題
+            tasks.forEach(t => (topicSet && !topicSet.has(t.id)) || t.subtasks.forEach(s => s.grandtasks.forEach(g => {
                 if (opts.scope === 'done' && !g.checked) return;
                 if (opts.scope === 'todo' && g.checked) return;
                 if (!ignoreDate) {
@@ -2489,7 +2547,7 @@ ${ENRICH_RULES}
                     if (curveSet && !curveSet.has(daysAgo(g.createdAt))) return;
                 }
                 const en = cleanForSpeech(g.text);
-                if (en) list.push({ id: g.id, en, cn: extractCn(g.text), word: s.text, day: dayKey(g.createdAt), ago: daysAgo(g.createdAt), fam: g.fam || 0 });
+                if (en) list.push({ id: g.id, en, cn: extractCn(g.text), word: s.text, day: dayKey(g.createdAt), ago: daysAgo(g.createdAt), fam: g.fam || 0, topicId: t.id });
             })));
             return list;
         }
@@ -2664,7 +2722,7 @@ ${ENRICH_RULES}
         function plFmt(t) { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }
         function plItems(ids) {
             const byId = {};
-            getPlaylist(Object.assign({}, playSettings, { scope: 'all', dateMode: 'all' })).forEach(it => { byId[it.id] = it; });
+            getPlaylist(Object.assign({}, playSettings, { scope: 'all', dateMode: 'all', topics: [] })).forEach(it => { byId[it.id] = it; });
             return ids.map(id => byId[id]).filter(Boolean);
         }
         function plSave(list, how) {
@@ -2732,8 +2790,30 @@ ${ENRICH_RULES}
             refreshPlayModal();
         }
 
+        // ---- v2.36.0 只播指定主題（可複選；不選＝全部主題）----
+        function topicSummary() {
+            const ids = (playSettings.topics || []).filter(id => findMain(id));
+            if (!ids.length) return '全部主題';
+            const names = ids.map(id => findMain(id).text);
+            return names.length <= 2 ? names.join('、') : `${names.slice(0, 2).join('、')} 等 ${names.length} 個主題`;
+        }
+        function openTopicPick() {
+            const sel = new Set(playSettings.topics || []);
+            const cnt = id => getPlaylist(Object.assign({}, playSettings, { topics: [id] })).length;
+            document.getElementById('tpList').innerHTML = tasks.map(t => `<label class="tp-row"><input type="checkbox" value="${t.id}" ${sel.has(t.id) ? 'checked' : ''}><span>${topicLabel(t)}</span><small>${cnt(t.id)} 句</small></label>`).join('');
+            document.getElementById('topicPick').style.display = 'flex';
+        }
+        function closeTopicPick() { document.getElementById('topicPick').style.display = 'none'; }
+        function tpAll(on) { document.querySelectorAll('#tpList input').forEach(c => c.checked = on); }
+        function tpApply() {
+            const ids = [...document.querySelectorAll('#tpList input:checked')].map(c => Number(c.value));
+            playSettings.topics = ids.length === tasks.length ? [] : ids;
+            savePlay(); closeTopicPick(); refreshPlayModal();
+        }
+
         function refreshPlayModal() {
             refreshDayOptions();
+            const tb = document.getElementById('pmTopicBtn'); if (tb) tb.innerHTML = `${escapeHtml(topicSummary())} <span>▾</span>`;
             document.querySelectorAll('#pmEngine button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.engine));
             const vs = document.getElementById('pmVoice'), isFree = playSettings.engine === 'freeai';
             const vlist = isFree ? FREE_VOICES : AI_VOICES;
@@ -2854,7 +2934,7 @@ ${ENRICH_RULES}
         // ---- v2.21.0：記住複習播放清單與進度（App 突然中斷也能從上次的地方繼續）----
         // 「決定播哪些句子」的設定沒變，就沿用上次的清單；語速、次數、間隔、語音不影響清單。
         const SESSION_KEY = 'eng_playSession';
-        const LIST_KEYS = ['scope', 'dateMode', 'day', 'curve', 'curveCatch', 'order', 'limit', 'weights'];
+        const LIST_KEYS = ['scope', 'dateMode', 'day', 'curve', 'curveCatch', 'order', 'limit', 'weights', 'topics'];
         function playListSig() {
             const sig = LIST_KEYS.map(k => playSettings[k]);
             if (['today', '7d', 'curve'].includes(playSettings.dateMode)) sig.push(dayKey(Date.now()));   // 依日期的複習：換一天就是新清單
@@ -2877,7 +2957,7 @@ ${ENRICH_RULES}
             const ss = playSession;
             if (!ss || !Array.isArray(ss.ids) || !ss.ids.length) return null;
             const byId = {};
-            getPlaylist(Object.assign({}, playSettings, { scope: 'all', dateMode: 'all' })).forEach(it => { byId[it.id] = it; });
+            getPlaylist(Object.assign({}, playSettings, { scope: 'all', dateMode: 'all', topics: [] })).forEach(it => { byId[it.id] = it; });
             const items = [], before = ss.ids.slice(0, ss.idx);
             ss.ids.forEach(id => { if (byId[id]) items.push(byId[id]); });
             const idx = before.filter(id => byId[id]).length;
@@ -7083,6 +7163,113 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
             else if (level === 'grand') { const p = findSub(grandParentId, parentId); if (p) p.grandtasks = p.grandtasks.filter(g => g.id !== id); }
             saveData();
         }
+
+        // ================= v2.36.0 批次搬移單字 =================
+        function openMoveModal() {
+            closeMenu();
+            if (tasks.length < 2) { showToast('至少要有兩個主題才能搬移'); return; }
+            document.getElementById('mvList').innerHTML = tasks.map(t => `
+                <label class="tp-row mv-topic"><input type="checkbox" data-topic="${t.id}" onchange="mvTopicToggle(${t.id}, this.checked)"><span>${topicLabel(t)}</span><small>${t.subtasks.length} 個</small></label>
+                ${t.subtasks.map(s => `<label class="tp-row mv-word"><input type="checkbox" data-sub="${s.id}" data-from="${t.id}" onchange="mvRefresh()"><span>${escapeHtml(s.text)}</span><small>${s.grandtasks.length} 句</small></label>`).join('')}`).join('');
+            document.getElementById('mvTarget').innerHTML = tasks.map(t => `<option value="${t.id}">${escapeHtml(t.text)}</option>`).join('');
+            mvRefresh();
+            document.getElementById('moveModal').style.display = 'flex';
+        }
+        function closeMoveModal() { document.getElementById('moveModal').style.display = 'none'; }
+        function mvTopicToggle(tid, on) { document.querySelectorAll(`#mvList input[data-from="${tid}"]`).forEach(c => c.checked = on); mvRefresh(); }
+        function mvRefresh() {
+            tasks.forEach(t => {
+                const all = document.querySelectorAll(`#mvList input[data-from="${t.id}"]`), on = document.querySelectorAll(`#mvList input[data-from="${t.id}"]:checked`);
+                const tc = document.querySelector(`#mvList input[data-topic="${t.id}"]`);
+                if (tc) { tc.checked = all.length > 0 && on.length === all.length; tc.indeterminate = on.length > 0 && on.length < all.length; }
+            });
+            const n = document.querySelectorAll('#mvList input[data-sub]:checked').length;
+            const b = document.getElementById('mvGo'); b.textContent = n ? `搬移 ${n} 個單字` : '搬移'; b.disabled = !n;
+        }
+        function doBatchMove() {
+            const target = findMain(Number(document.getElementById('mvTarget').value)); if (!target) return;
+            const picks = [...document.querySelectorAll('#mvList input[data-sub]:checked')].map(c => ({ sid: Number(c.dataset.sub), from: Number(c.dataset.from) })).filter(p => p.from !== target.id);
+            if (!picks.length) { showToast('勾選的單字已經在這個主題了'); return; }
+            const delEmpty = document.getElementById('mvDelEmpty').checked;
+            const moved = [];
+            picks.forEach(p => {
+                const src = findMain(p.from); if (!src) return;
+                const i = src.subtasks.findIndex(s => s.id === p.sid); if (i < 0) return;
+                moved.push(src.subtasks.splice(i, 1)[0]);
+            });
+            target.subtasks.push(...moved);
+            target.collapsed = false;
+            let removed = 0;
+            if (delEmpty) { const before = tasks.length; tasks = tasks.filter(t => t.id === target.id || t.subtasks.length || !picks.some(p => p.from === t.id)); removed = before - tasks.length; }
+            saveData(); closeMoveModal();
+            showToast(`📦 已把 ${moved.length} 個單字搬到「${target.text}」${removed ? `\n並刪除 ${removed} 個空的主題` : ''}`, 3500);
+        }
+
+        // ================= v2.36.0 每日句型 =================
+        const PT_KEY = 'eng_dailyPattern';
+        let ptCfg = (() => { try { return JSON.parse(localStorage.getItem(PT_KEY)) || {}; } catch (e) { return {}; } })();
+        function ptSave() { try { localStorage.setItem(PT_KEY, JSON.stringify(ptCfg)); } catch (e) {} }
+        const ptTopic = () => tasks.find(t => t.patternTopic);
+        function ptEnsureTopic() {
+            let t = ptTopic();
+            if (!t) { t = { id: newId(), text: '🧩 句型練習', patternTopic: true, checked: false, collapsed: false, createdAt: Date.now(), subtasks: [] }; tasks.unshift(t); saveData(); }
+            return t;
+        }
+        function openPatternModal() {
+            closeMenu();
+            document.getElementById('ptOn').checked = !!ptCfg.on;
+            const t = ptTopic(), n = t ? t.subtasks.length : 0;
+            document.getElementById('ptStatus').textContent = (ptCfg.on ? '已開啟：每天第一次打開 App（有網路、有 AI 金鑰）時新增一個。' : '目前關閉。') + (n ? `「句型練習」裡已有 ${n} 個句型。` : '');
+            document.getElementById('patternModal').style.display = 'flex';
+        }
+        function closePatternModal() { document.getElementById('patternModal').style.display = 'none'; }
+        function setPatternOn(on) {
+            ptCfg.on = on; ptSave();
+            if (on) { ptEnsureTopic(); maybeDailyPattern(); }
+            openPatternModal();
+        }
+        // 今天已經有新增過句型（任何一台裝置；雲端同步後也看得到）就不再新增
+        function ptDoneToday() { const t = ptTopic(), today = dayKey(Date.now()); return !!(t && t.subtasks.some(s => s.pattern && dayKey(s.createdAt) === today)); }
+        let ptBusy = false;
+        async function generatePattern(manual) {
+            if (ptBusy) return;
+            if (!navigator.onLine) { if (manual) showToast('📴 目前離線，無法用 AI 產生句型'); return; }
+            if (!hasTextKey()) { if (manual) openKeyModal(); return; }
+            ptBusy = true;
+            const t = ptEnsureTopic();
+            const have = t.subtasks.map(s => cleanForSpeech(s.text) || s.text).slice(0, 80);
+            if (manual) { closePatternModal(); showToast('🧩 AI 正在挑選句型…', 2500); }
+            try {
+                const lv = aiStyle && aiStyle.level === 'upper' ? 'B2' : 'B1';
+                const d = await aiJSON(`You are an English teacher for a Taiwanese adult learner (native Mandarin, level about ${lv}) who wants to SPEAK natural everyday English.
+Pick ONE important, high-frequency English sentence pattern that native speakers really use in daily conversation or at work.
+Do NOT pick any of these (already learned): ${JSON.stringify(have)}.
+Write the pattern with placeholders, e.g. "It's worth + V-ing", "I was about to + V when ...", "The thing is, ...".
+Return ONLY JSON:
+{"pattern": "the pattern in English",
+ "zh": "short Traditional Chinese meaning (Taiwan usage), under 15 characters",
+ "usage": "1-2 sentences in Traditional Chinese explaining when and how to use it, and a common mistake to avoid",
+ "examples": [{"en": "natural example sentence", "zh": "Traditional Chinese translation"}, {"en": "a second example in a different situation", "zh": "Traditional Chinese translation"}]}`);
+                const pat = String(d.pattern || '').trim();
+                if (!pat || !Array.isArray(d.examples) || !d.examples.length) throw new Error('AI 回傳的格式不完整');
+                const now = Date.now();
+                const sub = { id: newId(), text: `${pat}${d.zh ? ' ' + String(d.zh).trim() : ''}`, definition: String(d.usage || '').trim() || MANUAL_DEF_TEXT,
+                    pattern: true, checked: false, collapsed: false, showDef: true, createdAt: now, aiModel: d.__engine || undefined,
+                    grandtasks: d.examples.filter(x => x && x.en).slice(0, 2).map(x => ({ id: newId(), text: `🤖 ${String(x.en).trim()}${x.zh ? ` (${String(x.zh).trim()})` : ''}`, checked: false, createdAt: now })) };
+                t.subtasks.unshift(sub); t.collapsed = false;
+                if (!manual) ptCfg.last = dayKey(now); ptSave();
+                saveData(); flashSub(sub.id);
+                showToast(`🧩 ${manual ? '已新增句型' : '今日句型'}：${pat}`, 4000);
+            } catch (e) {
+                if (manual) showToast('AI 產生句型失敗：' + (e.message || '未知錯誤'), 3500);
+            } finally { ptBusy = false; }
+        }
+        function maybeDailyPattern() {
+            if (!ptCfg.on || ptDoneToday() || ptCfg.last === dayKey(Date.now())) return;
+            generatePattern(false);
+        }
+        setTimeout(maybeDailyPattern, 6000);   // 開啟 App 後稍等（讓雲端同步先完成，避免兩台裝置各產生一個）
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(maybeDailyPattern, 3000); });
 
         // --- 8. 畫面繪製 ---
         function getTimeBadgeHtml(obj) {
