@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.37.2 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.38.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1175,6 +1175,7 @@
         .rc-rate.ok.sug { background: var(--c-e8f5ec); }
         .rc-rate.sug { box-shadow: 0 0 0 3px var(--green-light); }
 
+        .st-target { margin-bottom: calc(4px * var(--z)); }
         /* ---- v2.36.0 主題選擇、批次搬移、每日句型 ---- */
         .pm-topic-btn { width: 100%; text-align: left; height: calc(40px * var(--z)); padding: 0 calc(12px * var(--z)); border: 1.5px solid var(--c-dadce0); border-radius: calc(10px * var(--z)); background: var(--c-ffffff); color: var(--text); font-size: calc(14px * var(--z)); cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-family: inherit; }
         .pm-topic-btn span { color: var(--muted); }
@@ -1248,7 +1249,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.37.2</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.38.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1751,7 +1752,11 @@
     <div id="styleModal" class="modal-overlay play-modal" onclick="if(event.target===this) closeStyleModal()">
         <div class="modal-content">
             <div class="pm-title"><h3><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-palette"/></svg> AI 例句風格</h3><button class="pm-close" onclick="closeStyleModal()">×</button></div>
-            <div class="pm-hint">之後 AI 產生的例句（新增單字、＋ AI 再產生一句、離線補齊）都會照這個設定。已經存在的例句不會改變。</div>
+            <div class="seg st-target" id="stTarget">
+                <button data-v="word" onclick="setStyleTarget('word')">一般單字／片語</button>
+                <button data-v="pattern" onclick="setStyleTarget('pattern')">🧩 句型練習</button>
+            </div>
+            <div class="pm-hint" id="stTargetHint"></div>
             <div class="pm-label">風格</div>
             <div class="seg" id="stStyle">
                 <button data-v="general" onclick="setAiStyle('style','general')">一般</button>
@@ -2347,7 +2352,7 @@
             const rvWords = pickReviewWords(cleanWord, 5, topicId);
             const promptText = `請提供英文單字/片語 "${cleanWord}" 的簡短英文定義（需包含詞性，如 "(noun) definition..."），以及一個實用、自然的例句 sentence。
 例句格式為：英文句子後面加上括號內的繁體中文翻譯，例如 "Let's stick to the plan. (我們照計畫進行吧。)"
-例句風格與程度：${styleInstruction()}${reviewPromptText(cleanWord, rvWords)}
+例句風格與程度：${styleInstruction(styleFor(topicId))}${reviewPromptText(cleanWord, rvWords)}
 請嚴格使用以下 JSON 格式回傳，不要有任何多餘的文字或 Markdown 標籤：
 {
   "definition": "...",
@@ -2380,7 +2385,7 @@ ${ENRICH_RULES}
                 };
                 // 例句交叉檢查、詞條交叉檢查、維基詞典字源，同時進行
                 const [pick, ev, et] = await Promise.all([
-                    chooseSentence(result, word, rvWords, gen),
+                    chooseSentence(result, word, rvWords, gen, styleFor(topicId)),
                     verifyEntry(word, entry, gen),
                     fetchEtymology(word).catch(() => ({ etym: '', src: '' }))
                 ]);
@@ -4692,7 +4697,12 @@ ${ENRICH_RULES}
         if (!localStorage.getItem('eng_mig2370')) { aiStyle.mixReview = true; try { localStorage.setItem(STYLE_KEY, JSON.stringify(aiStyle)); localStorage.setItem('eng_mig2370', '1'); } catch (e) {} }
         const STYLE_NAME = { general: '一般', daily: '生活口語', toeic: '多益題型' };
         const LEVEL_NAME = { mid: '中級', upper: '中高級' };
-        function styleLabel() { return `${STYLE_NAME[aiStyle.style]}・${LEVEL_NAME[aiStyle.level]}${aiStyle.mixReview === true ? '・搭配已學句型與單字' : ''}`; }
+        // v2.38.0：句型練習的例句有自己的一組風格設定（預設複製一般設定）
+        const STYLE_PT_KEY = 'eng_aiStylePattern';
+        let aiStylePattern = Object.assign({}, aiStyle);
+        try { const v = JSON.parse(localStorage.getItem(STYLE_PT_KEY)); if (v) Object.assign(aiStylePattern, v); } catch (e) {}
+        const styleFor = topicId => (topicId != null && typeof isPatternTopic === 'function' && isPatternTopic(topicId)) ? aiStylePattern : aiStyle;
+        function styleLabel(st = aiStyle) { return `${STYLE_NAME[st.style]}・${LEVEL_NAME[st.level]}${st.mixReview === true ? '・搭配已學句型與單字' : ''}`; }
 
         // 從筆記中挑出適合複習的已學單字／片語
         // 優先：同一個主題（比較容易自然搭配）→ 未熟記 → 較少播放 → 較久沒複習
@@ -4711,7 +4721,7 @@ ${ENRICH_RULES}
             return pool.sort((a, b) => a.score - b.score).slice(0, n).map(x => x.p);
         }
         function pickReviewWords(currentWord, n = 5, topicId = null) {
-            if (aiStyle.mixReview !== true) return [];
+            if (styleFor(topicId).mixReview !== true) return [];
             const cur = clozeTarget(currentWord || '');
             const seen = new Set([cur]), pool = [];
             const curSub = tasks.flatMap(t => t.subtasks).find(s => clozeTarget(s.text) === cur);
@@ -4763,7 +4773,7 @@ review_sentence 的規則（非常重要）：
             } catch (e) { return false; }   // 無法確認時，寧可不用
         }
         // 決定最後採用哪一句：複習句要同時通過「格式檢查」與「自然度審核」，否則用一般例句
-        async function chooseSentence(result, word, rvWords, gen = result.__engine) {
+        async function chooseSentence(result, word, rvWords, gen = result.__engine, st = aiStyle) {
             const base = String(result.sentence || '').trim();
             const rs = String(result.review_sentence || '').trim();
             const fallback = { sentence: base || rs, reviewWords: [] };
@@ -4779,12 +4789,12 @@ review_sentence 的規則（非常重要）：
                 if ((used.length >= 1 || usedPat) && used.length <= 2 && hasTarget(rs, word) && len <= 28 && await checkNatural(rs, gen))
                     pick = { sentence: rs, reviewWords: usedPat ? [...used, `句型 ${usedPat}`] : used };
             }
-            return await proofPick(pick, word, gen);
+            return await proofPick(pick, word, gen, st);
         }
         // ---- 交叉檢查：產生例句的模型不能自己檢查自己 ----
         // 流程：A 產生 → B 檢查；B 認為有錯就由 B 修正（或重新產生）→ 再由另一個模型檢查；最多三輪
         // 都沒通過就標「⚠️ 待確認」，不假裝正確
-        async function proofPick(pick, word, gen = null) {
+        async function proofPick(pick, word, gen = null, st = aiStyle) {
             if (!pick.sentence) return pick;
             const target = clozeTarget(word) || word;
             let cand = { sentence: pick.sentence, reviewWords: pick.reviewWords || [] }, producer = gen, reason = '';
@@ -4802,20 +4812,20 @@ review_sentence 的規則（非常重要）：
                 if (r.corrected && hasTarget(r.corrected, word)) {
                     cand = { sentence: r.corrected, reviewWords: wordsIn(r.corrected, cand.reviewWords) }; producer = checker;
                 } else {
-                    const re = await regenerateSentence(target, cand.sentence, reason).catch(() => null);
+                    const re = await regenerateSentence(target, cand.sentence, reason, st).catch(() => null);
                     if (!re || !hasTarget(re.sentence, word)) break;
                     cand = { sentence: re.sentence, reviewWords: [] }; producer = re.engine;
                 }
             }
             return { ...cand, unverified: true, reason: reason || '沒有通過交叉檢查', engine: producer };
         }
-        async function regenerateSentence(word, bad, reason) {
+        async function regenerateSentence(word, bad, reason, st = aiStyle) {
             const { data, engine } = await aiCall(`下面這個用來示範 "${word}" 的英文例句有問題：
 "${proofKey(bad)}"
 問題：${reason || '不自然或不合文法'}
 請重新寫一句全新的例句，必須包含 "${word}"（可依文法變化詞形）。
 例句格式為：英文句子後面加上括號內的繁體中文翻譯，例如 "Let's stick to the plan. (我們照計畫進行吧。)"
-例句風格與程度：${styleInstruction()}
+例句風格與程度：${styleInstruction(st)}
 請只回傳 JSON：{"sentence": "..."}`);
             const sentence = String(data.sentence || '').trim();
             if (!sentence) throw new Error('沒有回傳例句');
@@ -4864,22 +4874,34 @@ review_sentence 的規則（非常重要）：
             if (st.length === 1) return `⚠️ 目前只有一個大模型（${st[0].name}），無法交叉檢查，新內容會標「⚠️ 待確認」。建議再設定 ${st[0].provider === 'gemini' ? 'Groq（免費）' : 'Gemini'} 金鑰。`;
             return `✅ 已啟用交叉檢查：內容由 <b>${st[0].name}</b> 產生，再由另一個模型（${st.slice(1).map(e => e.name).join('、')}）檢查；字源先查維基詞典。沒有通過檢查的例句會標「⚠️ 待確認」。`;
         }
-        function styleInstruction() {
+        function styleInstruction(st = aiStyle) {
             const s = {
                 general: '例句要自然、實用，用字以母語人士日常慣用的說法為優先，避免生硬、過度正式或少見的字。',
                 daily: '例句要生活化、口語化，像朋友、家人或同事之間日常對話會說的話，多用母語人士慣用的口語說法、片語動詞與常見搭配（例如 put off、figure out），避免生硬或過度正式的字。',
                 toeic: '例句要符合多益（TOEIC）考題的風格，情境以職場、商務、會議、電子郵件、客戶服務、出差旅遊、採購與人事等為主，語氣正式，但用字以商務場合實際慣用的說法為優先。'
-            }[aiStyle.style];
+            }[st.style];
             const l = {
                 mid: '程度為中級（約 CEFR B1、多益 550 到 750 分）：用字常見、句型清楚，句子約 10–15 個英文字。',
                 upper: '程度為中高級（約 CEFR B2、多益 750 到 900 分）：可使用較進階的字彙、片語與複合句，句子約 12–20 個英文字。'
-            }[aiStyle.level];
+            }[st.level];
             return `${s}${l}${QUALITY_RULES}`;
         }
+        let styleTarget = 'word';   // v2.38.0：正在編輯哪一組風格
+        const curStyleObj = () => styleTarget === 'pattern' ? aiStylePattern : aiStyle;
         function openStyleModal() { refreshStyleModal(); document.getElementById('styleModal').style.display = 'flex'; }
         function closeStyleModal() { document.getElementById('styleModal').style.display = 'none'; }
-        function setAiStyle(k, v) { aiStyle[k] = v; localStorage.setItem(STYLE_KEY, JSON.stringify(aiStyle)); refreshStyleModal(); }
+        function setStyleTarget(t) { styleTarget = t; refreshStyleModal(); }
+        function setAiStyle(k, v) {
+            const st = curStyleObj(); st[k] = v;
+            localStorage.setItem(styleTarget === 'pattern' ? STYLE_PT_KEY : STYLE_KEY, JSON.stringify(st));
+            refreshStyleModal();
+        }
         function refreshStyleModal() {
+            const aiStyle = curStyleObj();   // 下面沿用原本的寫法，改讀目前選的那一組
+            document.querySelectorAll('#stTarget button').forEach(b => b.classList.toggle('on', b.dataset.v === styleTarget));
+            document.getElementById('stTargetHint').textContent = styleTarget === 'pattern'
+                ? '套用在「🧩 句型練習」主題：每日句型、自己輸入的句型，以及句型底下按 ＋ AI 再產生的例句。已經存在的例句不會改變。'
+                : '套用在其他所有主題：新增單字、＋ AI 再產生一句、離線補齊等。已經存在的例句不會改變。';
             document.querySelectorAll('#stStyle button').forEach(b => b.classList.toggle('on', b.dataset.v === aiStyle.style));
             document.querySelectorAll('#stLevel button').forEach(b => b.classList.toggle('on', b.dataset.v === aiStyle.level));
             document.getElementById('stQuality').innerHTML = qualityText();
@@ -7103,7 +7125,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             const sub = findSub(mainTaskId, subTaskId); if (!sub) return;
             addExTarget = { mainTaskId, subTaskId };
             document.getElementById('aeWord').textContent = sub.text;
-            document.getElementById('aeStyle').textContent = styleLabel();
+            document.getElementById('aeStyle').textContent = (isPatternTopic(mainTaskId) ? '句型練習：' : '') + styleLabel(styleFor(mainTaskId));
             document.getElementById('aeCount').textContent = sub.grandtasks.length ? `目前有 ${sub.grandtasks.length} 句例句` : '目前還沒有例句';
             document.getElementById('addExModal').style.display = 'flex';
         }
@@ -7144,12 +7166,12 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             const promptText = `請為英文單字/片語 "${cleanWord}" 寫一個新的實用、自然的例句 sentence，情境要和下面這些現有例句不同，也不要重複它們：
 ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（目前沒有例句）'}
 例句格式為：英文句子後面加上括號內的繁體中文翻譯，例如 "Let's stick to the plan. (我們照計畫進行吧。)"
-例句風格與程度：${styleInstruction()}${reviewPromptText(cleanWord, rvWords)}
+例句風格與程度：${styleInstruction(styleFor(topicId))}${reviewPromptText(cleanWord, rvWords)}
 請嚴格使用以下 JSON 格式回傳，不要有任何多餘的文字或 Markdown 標籤：
 { "sentence": "..."${rvHas(rvWords) ? ', "review_sentence": "", "review_word": "", "review_pattern": ""' : ''} }`;
             const result = await aiJSON(promptText);
             if (!result.sentence && !result.review_sentence) throw new Error('AI 沒有回傳例句');
-            return await chooseSentence(result, cleanWord, rvWords);
+            return await chooseSentence(result, cleanWord, rvWords, result.__engine, styleFor(topicId));
         }
 
         async function addGrandTaskManual(mainTaskId, subTaskId) {
@@ -7315,13 +7337,14 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
  "zh": "short Traditional Chinese meaning (Taiwan usage), under 15 characters",
  "usage": "1-2 sentences in Traditional Chinese explaining when and how to use it, and a common mistake to avoid",
  "examples": [{"en": "natural example sentence", "zh": "Traditional Chinese translation"}, {"en": "a second example in a different situation", "zh": "Traditional Chinese translation"}]}`;
-        const ptLevel = () => aiStyle && aiStyle.level === 'upper' ? 'B2' : 'B1';
+        const ptLevel = () => aiStylePattern.level === 'upper' ? 'B2' : 'B1';
+        const ptStyleNote = () => `\nThe two example sentences must follow this style (written in Chinese): ${styleInstruction(aiStylePattern)}`;
         // 使用者自己輸入的句型／說法 → 整理成句型格式（保留原本的說法，只補上代號與修正拼字）
         async function fetchPatternEntry(input) {
             const d = await aiJSON(`You are an English teacher for a Taiwanese adult learner (native Mandarin, level about ${ptLevel()}) who wants to SPEAK natural everyday English.
 The learner wants to study this English sentence pattern / expression: "${input}"
 Keep the learner's expression (only fix spelling or grammar mistakes). If it is an incomplete phrase, write it as a reusable pattern with placeholders, e.g. "I'm done with + N / V-ing".
-${PT_JSON_SPEC}`);
+${PT_JSON_SPEC}${ptStyleNote()}`);
             if (!String(d.pattern || '').trim() || !Array.isArray(d.examples) || !d.examples.length) throw new Error('AI 回傳的格式不完整');
             return d;
         }
@@ -7354,7 +7377,7 @@ ${PT_JSON_SPEC}`);
 Pick ONE important, high-frequency English sentence pattern that native speakers really use in daily conversation or at work.
 Do NOT pick any of these (already learned): ${JSON.stringify(have)}.
 Write the pattern with placeholders, e.g. "It's worth + V-ing", "I was about to + V when ...", "The thing is, ...".
-${PT_JSON_SPEC}`);
+${PT_JSON_SPEC}${ptStyleNote()}`);
                 const pat = String(d.pattern || '').trim();
                 if (!pat || !Array.isArray(d.examples) || !d.examples.length) throw new Error('AI 回傳的格式不完整');
                 const now = Date.now();
