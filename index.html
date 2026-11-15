@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.38.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.39.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1249,7 +1249,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.38.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.39.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -4612,6 +4612,36 @@ ${ENRICH_RULES}
             return getPlaylist({ scope: 'all', dateMode: 'all' }).map(it => ({ ...it, g: (findGrand(it.id) || {}).g || {} }));
         }
 
+        // v2.39.0：統計所有學習內容（單字／片語、例句、句型）裡出現過多少個不同的英文單字
+        //   變化形合併計算（decides／decided／deciding → decide），粗略規則，數字為估計
+        function vocabStats() {
+            const forms = new Map();   // 字形 → 出現次數
+            let entries = 0, patterns = 0;
+            const addText = txt => { (cleanForSpeech(txt || '').toLowerCase().replace(/[’`]/g, "'").match(/[a-z]+(?:'[a-z]+)?/g) || []).forEach(w => {
+                w = ({ "can't": 'can', "won't": 'will', "shan't": 'shall' })[w] || w.replace(/'(s|re|ve|ll|d|m)$/, '').replace(/n't$/, '');   // I'm → i、it's → it、don't → do
+                if (w.length < 2 && w !== 'a' && w !== 'i') return;
+                forms.set(w, (forms.get(w) || 0) + 1); }); };
+            tasks.forEach(t => t.subtasks.forEach(sb => {
+                if (sb.pattern) patterns++; else entries++;
+                addText(sb.pattern ? (sb.text || '').replace(/\b(v-?ing|v-?ed|sb|sth|n|adj|adv|s|v)\b/gi, ' ') : sb.text);
+                sb.grandtasks.forEach(g => addText(g.text));
+            }));
+            const has = w => forms.has(w);
+            const base = w => {
+                const tryAll = cands => cands.find(has) || cands[0];
+                if (w.length > 4 && w.endsWith('ies')) return tryAll([w.slice(0, -3) + 'y']);
+                if (w.length > 4 && /(s|x|z|ch|sh)es$/.test(w)) return tryAll([w.slice(0, -2), w.slice(0, -1)]);
+                if (w.length > 3 && w.endsWith('s') && !/(ss|us|is|ous)$/.test(w)) return has(w.slice(0, -1)) ? w.slice(0, -1) : w;
+                if (w.length > 5 && w.endsWith('ing')) { const st = w.slice(0, -3); return tryAll([st, st + 'e', /([bdgmnprt])\1$/.test(st) ? st.slice(0, -1) : st]); }
+                if (w.length > 4 && w.endsWith('ied')) return tryAll([w.slice(0, -3) + 'y']);
+                if (w.length > 4 && w.endsWith('ed')) { const st = w.slice(0, -2); return tryAll([st, st + 'e', w.slice(0, -1), /([bdgmnprt])\1$/.test(st) ? st.slice(0, -1) : st]); }
+                return w;
+            };
+            const bases = new Set([...forms.keys()].map(base));
+            const content = [...bases].filter(w => !STOP_WORDS.has(w));
+            return { words: bases.size, content: content.length, forms: forms.size, entries, patterns };
+        }
+
         function renderReport() {
             const items = reportItems();
             const total = items.length, done = items.filter(it => it.g.checked).length;
@@ -4621,6 +4651,7 @@ ${ENRICH_RULES}
             const never = items.filter(it => !(it.g.playCount || 0)).length;
             const tile = (label, value, sub) => `<div class="rp-tile"><div class="rp-tile-label">${label}</div><div class="rp-tile-value">${value}</div><div class="rp-tile-sub">${sub}</div></div>`;
             document.getElementById('rpTiles').innerHTML =
+                (() => { const v = vocabStats(); return tile('不同單字', `約 ${v.words}`, `變化形合併計算・不含 the、to 等功能字約 ${v.content} 個・條目 ${v.entries} 個${v.patterns ? `、句型 ${v.patterns} 個` : ''}`); })() +
                 tile('例句總數', total, never ? `${never} 句還沒聽過` : '每句都聽過了') +
                 tile('已熟記', done, total ? `佔 ${Math.round(done / total * 100)}%` : '—') +
                 tile('總播放次數', plays, `今天 ${today.p || 0} 次`) +
