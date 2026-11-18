@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.39.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.39.1 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1249,7 +1249,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.39.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.39.1</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -2180,6 +2180,8 @@
                 t.subtasks = Array.isArray(t.subtasks) ? t.subtasks : [];
                 t.subtasks.forEach(s => {
                     s.grandtasks = Array.isArray(s.grandtasks) ? s.grandtasks : [];
+                    // v2.39.1：舊版句型把整個引擎物件存成 aiModel，改回模型名稱
+                    if (s.aiModel && typeof s.aiModel === 'object') { if (s.aiModel.name) s.aiModel = String(s.aiModel.name); else delete s.aiModel; }
                     if (s.isLoading) {
                         // 上次查詢到一半被中斷：改為「待補齊」，上線後自動重查
                         s.isLoading = false;
@@ -5248,10 +5250,15 @@ review_sentence 的規則（非常重要）：
                 const words = chunk.map(s => clozeTarget(s.text));
                 try {
                     const r = await aiJSON(`請依照 CEFR 標準（A1、A2、B1、B2、C1、C2），判斷下列英文單字或片語「最常見意思」的難易度等級。
-${words.map((w, k) => `${k + 1}. ${w}`).join('\n')}
-請嚴格只回傳 JSON，格式：{"levels": ["B1", "A2", ...]}，陣列順序與數量要和上面的清單完全一致。`);
-                    const lv = Array.isArray(r.levels) ? r.levels : [];
-                    chunk.forEach((s, k) => { const v = String(lv[k] || '').toUpperCase().trim(); if (CEFR.includes(v)) { s.cefr = v; done++; } });
+${words.map((w, k) => `#${k + 1} ${w}`).join('\n')}
+請嚴格只回傳 JSON，格式：{"items": [{"n": 1, "word": "（原樣抄上單字）", "level": "B1"}, ...]}，每一項都要回傳，n 是上面的編號（#後面的數字）。`);
+                    // v2.39.1：依「編號＋單字」對回，不依回傳順序（避免 AI 漏一筆就整排標錯）
+                    const byN = pickByNumber(r.items, chunk.length, words);
+                    const norm = w => String(w || '').toLowerCase().replace(/[^a-z]/g, '');
+                    chunk.forEach((s, k) => {
+                        const it = byN[k]; if (!it || (it.word && norm(it.word) !== norm(words[k]))) return;
+                        const v = String(it.level || it.cefr || '').toUpperCase().trim(); if (CEFR.includes(v)) { s.cefr = v; done++; }
+                    });
                     saveData();
                 } catch (e) { showToast('AI 判斷失敗：' + e.message, 3500); break; }
             }
@@ -6190,7 +6197,13 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
         async function applyProofFixes() {
             const chosen = proofFixes.filter(f => f.on);
             if (!chosen.length) return;
-            try { localStorage.setItem('eng_beforeProof', JSON.stringify({ at: Date.now(), tasks })); } catch (e) {}
+            // v2.39.1：快照存不進去（例如空間不足）時要告知，不能假裝可以復原
+            let canUndo = true;
+            try { localStorage.removeItem('eng_beforeProof'); localStorage.setItem('eng_beforeProof', JSON.stringify({ at: Date.now(), tasks })); }
+            catch (e) {
+                canUndo = false; try { localStorage.removeItem('eng_beforeProof'); } catch (e2) {}
+                if (!confirm('⚠️ 手機儲存空間不足，無法先建立「復原」用的備份。\n\n仍要套用這些修正嗎？套用後將無法用選單復原。\n（按「取消」不做任何修改）')) return;
+            }
             const reEnrich = [];
             chosen.forEach(f => {
                 if (f.kind === 'word') {
@@ -6216,7 +6229,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
                 await runEnrich(reEnrich, '📖 依修正後的單字重建釋義…');
                 fillingDefs = false; saveData();
             }
-            showToast(`✅ 已修正 ${chosen.length} 處${reEnrich.length ? `\n（${reEnrich.length} 個單字已依正確寫法重建釋義）` : ''}\n如需還原，可用選單「↩ 復原上次的 AI 修正」`, 5000);
+            showToast(`✅ 已修正 ${chosen.length} 處${reEnrich.length ? `\n（${reEnrich.length} 個單字已依正確寫法重建釋義）` : ''}${canUndo ? '\n如需還原，可用選單「↩ 復原上次的 AI 修正」' : '\n（這次沒有建立復原備份）'}`, 5000);
         }
         function updateUndoProof() { updateToolsBadge(); }
         function undoProof() {
@@ -7385,7 +7398,7 @@ ${PT_JSON_SPEC}${ptStyleNote()}`);
             sub.text = `${pat}${d.zh ? ' ' + String(d.zh).trim() : ''}`;
             sub.definition = String(d.usage || '').trim() || MANUAL_DEF_TEXT;
             sub.pattern = true; sub.showDef = true;
-            if (d.__engine) sub.aiModel = d.__engine;
+            if (d.__engine && d.__engine.name) sub.aiModel = d.__engine.name;   // v2.39.1：只存模型名稱
             ['synonyms', 'collocations', 'common', 'etym', 'etymSrc', 'cefr', 'usage', 'pendingAI', 'spellWarn'].forEach(k => delete sub[k]);
             const exist = new Set((sub.grandtasks || []).map(g => cleanForSpeech(g.text).toLowerCase()));
             const add = d.examples.filter(x => x && x.en && !exist.has(String(x.en).trim().toLowerCase())).slice(0, 2)
