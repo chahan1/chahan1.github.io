@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.39.2 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.39.3 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1249,7 +1249,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.39.2</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.39.3</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -5974,11 +5974,11 @@ ${ETYM_RULE}`, { temperature: 0.2 });
             renderTasks();
             const left = targets.map(x => findSubAnywhere(x.s.id)).filter(s => s && (needsDefinition(s) || needsUsage(s) || needsEtym(s) || !CEFR.includes(s.cefr)));
             const names = left.slice(0, 5).map(s => clozeTarget(s.text)).join('、') + (left.length > 5 ? ` 等 ${left.length} 個` : '');
-            showToast(`✅ 已建立 ${st.defDone} 個釋義、補上 ${st.synDone} 組同義字、${st.usageDone} 個單字的常用度／搭配、${st.etymDone} 個字源${left.length ? `\n⚠️ 還有未補齊的：${names}，可再按一次重試` : '\n點單字旁的難易度標籤可查看或修改難易度與常用度'}${st.stop ? `\n（${st.stop}）` : ''}`, 6000);
+            showToast(`✅ 已建立 ${st.defDone} 個釋義、補上 ${st.synDone} 組同義字、${st.usageDone} 個單字的常用度／搭配、${st.etymDone} 個字源${st.verDone ? `\n🔍 另一個模型檢查了 ${st.verDone} 個，修正 ${st.verFixed} 個` : ''}${left.length ? `\n⚠️ 還有未補齊的：${names}，可再按一次重試` : '\n點單字旁的難易度標籤可查看或修改難易度與常用度'}${st.stop ? `\n（${st.stop}）` : ''}`, 6000);
         }
         // 依清單請 AI 補資料（def:true 代表連釋義一起重建）
         async function runEnrich(targets, label = '📖 AI 補齊資料中…') {
-            let defDone = 0, synDone = 0, usageDone = 0, etymDone = 0, stop = '', fatal = false;
+            let defDone = 0, synDone = 0, usageDone = 0, etymDone = 0, verDone = 0, verFixed = 0, stop = '', fatal = false;
             const chunks = [];
             for (let i = 0; i < targets.length; i += 8) chunks.push(targets.slice(i, i + 8));
             let doneCount = 0;
@@ -5999,22 +5999,31 @@ ${words.map((w, k) => `#${k + 1} ${w}`).join('\n')}
 請嚴格只回傳 JSON：{"items": [{"n": 1, "word": "（原樣抄上單字）", "definition": "...", "cefr": "B1", "synonyms": ["..."], "usage": "neutral", "common": [], "collocations": ["...", "..."]}, ...]}，每個單字都要回傳，n 是上面的編號（#後面的數字），word 要和清單上的單字完全相同。`);
                     const byN = pickByNumber(r.items, chunk.length, words);
                     const norm = w => String(w || '').toLowerCase().replace(/[^a-z]/g, '');
-                    const miss = [];
+                    const miss = [], wrote = [];   // v2.39.2：記下這一批實際寫入了哪些欄位，交給另一個模型檢查
                     chunk.forEach((x, k) => {
                         const it = byN[k];
                         // 編號和單字都要對得上才採用，否則改成單獨重查
                         if (!it || (it.word && norm(it.word) !== norm(words[k]))) { miss.push(x); return; }
                         const sub = findSubAnywhere(x.s.id); if (!sub) return;
-                        if (x.def && it.definition && String(it.definition).trim()) { sub.definition = String(it.definition).trim(); sub.showDef = true; defDone++; }
+                        const f = new Set();
+                        if (x.def && it.definition && String(it.definition).trim()) { sub.definition = String(it.definition).trim(); sub.showDef = true; defDone++; f.add('definition'); }
                         const lv = String(it.cefr || '').toUpperCase().trim();
-                        if (CEFR.includes(lv) && !CEFR.includes(sub.cefr)) sub.cefr = lv;
+                        if (CEFR.includes(lv) && !CEFR.includes(sub.cefr)) { sub.cefr = lv; f.add('cefr'); }
                         const syn = cleanSynonyms(it.synonyms, words[k]);
-                        if (syn.length && !(sub.synonyms && sub.synonyms.length)) { sub.synonyms = syn; synDone++; }
+                        if (syn.length && !(sub.synonyms && sub.synonyms.length)) { sub.synonyms = syn; synDone++; f.add('synonyms'); }
                         else if (!syn.length && Array.isArray(it.synonyms) && !(sub.synonyms && sub.synonyms.length)) sub.noSynonyms = true;   // AI 認為沒有合適的同義字，下次不再詢問
+                        const hadUsage = sub.usage, hadColl = Array.isArray(sub.collocations);
                         if (applyUsageFields(sub, cleanUsageFields(it, words[k]))) usageDone++;
+                        if (sub.usage !== hadUsage) f.add('usage');
+                        if (!hadColl && Array.isArray(sub.collocations) && sub.collocations.length) f.add('collocations');
+                        if (f.size) wrote.push({ sub, word: words[k], fields: f });
                     });
                     if (miss.length && chunk.length > 1) chunks.unshift(...miss.map(x => [x]));
                     saveData(); doneCount += chunk.length - (chunk.length > 1 ? miss.length : 0);
+                    if (wrote.length) {
+                        const v = await verifyEnriched(wrote, r.__engine);
+                        verDone += v.checked; verFixed += v.fixed; if (v.checked) saveData();
+                    }
                 } catch (e) {
                     const k = e.kind || classifyError(e);
                     if (k === 'key' || k === 'offline' || k === 'quota') { stop = e.message; fatal = true; break; }
@@ -6035,7 +6044,45 @@ ${words.map((w, k) => `#${k + 1} ${w}`).join('\n')}
                     } catch (e) { const k = e.kind || classifyError(e); if (k === 'key' || k === 'offline' || k === 'quota') { stop = e.message; break; } }
                 }
             }
-            return { defDone, synDone, usageDone, etymDone, stop };
+            return { defDone, synDone, usageDone, etymDone, verDone, verFixed, stop };
+        }
+        // v2.39.2：批次補齊的內容也交給「另一個」模型檢查（和新增單字的詞條檢查相同）；只檢查這次寫入的欄位，錯的才改
+        async function verifyEnriched(list, gen) {
+            if (!gen) return { checked: 0, fixed: 0 };
+            const show = (x, k) => x.fields.has(k) ? (Array.isArray(x.sub[k]) ? JSON.stringify(x.sub[k]) : String(x.sub[k] || '')) : '（不用檢查）';
+            let r;
+            try {
+                r = await aiJSON(`你是嚴格的英語老師兼字典編輯。另一位老師替學生寫了下面這些詞條，請逐項檢查是否正確；標「（不用檢查）」的欄位略過：
+檢查重點：釋義與詞性是否正確；同義字是否真的意思相近、可以替換；搭配是否為母語人士常用的說法並且包含這個詞；常用度（spoken／neutral／formal／rare）與 CEFR 是否合理。
+
+${list.map((x, i) => `#${i + 1} ${x.word}
+- definition：${show(x, 'definition')}
+- synonyms：${show(x, 'synonyms')}
+- collocations：${show(x, 'collocations')}
+- usage：${show(x, 'usage')}
+- cefr：${show(x, 'cefr')}`).join('\n')}
+
+正確的項目就留空（字串給 ""、陣列給 []），只有錯的才給修正後的內容。
+請嚴格只回傳 JSON：{"items": [{"n": 1, "word": "（原樣抄上單字）", "definition": "", "synonyms": [], "collocations": [], "usage": "", "cefr": ""}, ...]}，每一項都要回傳，n 是上面的編號。`, { avoid: gen, temperature: 0.2 });
+            } catch (e) { return { checked: 0, fixed: 0 }; }   // 沒有第二個大模型或檢查失敗：保留內容，不算已檢查
+            const byN = pickByNumber(r.items, list.length, list.map(x => x.word));
+            const norm = w => String(w || '').toLowerCase().replace(/[^a-z]/g, '');
+            let checked = 0, fixed = 0;
+            list.forEach((x, i) => {
+                const it = byN[i]; if (!it || (it.word && norm(it.word) !== norm(x.word))) return;
+                const s = findSubAnywhere(x.sub.id); if (!s) return;
+                checked++; let ch = false;
+                if (x.fields.has('definition') && it.definition && String(it.definition).trim().length > 8) { s.definition = String(it.definition).trim(); ch = true; }
+                if (x.fields.has('synonyms')) { const syn = cleanSynonyms(it.synonyms, x.word); if (syn.length) { s.synonyms = syn; ch = true; } }
+                if (x.fields.has('collocations') && Array.isArray(it.collocations) && it.collocations.length) {
+                    const u = cleanUsageFields({ collocations: it.collocations }, x.word); if (u.collocations && u.collocations.length) { s.collocations = u.collocations; ch = true; }
+                }
+                if (x.fields.has('usage') && USAGE[String(it.usage || '').toLowerCase()] && String(it.usage).toLowerCase() !== s.usage) { s.usage = String(it.usage).toLowerCase(); if (!['formal', 'rare'].includes(s.usage)) s.common = []; ch = true; }
+                if (x.fields.has('cefr')) { const lv = String(it.cefr || '').toUpperCase().trim(); if (CEFR.includes(lv) && lv !== s.cefr) { s.cefr = lv; ch = true; } }
+                if (x.fields.has('definition')) s.entryVerified = true;
+                if (ch) fixed++;
+            });
+            return { checked, fixed };
         }
 
         // ================= 檢查並修正例句與單字（文法、自然度、拼字） =================
