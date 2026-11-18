@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.39.1 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.39.2 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1249,7 +1249,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.39.1</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.39.2</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -4955,7 +4955,6 @@ review_sentence 的規則（非常重要）：
         const TEXT_ORDER = ['gemini', 'groq', 'freeai'];            // 查單字、例句的使用順序（v2.10.0：Gemini 為主要，免費服務為備用）
         const getKey = p => (localStorage.getItem(KEY_STORE[p]) || '').trim();
         const hasTextKey = () => TEXT_ORDER.some(p => getKey(p));
-        const GROQ_MODELS = ['openai/gpt-oss-120b', 'llama-3.3-70b-versatile'];
         const FREEAI_BASE = 'https://api.free.ai';
         const FREEAI_CHAT_MODELS = ['qwen7b'];
         const FREE_VOICES = [
@@ -4982,18 +4981,6 @@ review_sentence 的規則（非常重要）：
         }
         const chatText = j => j?.choices?.[0]?.message?.content ?? j?.choices?.[0]?.text ?? j?.message?.content ?? j?.content ?? j?.response ?? j?.output ?? j?.result ?? '';
 
-        async function chatGroq(prompt) {
-            const key = getKey('groq'); let last = null;
-            for (const model of GROQ_MODELS) {
-                try {
-                    const res = await postBearer('https://api.groq.com/openai/v1/chat/completions', key, {
-                        model, temperature: 0.7, messages: [{ role: 'system', content: SYS_PROMPT }, { role: 'user', content: prompt }]
-                    });
-                    return extractJSON(chatText(await res.json()));
-                } catch (e) { last = e; const k = classifyError(e); if (k === 'key' || k === 'offline') break; }
-            }
-            throw last;
-        }
         async function chatFreeAI(prompt) {
             const key = getKey('freeai'); let last = null;
             for (const path of ['/v1/chat/completions', '/v1/chat/']) {
@@ -5167,8 +5154,16 @@ review_sentence 的規則（非常重要）：
             const q = '請回傳 JSON：{"ok": true, "word": "hello 的中文"}';
             const why = e => (e instanceof TypeError && navigator.onLine) ? '無法連線（此服務可能不允許網頁直接連線）' : e.message;
             const lines = [];
-            try { await ({ groq: chatGroq, freeai: chatFreeAI, gemini: chatGemini })[p](q); lines.push('✅ 查單字／例句：可以使用'); }
-            catch (e) { lines.push('❌ 查單字／例句：' + why(e)); }
+            if (p === 'groq') {
+                // v2.39.2：和正式查詢走同一條路（callEngine），兩個 Groq 模型分別測試
+                for (const eng of ENGINES.filter(e => e.provider === 'groq')) {
+                    try { await callEngine(eng, q, 0.7); lines.push(`✅ ${eng.name}：可以使用`); }
+                    catch (e) { lines.push(`❌ ${eng.name}：` + why(e)); }
+                }
+            } else {
+                try { await ({ freeai: chatFreeAI, gemini: chatGemini })[p](q); lines.push('✅ 查單字／例句：可以使用'); }
+                catch (e) { lines.push('❌ 查單字／例句：' + why(e)); }
+            }
             if (p === 'gemini') {
                 try { const c = await fetchTTS('Hello! This is a test.', 'Kore'); lines.push(c.pcm.byteLength ? '✅ AI 語音：可以使用' : '❌ AI 語音：沒有聲音'); }
                 catch (e) { lines.push('❌ AI 語音：' + why(e)); }
@@ -6072,6 +6067,13 @@ ${items.map((x, i) => `#${i + 1} 【${x.word}】 ${proofKey(x.text)}`).join('\n'
             res.engine = r.__engine;
             return res;
         }
+        // v2.39.2：依例句記錄的模型名稱找回引擎；只有在還有「另一個」大模型可以檢查時才回傳（否則照舊由可用的模型檢查）
+        function producerEngine(name) {
+            if (!name) return null;
+            const st = strongEngines();
+            const eng = st.find(e => e.name === name) || (/^Gemini/.test(name) ? st.find(e => e.provider === 'gemini') : null);
+            return eng && st.some(e => e.id !== eng.id) ? eng : null;
+        }
         // 批次結果一律依「編號」對回原本的項目，不依回傳順序（避免 AI 漏一筆就整排錯位）
         function pickByNumber(list, n, keys = null) {
             const arr = Array.isArray(list) ? list : [], out = new Array(n).fill(null);
@@ -6149,7 +6151,18 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             });
             if (!w.fatal) {
                 const items = sents.map(x => ({ ...x, word: wordNow.get(x.s) || clozeTarget(x.s.text) }));
-                const sr = await proofBatches(items, 10, ch => proofSentences(ch), '🩺 檢查例句…');
+                // v2.39.2：依產生例句的模型分組，交給「另一個」模型檢查（不自己檢查自己）
+                items.sort((a, b) => String(a.g.aiModel || '').localeCompare(String(b.g.aiModel || '')));
+                const sr = await proofBatches(items, 10, async ch => {
+                    const groups = new Map();
+                    ch.forEach((it, i) => { const eng = producerEngine(it.g.aiModel); const k = eng ? eng.id : ''; if (!groups.has(k)) groups.set(k, { eng, idx: [] }); groups.get(k).idx.push(i); });
+                    const out = new Array(ch.length);
+                    for (const { eng, idx } of groups.values()) {
+                        const rs = await proofSentences(idx.map(i => ch[i]), eng ? { avoid: eng } : {});
+                        idx.forEach((i, k) => { out[i] = rs[k]; });
+                    }
+                    return out;
+                }, '🩺 檢查例句…');
                 stop = sr.stop || stop;
                 sr.results.forEach((r, x) => {
                     if (!r) return;
@@ -7390,6 +7403,17 @@ The learner wants to study this English sentence pattern / expression: "${input}
 Keep the learner's expression (only fix spelling or grammar mistakes). If it is an incomplete phrase, write it as a reusable pattern with placeholders, e.g. "I'm done with + N / V-ing".
 ${PT_JSON_SPEC}${ptStyleNote()}`);
             if (!String(d.pattern || '').trim() || !Array.isArray(d.examples) || !d.examples.length) throw new Error('AI 回傳的格式不完整');
+            return await proofPatternExamples(d);
+        }
+        // v2.39.2：句型的兩句例句也交給另一個模型交叉檢查（和一般例句相同；沒通過標「⚠️ 待確認」）
+        async function proofPatternExamples(d) {
+            const pat = String(d.pattern).trim(), gen = d.__engine;
+            const list = d.examples.filter(x => x && String(x.en || '').trim()).slice(0, 2);
+            d.examples = await Promise.all(list.map(async x => {
+                const s = `${String(x.en).trim()}${x.zh ? ` (${String(x.zh).trim()})` : ''}`;
+                const r = await proofPick({ sentence: s, reviewWords: [] }, pat, gen, aiStylePattern);
+                return { text: r.sentence, meta: sentMeta(r, r.sentence) };
+            }));
             return d;
         }
         // 把句型資料寫進單字（例句加在最前面；保留使用者原有的例句）
@@ -7401,8 +7425,9 @@ ${PT_JSON_SPEC}${ptStyleNote()}`);
             if (d.__engine && d.__engine.name) sub.aiModel = d.__engine.name;   // v2.39.1：只存模型名稱
             ['synonyms', 'collocations', 'common', 'etym', 'etymSrc', 'cefr', 'usage', 'pendingAI', 'spellWarn'].forEach(k => delete sub[k]);
             const exist = new Set((sub.grandtasks || []).map(g => cleanForSpeech(g.text).toLowerCase()));
-            const add = d.examples.filter(x => x && x.en && !exist.has(String(x.en).trim().toLowerCase())).slice(0, 2)
-                .map(x => ({ id: newId(), text: `🤖 ${String(x.en).trim()}${x.zh ? ` (${String(x.zh).trim()})` : ''}`, checked: false, createdAt: now }));
+            const exText = x => x.text ? String(x.text).trim() : `${String(x.en || '').trim()}${x.zh ? ` (${String(x.zh).trim()})` : ''}`;
+            const add = d.examples.filter(x => x && (x.text || x.en) && !exist.has(cleanForSpeech(exText(x)).toLowerCase())).slice(0, 2)
+                .map(x => ({ id: newId(), text: `🤖 ${exText(x)}`, checked: false, createdAt: now, ...(x.meta || {}) }));
             sub.grandtasks = add.concat(sub.grandtasks || []);
             return pat;
         }
@@ -7424,6 +7449,7 @@ Write the pattern with placeholders, e.g. "It's worth + V-ing", "I was about to 
 ${PT_JSON_SPEC}${ptStyleNote()}`);
                 const pat = String(d.pattern || '').trim();
                 if (!pat || !Array.isArray(d.examples) || !d.examples.length) throw new Error('AI 回傳的格式不完整');
+                await proofPatternExamples(d);
                 const now = Date.now();
                 const sub = { id: newId(), text: '', checked: false, collapsed: false, createdAt: now, grandtasks: [] };
                 applyPatternData(sub, d);
