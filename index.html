@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.39.7 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.39.8 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1249,7 +1249,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.39.7</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.39.8</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -4696,7 +4696,8 @@ ${ENRICH_RULES}
 
         function renderReportList() {
             const items = reportItems();
-            const last = it => Math.max(it.g.lastPlayedAt || 0, it.g.lastClozeAt || 0);
+            // v2.39.8：「最久沒複習」也算口說回想與朗讀的時間
+            const last = it => Math.max(it.g.lastPlayedAt || 0, it.g.lastClozeAt || 0, it.g.lastRecallAt || 0, it.g.lastReadAt || 0);
             let list;
             if (rpSortMode === 'least') list = items.sort((a, b) => (a.g.playCount || 0) - (b.g.playCount || 0) || (a.g.lastPlayedAt || 0) - (b.g.lastPlayedAt || 0));
             else if (rpSortMode === 'most') list = items.filter(it => it.g.playCount).sort((a, b) => b.g.playCount - a.g.playCount);
@@ -5406,8 +5407,12 @@ ${words.map((w, k) => `#${k + 1} ${w}`).join('\n')}
             }
         }
         function toggleReadDone(id, stay) {
-            if (rd.done.has(id)) rd.done.delete(id);
-            else {
+            if (rd.done.has(id)) {
+                rd.done.delete(id);
+                // v2.39.8：取消「念過」時把剛才加的次數減回來，避免來回按重複計算
+                const f = findGrand(id);
+                if (f && f.g.readCount > 0) { f.g.readCount--; refreshBadge(id); saveQuiet(); }
+            } else {
                 rd.done.add(id);
                 const f = findGrand(id);
                 if (f) { f.g.readCount = (f.g.readCount || 0) + 1; f.g.lastReadAt = Date.now(); refreshBadge(id); saveQuiet(); }
