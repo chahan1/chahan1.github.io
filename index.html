@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.39.5 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.39.6 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1249,7 +1249,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.39.5</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.39.6</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -6672,7 +6672,11 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             else mode = await syncAskMerge(countList(tasks), countList(cloud));
             if (!mode) return false;
             if (mode !== 'device' || !cloudEmpty) {
-                try { localStorage.setItem('eng_presync_backup', JSON.stringify({ at: Date.now(), tasks })); } catch (e) {}
+                let backed = true;
+                try { localStorage.removeItem('eng_presync_backup'); localStorage.setItem('eng_presync_backup', JSON.stringify({ at: Date.now(), tasks })); } catch (e) { backed = false; }
+                // v2.39.6：備份存不進去時，會改到這台筆記的選擇（雲端為準、合併）要先問過
+                if (!backed && mode !== 'device' && !isDefaultOnly(tasks)
+                    && !confirm('⚠️ 手機儲存空間不足，無法先保留「同步前的備份」。\n\n繼續的話，這台的筆記會被' + (mode === 'cloud' ? '雲端的筆記取代' : '和雲端合併') + '，之後無法用「還原第一次同步前的筆記」復原。\n\n建議先按「取消」，到「💾 備份與還原」下載一份備份檔再同步。\n仍要繼續嗎？')) return false;
             }
             // 雲端每一筆目前的雜湊（之後只上傳有差異的）
             remote.forEach(r => { sh[r.key] = docHash(r); });
@@ -6883,8 +6887,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
         // 一鍵下載備份檔（存到手機的「下載」資料夾）
         function downloadBackup() {
             if (tasks.length === 0) return alert("沒有筆記可備份！");
-            const d = new Date(), pad = n => String(n).padStart(2, '0');
-            const fileName = `english-notes-backup_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.json`;
+            const fileName = backupFileName('json');   // v2.39.6：和分享備份共用同一套檔名
             const blob = new Blob([JSON.stringify(tasks, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
