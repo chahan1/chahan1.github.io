@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.39.8 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.40.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1249,7 +1249,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.39.8</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.40.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -2737,28 +2737,61 @@ ${ENRICH_RULES}
             getPlaylist(Object.assign({}, playSettings, { scope: 'all', dateMode: 'all', topics: [] })).forEach(it => { byId[it.id] = it; });
             return ids.map(id => byId[id]).filter(Boolean);
         }
-        function plSave(list, how) {
+        // v2.40.0：pos = 目前播到第幾句（從播放視窗保存時才有），一起存下來，之後從那句繼續
+        function plSave(list, how, pos = 0) {
             if (!list || !list.length) { showToast('目前沒有可保存的清單'); return; }
             const ids = list.map(it => it.id);
+            pos = Math.max(0, Math.min(ids.length - 1, pos || 0));
+            const posId = pos > 0 ? ids[pos] : null;
             const a = plLoad();
             const dup = a.find(x => x.ids.length === ids.length && x.ids.every((id, i) => id === ids[i]));
-            if (dup) { showToast(`這份清單已經保存過了（${dup.name}）`); return; }
-            const rec = { id: Date.now(), name: `${plFmt(Date.now())}・${ids.length} 句${how ? '・' + how : ''}`, ids, at: Date.now(), n: 0 };
+            if (dup) {
+                if (posId && dup.posId !== posId) {   // 同一份清單再按 💾：更新播放位置
+                    dup.posId = posId; dup.posAt = Date.now();
+                    if (!plStore(a)) { showToast(PL_FAIL, 4000); return; }
+                    showToast(`💾 已更新「${dup.name}」的播放位置：第 ${pos + 1} / ${ids.length} 句`, 3000);
+                    renderSavedPlaylists();
+                } else showToast(`這份清單已經保存過了（${dup.name}）`);
+                return;
+            }
+            const rec = { id: Date.now(), name: `${plFmt(Date.now())}・${ids.length} 句${how ? '・' + how : ''}`, ids, at: Date.now(), n: 0, posId, posAt: posId ? Date.now() : null };
             a.unshift(rec);
             if (!plStore(a)) { showToast(PL_FAIL, 4000); return; }
-            showToast(`💾 已保存播放清單（${ids.length} 句）\n在「播放設定」最上方可以再播放或改名`, 3500);
+            if (player.open && player.list === list) player.plId = rec.id;   // 之後繼續播放也會更新這份清單的位置
+            showToast(`💾 已保存播放清單（${ids.length} 句${posId ? `，目前在第 ${pos + 1} 句` : ''}）\n在「播放設定」最上方可以再播放或改名`, 3500);
             renderSavedPlaylists();
         }
+        // 已保存清單的續播位置：依保存的例句 ID 換算成目前的第幾句（那句被刪除就從後面最近的一句）
+        function plStartIdx(rec, items) {
+            if (!rec.posId) return 0;
+            let k = items.findIndex(it => it.id === rec.posId);
+            if (k < 0) { const at = rec.ids.indexOf(rec.posId); if (at >= 0) { const later = new Set(rec.ids.slice(at + 1)); k = items.findIndex(it => later.has(it.id)); } }
+            return k > 0 ? k : 0;
+        }
+        // 播放已保存的清單時，換句就更新那份清單的位置；done = 整份播完（下次從頭）
+        function plSavePos(done) {
+            if (!player.plId) return;
+            const a = plLoad(), rec = a.find(x => x.id === player.plId);
+            if (!rec) { player.plId = null; return; }
+            const item = player.list[Math.min(player.idx, player.list.length - 1)];
+            const posId = done || !item || player.idx === 0 ? null : item.id;
+            if (rec.posId === posId) return;
+            rec.posId = posId; rec.posAt = Date.now();
+            plStore(a);
+        }
         function playOrderName() { return { seq: '依序', random: '隨機', weighted: '依熟悉度' }[playSettings.order] || ''; }
-        function savePlaylistNow() { plSave(player.list, playOrderName()); }
+        function savePlaylistNow() { plSave(player.list, playOrderName(), player.finished ? 0 : player.idx); }
         function savePlaylistFromSettings() { plSave(buildPlayList(), playOrderName()); }
-        function plPlay(id) {
+        function plPlay(id, fromStart) {
             const a = plLoad(), rec = a.find(x => x.id === id); if (!rec) return;
             const items = plItems(rec.ids);
             if (!items.length) { showToast('這份清單的例句都已刪除'); return; }
-            rec.n = (rec.n || 0) + 1; rec.last = Date.now(); plStore(a);
-            startPlayer(items);
-            showToast(`▶ 播放「${rec.name}」（${items.length} 句）`);
+            const start = fromStart ? 0 : plStartIdx(rec, items);
+            rec.n = (rec.n || 0) + 1; rec.last = Date.now();
+            if (fromStart) rec.posId = null;
+            plStore(a);
+            startPlayer(items, { start, plId: rec.id });
+            showToast(start ? `⏯ 「${rec.name}」從第 ${start + 1} / ${items.length} 句繼續播放` : `▶ 播放「${rec.name}」（${items.length} 句）`);
         }
         async function plRename(id) {
             const a = plLoad(), rec = a.find(x => x.id === id); if (!rec) return;
@@ -2776,10 +2809,11 @@ ${ENRICH_RULES}
             const a = plLoad();
             if (!a.length) { box.innerHTML = ''; return; }
             box.innerHTML = `<div class="pm-label">📌 已保存的播放清單（${a.length}）</div>` + a.slice(0, pmSavedAll ? SAVED_PL_MAX : 3).map(r => {
-                const ok = plItems(r.ids).length;
+                const items = plItems(r.ids), ok = items.length, at = plStartIdx(r, items);
                 return `<div class="pl-row">
-                    <div class="pl-info"><b>${escapeHtml(r.name)}</b><small>${ok} 句${ok < r.ids.length ? `（${r.ids.length - ok} 句已刪除）` : ''}${r.n ? `・播過 ${r.n} 次` : ''}</small></div>
-                    <button class="pl-play" onclick="plPlay(${r.id})">▶ 播放</button>
+                    <div class="pl-info"><b>${escapeHtml(r.name)}</b><small>${ok} 句${ok < r.ids.length ? `（${r.ids.length - ok} 句已刪除）` : ''}${r.n ? `・播過 ${r.n} 次` : ''}${at ? `・上次到第 ${at + 1} 句` : ''}</small></div>
+                    ${at ? `<button class="pl-ic" title="從第 1 句開始播" onclick="plPlay(${r.id}, true)">⏮</button>` : ''}
+                    <button class="pl-play" onclick="plPlay(${r.id})">${at ? `▶ 從第 ${at + 1} 句` : '▶ 播放'}</button>
                     <button class="pl-ic" title="改名" onclick="plRename(${r.id})">✎</button>
                     <button class="pl-ic" title="刪除" onclick="plDelete(${r.id})">×</button>
                 </div>`;
@@ -2956,11 +2990,13 @@ ${ENRICH_RULES}
         let playSession = null;
         try { playSession = JSON.parse(localStorage.getItem(SESSION_KEY)); } catch (e) {}
         function saveSession() {
+            plSavePos();   // v2.40.0：播放已保存的清單時，記住播到哪一句
             if (!player.open || !player.sessionOn || !player.list.length) return;
             playSession = { sig: player.sig, ids: player.list.map(it => it.id), idx: Math.min(player.idx, player.list.length - 1), at: Date.now() };
             try { localStorage.setItem(SESSION_KEY, JSON.stringify(playSession)); } catch (e) {}
         }
         function clearSession() {
+            plSavePos(true);   // v2.40.0：已保存的清單整份播完 → 下次從頭
             if (!player.sessionOn) return;
             playSession = null;
             try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
@@ -3007,10 +3043,11 @@ ${ENRICH_RULES}
             closePlayModal();
             playerPause();
             aiReleaseAudio();
-            const sessionOn = !isCustom || opts.resume != null;   // 從播放設定開始的清單才記住；學習報表、評分畫面的清單不覆蓋
-            const startIdx = Math.max(0, Math.min(list.length - 1, opts.resume || 0));
+            const sessionOn = !isCustom || opts.resume != null;   // 從播放設定開始的清單才記住；學習報表、評分畫面、已保存的清單不覆蓋
+            const from = opts.resume != null ? opts.resume : (opts.start || 0);   // v2.40.0：已保存的清單用 start 從上次那句開始
+            const startIdx = Math.max(0, Math.min(list.length - 1, from));
             Object.assign(player, { open: true, finished: false, list, idx: startIdx, rep: 0, mode: playSettings.engine === 'phone' ? 'phone' : 'ai',
-                                    sessionOn, sig: playListSig(), resumeId: opts.resume ? list[startIdx].id : null });
+                                    sessionOn, sig: playListSig(), resumeId: startIdx ? list[startIdx].id : null, plId: opts.plId || null });
             saveSession();
             if (opts.resume) showToast(`⏯ 從第 ${startIdx + 1} / ${list.length} 句繼續播放`);
             document.body.classList.add('player-open');
