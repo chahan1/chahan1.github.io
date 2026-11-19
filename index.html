@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.40.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.41.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -756,6 +756,11 @@
         .ps-speed button { width: calc(26px * var(--z)); height: calc(26px * var(--z)); border: none; background: transparent; border-radius: 50%; font-size: calc(15px * var(--z)); color: var(--green); cursor: pointer; }
         .ps-speed button:active { background: var(--c-ffffff); }
         .ps-speed span { min-width: calc(36px * var(--z)); text-align: center; font-size: calc(12px * var(--z)); font-weight: 600; color: var(--text); }
+        .ps-meta { align-items: center; gap: calc(6px * var(--z)); }
+        .ps-meta #psRep { margin-left: auto; }
+        .ps-gap { padding: 0 calc(2px * var(--z)) 0 calc(8px * var(--z)); }
+        .ps-gap small { font-size: calc(10.5px * var(--z)); color: var(--muted); }
+        .ps-gap button { width: calc(24px * var(--z)); height: calc(24px * var(--z)); }
         /* ---- 朗讀練習 ---- */
         body.read-open #readPanel { display: block; }
         body.rate-open #ratePanel { display: block; }
@@ -1249,7 +1254,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.40.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.41.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -2058,7 +2063,8 @@
         <div class="ps-text" id="psText"></div>
         <div class="ps-cn" id="psCn"></div>
         <div class="ps-progress"><div id="psBar"></div></div>
-        <div class="ps-meta"><button class="ps-meta-btn" id="psMeta" onclick="openPsPicker()" title="選擇要播放第幾句"></button><span id="psRep"></span></div>
+        <div class="ps-meta"><button class="ps-meta-btn" id="psMeta" onclick="openPsPicker()" title="選擇要播放第幾句"></button><span id="psRep"></span>
+            <div class="ps-speed ps-gap" title="句子間隔（可在播放中直接調整）"><small>間隔</small><button onclick="changeGap(-0.5)">−</button><span id="psGap">1.2s</span><button onclick="changeGap(0.5)">＋</button></div></div>
         <div class="ps-fam" id="psFam">
             <span class="ps-fam-label">聽力熟悉度</span>
             <div class="ps-fam-btns">
@@ -2513,7 +2519,42 @@ ${ENRICH_RULES}
             updateSpeedView();
             if (document.getElementById('playModal').style.display === 'flex') refreshPlayModal();
         }
+        // v2.41.0：播放中調整句子間隔。手機語音下一次停頓就生效；AI 語音要用手機裡已存的語音重新串成一段（不重新產生、不花費），停止調整 0.6 秒後套用
+        let gapTimer = null;
+        function changeGap(d) {
+            const g = Math.round(Math.max(0.5, Math.min(15, Number(playSettings.gap || 1.2) + d)) * 10) / 10;
+            if (g === Number(playSettings.gap)) return;
+            playSettings.gap = g;
+            savePlay();
+            updateGapView();
+            if (document.getElementById('playModal').style.display === 'flex') refreshPlayModal();
+            showToast(`⏱ 句子間隔：${g} 秒`, 1200);
+            if (player.open && player.mode === 'ai' && player.segments) { clearTimeout(gapTimer); gapTimer = setTimeout(aiRebuildForGap, 600); }
+        }
+        function updateGapView() { const el = document.getElementById('psGap'); if (el) el.textContent = Number(playSettings.gap || 1.2) + 's'; }
+        async function aiRebuildForGap() {
+            if (!player.open || player.mode !== 'ai' || !player.segments || !aiAudio) return;
+            const token = player.token, list = player.list, spec = voiceSpec(), clips = {};
+            const wasPlaying = !aiAudio.paused, idx = player.idx, rep = player.rep, finished = player.finished;
+            try { for (const it of list) clips[it.id] = await getClip(it.en, spec); }   // 都已存在手機裡，直接讀取
+            catch (e) { showToast('間隔已記住，下次播放時套用'); return; }
+            if (token !== player.token || !player.open || player.list !== list) return;   // 這段期間換了清單或關閉
+            const built = buildPlaylistAudio(list, clips);
+            const segNo = built.segments.findIndex(x => x.idx === idx && x.rep === Math.min(rep, itemRepeat(list[idx]) - 1));
+            aiAudio.pause();
+            if (player.aiUrl) URL.revokeObjectURL(player.aiUrl);
+            player.aiUrl = built.url; player.segments = built.segments;
+            aiAudio.src = built.url;
+            await new Promise(res => { if (aiAudio.readyState >= 1) res(); else aiAudio.addEventListener('loadedmetadata', res, { once: true }); });
+            if (finished) { player.finished = true; updatePlayerView(); return; }
+            player.lastSeg = segNo;   // 從目前這一次的開頭接著念，不重複記錄播放次數
+            aiAudio.currentTime = segNo >= 0 ? built.segments[segNo].start : 0;
+            applyItemRate();
+            updatePlayerView();
+            if (wasPlaying) aiAudio.play().catch(() => {});
+        }
         function updateSpeedView() {
+            updateGapView();
             const el = document.getElementById('psSpeed'); if (!el) return;
             const item = player.open && !player.finished ? player.list[player.idx] : null;
             el.textContent = (item && lvCfg(item) ? itemSpeed(item) : aiSpeed()).toFixed(1) + 'x';
@@ -3101,7 +3142,8 @@ ${ENRICH_RULES}
                     recordPlay(player.list[player.idx].id);
                     await speakOnce(player.list[player.idx].en, Math.round(0.9 * itemSpeed(player.list[player.idx]) * 100) / 100);   // 依熟悉度時，每句用自己分數的語速
                     if (!alive()) return;
-                    await sleep(Number(playSettings.gap || 1.2) * 1000);   // 每念完一次（同句重複或換句）都停頓設定的秒數
+                    // 每念完一次（同句重複或換句）都停頓設定的秒數；v2.41.0 停頓中調整間隔也立即生效
+                    for (const t0 = Date.now(); alive() && Date.now() - t0 < Number(playSettings.gap || 1.2) * 1000;) await sleep(100);
                     if (!alive()) return;
                 }
                 player.idx++; player.rep = 0;
@@ -3111,6 +3153,7 @@ ${ENRICH_RULES}
 
         function updatePlayerView() {
             if (!player.open) return;
+            updateGapView();
             const total = player.list.length;
             const item = player.list[Math.min(player.idx, total - 1)];
             const $ = id => document.getElementById(id);
@@ -3449,7 +3492,7 @@ ${ENRICH_RULES}
             for (let i = 0; i < n; i++) { const x = i * from / to, i0 = Math.floor(x), f = x - i0; out[i] = (src[i0] || 0) * (1 - f) + (src[i0 + 1] || src[i0] || 0) * f; }
             return out.buffer;
         }
-        // 串成一整段：每句念 N 次，同句之間停 0.7 秒，換句停 1.2 秒
+        // 串成一整段：每句念 N 次，每念完一次都停頓設定的句子間隔
         function buildPlaylistAudio(list, clips) {
             const rate = clips[list[0].id].rate;
             const parts = [], segments = [];
