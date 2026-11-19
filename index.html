@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.39.4 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.39.5 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1249,7 +1249,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.39.4</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.39.5</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -4167,7 +4167,6 @@ ${ENRICH_RULES}
             segs.push({ t: 'x', v: sentence.slice(pos) });
             return { segs, answers, types };
         }
-        const RC_NUM = ['①', '②', '③', '④', '⑤'];
         // 逐空格比對：把所有空格答案依序接起來，和說出的內容對齊，每個空格的字都對到才算對
         function rcBlankCheck(cl, heard) {
             const parts = cl.answers.map(a => rcExpand(a).split(/\s+/).filter(Boolean));
@@ -4190,7 +4189,7 @@ ${ENRICH_RULES}
             $('rcBar').style.transform = `scaleX(${rc.i / rc.list.length})`;
             $('rcLabel').textContent = (it.re ? '剛剛沒想起來的，再試一次・' : '') + (it.phrase ? (it.cloze.answers.length > 1 ? `依序說出 ${it.cloze.answers.length} 個空格（說整句也可以）：` : '說出空格裡的英文（說整句也可以）：') : '用英文說出這句：');
             $('rcCn').textContent = it.cn;
-            $('rcClozeLine').innerHTML = it.phrase ? it.cloze.segs.map(sg => sg.t === 'x' ? escapeHtml(sg.v) : `<span class="rc-blank">${it.cloze.answers.length > 1 ? RC_NUM[sg.i] : ''}${'＿'.repeat(Math.min(8, Math.max(3, it.cloze.answers[sg.i].length / 2 | 0)))}</span>`).join('') : '';
+            $('rcClozeLine').innerHTML = it.phrase ? it.cloze.segs.map(sg => sg.t === 'x' ? escapeHtml(sg.v) : `<span class="rc-blank">${it.cloze.answers.length > 1 ? CIRCLED[sg.i] : ''}${'＿'.repeat(Math.min(8, Math.max(3, it.cloze.answers[sg.i].length / 2 | 0)))}</span>`).join('') : '';
             $('rcHintLine').textContent = '';
             $('rcReveal').style.display = 'none';
             $('rcAsk').style.display = 'block'; $('rcRate').style.display = 'none';
@@ -4213,7 +4212,7 @@ ${ENRICH_RULES}
             if (it.phrase) {
                 const multi = it.cloze.answers.length > 1;
                 rc.hint = Math.min(2, rc.hint + 1);
-                el.textContent = '空格：' + it.cloze.answers.map((a, i) => (multi ? RC_NUM[i] + ' ' : '') + (rc.hint === 1 ? rcSkel(a) : a)).join('　');
+                el.textContent = '空格：' + it.cloze.answers.map((a, i) => (multi ? CIRCLED[i] + ' ' : '') + (rc.hint === 1 ? rcSkel(a) : a)).join('　');
                 return;
             }
             const tw = clozeTarget(it.word || '');
@@ -4423,13 +4422,13 @@ ${ENRICH_RULES}
             const okArr = best ? best.c.ok : cl.answers.map(() => false);
             rc.sug = !best ? false : okArr.every(Boolean);
             $('rcEn').innerHTML = cl.segs.map(sg => sg.t === 'x' ? escapeHtml(sg.v)
-                : `<b class="${okArr[sg.i] ? 'rc-b-ok' : 'rc-b-bad'}">${multi ? RC_NUM[sg.i] : ''}${escapeHtml(cl.answers[sg.i])}</b>`).join('');
+                : `<b class="${okArr[sg.i] ? 'rc-b-ok' : 'rc-b-bad'}">${multi ? CIRCLED[sg.i] : ''}${escapeHtml(cl.answers[sg.i])}</b>`).join('');
             const TYPE = { phrase: '詞組', prep: '介詞', word: '單字' };
             $('rcHeardBox').innerHTML = (best ? `
                 <div class="rc-sub">${rc.typing || !SpeechRecognition ? '你寫的' : '你說的（語音辨識結果）'}</div>
                 <div class="rc-heard">${escapeHtml(best.text)}</div>` : '') + `
                 <div class="rc-sub">空格${best ? `・對了 ${best.c.right} / ${best.c.total}` : ''}</div>
-                <div class="rc-heard">${cl.answers.map((a, i) => `<span class="rc-chip ${best ? (okArr[i] ? 'ok' : 'bad') : ''}">${multi ? RC_NUM[i] + ' ' : ''}${escapeHtml(a)} <small>${TYPE[cl.types[i]] || ''}</small>${best ? (okArr[i] ? ' ✓' : ' ✗') : ''}</span>`).join(' ')}</div>`;
+                <div class="rc-heard">${cl.answers.map((a, i) => `<span class="rc-chip ${best ? (okArr[i] ? 'ok' : 'bad') : ''}">${multi ? CIRCLED[i] + ' ' : ''}${escapeHtml(a)} <small>${TYPE[cl.types[i]] || ''}</small>${best ? (okArr[i] ? ' ✓' : ' ✗') : ''}</span>`).join(' ')}</div>`;
             $('rcReveal').style.display = 'block';
             $('rcAsk').style.display = 'none'; $('rcRate').style.display = 'block';
             $('rcSug').innerHTML = !best ? '先看答案、聽一次發音，再按「沒想起來」，等一下會再出現。'
@@ -4478,14 +4477,15 @@ ${ENRICH_RULES}
                 : '';
             $('rcRetryWrong').style.display = wrong.length ? 'block' : 'none';
             // 重練舊清單時不另存新清單，只更新原清單的「沒想起來」名單
+            let saved = true;   // v2.39.5：存檔失敗要照實告知
             if (rc.fromHist) {
                 const h = rcHistLoad(), rec = h.find(x => x.id === rc.fromHist);
-                if (rec) { const doneIds = new Set(rc.results.map(r => r.item.id)); rec.wrong = rec.ids.filter(id => doneIds.has(id) ? wrong.some(r => r.item.id === id) : rec.wrong.includes(id)); rcHistSave(h); }
-                $('rcSavedNote').textContent = '已更新這份練習清單，之後可以從「口說回想」設定畫面再練。';
+                if (rec) { const doneIds = new Set(rc.results.map(r => r.item.id)); rec.wrong = rec.ids.filter(id => doneIds.has(id) ? wrong.some(r => r.item.id === id) : rec.wrong.includes(id)); if (!rcHistSave(h)) saved = false; }
+                $('rcSavedNote').textContent = saved ? '已更新這份練習清單，之後可以從「口說回想」設定畫面再練。' : RC_HIST_FAIL;
                 rc.lastHistId = rc.fromHist;
             } else {
                 const rec = rcHistAdd(); rc.lastHistId = rec && rec.id;
-                $('rcSavedNote').textContent = '這組句子已存成練習清單，之後可以從「口說回想」設定畫面「再練這組」。';
+                $('rcSavedNote').textContent = rec ? '這組句子已存成練習清單，之後可以從「口說回想」設定畫面「再練這組」。' : (rc.results.length ? RC_HIST_FAIL : '');
             }
             rc.fromHist = null;
         }
@@ -4494,12 +4494,14 @@ ${ENRICH_RULES}
         // ---- v2.26.0 練習清單：每次練完自動存成一份清單，之後可以原組重練或只練沒想起來的 ----
         const RC_HIST_KEY = 'eng_recallHistory', RC_HIST_MAX = 30;
         function rcHistLoad() { try { return JSON.parse(localStorage.getItem(RC_HIST_KEY)) || []; } catch (e) { return []; } }
-        function rcHistSave(h) { try { localStorage.setItem(RC_HIST_KEY, JSON.stringify(h.slice(0, RC_HIST_MAX))); } catch (e) {} }
+        // v2.39.5：回傳是否存成功；失敗（例如手機空間不足）時由呼叫者告知
+        function rcHistSave(h) { try { localStorage.setItem(RC_HIST_KEY, JSON.stringify(h.slice(0, RC_HIST_MAX))); return true; } catch (e) { return false; } }
+        const RC_HIST_FAIL = '⚠️ 手機儲存空間不足，練習清單沒有存下來（可以先刪除幾份舊的清單）';
         function rcHistAdd() {
             if (!rc.results.length) return null;
             const rec = { id: Date.now(), t: Date.now(), ids: rc.results.map(r => r.item.id), wrong: rc.results.filter(r => !r.ok).map(r => r.item.id), right: rc.results.filter(r => r.ok).length, n: 0 };
-            const h = rcHistLoad(); h.unshift(rec); rcHistSave(h);
-            return rec;
+            const h = rcHistLoad(); h.unshift(rec);
+            return rcHistSave(h) ? rec : null;
         }
         // 把清單裡的 id 換回題目（已刪除的例句自動略過）
         function rcItemsByIds(ids) {
@@ -4515,7 +4517,7 @@ ${ENRICH_RULES}
             rc.fromHist = hid;
             startRecall(items);
         }
-        function rcHistDelete(hid) { rcHistSave(rcHistLoad().filter(x => x.id !== hid)); renderRecallHist(); }
+        function rcHistDelete(hid) { if (!rcHistSave(rcHistLoad().filter(x => x.id !== hid))) showToast(RC_HIST_FAIL, 4000); renderRecallHist(); }
         function renderRecallHist() {
             const box = document.getElementById('rcHistBox'); if (!box) return;
             const h = rcHistLoad();
@@ -4542,8 +4544,8 @@ ${ENRICH_RULES}
             if (inQuiz && rc.results.length) {
                 if (rc.fromHist) {
                     const h = rcHistLoad(), rec = h.find(x => x.id === rc.fromHist);
-                    if (rec) { const wr = new Set(rc.results.filter(r => !r.ok).map(r => r.item.id)), done = new Set(rc.results.map(r => r.item.id)); rec.wrong = rec.ids.filter(id => done.has(id) ? wr.has(id) : rec.wrong.includes(id)); rcHistSave(h); }
-                } else { rcHistAdd(); showToast('已作答的句子已存成練習清單'); }
+                    if (rec) { const wr = new Set(rc.results.filter(r => !r.ok).map(r => r.item.id)), done = new Set(rc.results.map(r => r.item.id)); rec.wrong = rec.ids.filter(id => done.has(id) ? wr.has(id) : rec.wrong.includes(id)); if (!rcHistSave(h)) showToast(RC_HIST_FAIL, 4000); }
+                } else showToast(rcHistAdd() ? '已作答的句子已存成練習清單' : RC_HIST_FAIL, 3500);
                 rc.fromHist = null;
             }
             document.body.classList.remove('recall-open');
