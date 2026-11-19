@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.39.6 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.39.7 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1249,7 +1249,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.39.6</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.39.7</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -6826,9 +6826,8 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             syncNotify();
         }
 
-        function toggleSubtasks(id, level, parentId = null) {
-            if (level === 'main') { const t = findMain(id); if (t) t.collapsed = !t.collapsed; }
-            else if (level === 'sub') { const s = findSub(parentId, id); if (s) s.collapsed = !s.collapsed; }
+        function toggleSubtasks(id) {   // v2.39.7：只有主題可以收合（移除沒有用到的「收合單字」）
+            const t = findMain(id); if (t) t.collapsed = !t.collapsed;
             saveData();
         }
 
@@ -6861,7 +6860,8 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             const v = await uiPrompt('修改同義字', (sub.synonyms || []).join(', '), { sub: cleanForSpeech(sub.text) || sub.text, hint: '用逗號分開，清空即刪除' });
             if (v === null) return;
             const list = v.split(/[,，、;；]/).map(x => x.trim()).filter(Boolean).slice(0, 4);
-            if (list.length) sub.synonyms = list; else delete sub.synonyms;
+            // v2.39.7：清空時記下「不需要同義字」，一鍵補齊就不會再補回來；重新填寫時取消這個記號
+            if (list.length) { sub.synonyms = list; delete sub.noSynonyms; } else { delete sub.synonyms; sub.noSynonyms = true; }
             saveData();
         }
 
@@ -7327,7 +7327,6 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
         async function rebuildSub(sub, topicId) {
             SUB_AI_FIELDS.forEach(k => delete sub[k]);
             sub.grandtasks = [];
-            sub.collapsed = false;
             if (!navigator.onLine || !hasTextKey()) {
                 sub.definition = PENDING_DEF_TEXT; sub.pendingAI = true; saveData();
                 showToast(!navigator.onLine ? '📴 目前離線，舊資料已清除\n上線後會自動重新查詢' : '已清除舊資料；設定 AI 金鑰後會自動重新查詢', 3500);
@@ -7548,7 +7547,7 @@ ${PT_JSON_SPEC}${ptStyleNote()}`);
                 card.className = 'task-card' + (task.checked ? ' completed-card' : '');
                 card.dataset.id = task.id;
                 
-                const toggleBtnHtml = task.subtasks.length > 0 ? `<div class="toggle-icon" onclick="toggleSubtasks(${task.id}, 'main')">${task.collapsed ? '▶' : '▼'}</div>` : `<div class="toggle-placeholder"></div>`;
+                const toggleBtnHtml = task.subtasks.length > 0 ? `<div class="toggle-icon" onclick="toggleSubtasks(${task.id})">${task.collapsed ? '▶' : '▼'}</div>` : `<div class="toggle-placeholder"></div>`;
                 let html = `
                     <div class="task-row main-row">
                         <div class="drag-handle main-handle">☰</div>
