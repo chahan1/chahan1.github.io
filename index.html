@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.39.3 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.39.4 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1249,7 +1249,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.39.3</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.39.4</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -2453,8 +2453,7 @@ ${ENRICH_RULES}
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(englishOnly);
                 utterance.lang = 'en-US'; utterance.rate = phoneRate();
-                const voices = window.speechSynthesis.getVoices();
-                const enVoice = voices.find(v => v.lang.replace('_', '-').includes('en-US')) || voices.find(v => v.lang.startsWith('en'));
+                const enVoice = pickEnglishVoice();   // v2.39.4：和連續播放共用同一套挑聲音的規則
                 if (enVoice) utterance.voice = enVoice;
                 let started = false, fellBack = false;
                 const fallback = () => { if (fellBack) return; fellBack = true; window.speechSynthesis.cancel(); playAudioFallback(englishOnly); };
@@ -2729,7 +2728,9 @@ ${ENRICH_RULES}
         const SAVED_PL_KEY = 'eng_savedPlaylists', SAVED_PL_MAX = 30;
         let pmSavedAll = false;
         function plLoad() { try { return JSON.parse(localStorage.getItem(SAVED_PL_KEY)) || []; } catch (e) { return []; } }
-        function plStore(a) { try { localStorage.setItem(SAVED_PL_KEY, JSON.stringify(a.slice(0, SAVED_PL_MAX))); } catch (e) {} }
+        // v2.39.4：回傳是否存成功；失敗（例如手機空間不足）時由呼叫者告知，不再假裝已保存
+        function plStore(a) { try { localStorage.setItem(SAVED_PL_KEY, JSON.stringify(a.slice(0, SAVED_PL_MAX))); return true; } catch (e) { return false; } }
+        const PL_FAIL = '⚠️ 手機儲存空間不足，播放清單的變更沒有存下來\n可以先刪除幾份舊的清單再試一次';
         function plFmt(t) { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }
         function plItems(ids) {
             const byId = {};
@@ -2743,7 +2744,8 @@ ${ENRICH_RULES}
             const dup = a.find(x => x.ids.length === ids.length && x.ids.every((id, i) => id === ids[i]));
             if (dup) { showToast(`這份清單已經保存過了（${dup.name}）`); return; }
             const rec = { id: Date.now(), name: `${plFmt(Date.now())}・${ids.length} 句${how ? '・' + how : ''}`, ids, at: Date.now(), n: 0 };
-            a.unshift(rec); plStore(a);
+            a.unshift(rec);
+            if (!plStore(a)) { showToast(PL_FAIL, 4000); return; }
             showToast(`💾 已保存播放清單（${ids.length} 句）\n在「播放設定」最上方可以再播放或改名`, 3500);
             renderSavedPlaylists();
         }
@@ -2762,12 +2764,12 @@ ${ENRICH_RULES}
             const a = plLoad(), rec = a.find(x => x.id === id); if (!rec) return;
             const v = await uiPrompt('清單名稱', rec.name, { hint: '例如：週末複習、易錯句、會議用語' });
             if (v == null || !v.trim()) return;
-            rec.name = v.trim(); plStore(a); renderSavedPlaylists();
+            rec.name = v.trim(); if (!plStore(a)) showToast(PL_FAIL, 4000); renderSavedPlaylists();
         }
         function plDelete(id) {
             const a = plLoad(), rec = a.find(x => x.id === id); if (!rec) return;
             if (!confirm(`刪除清單「${rec.name}」？（例句本身不會被刪除）`)) return;
-            plStore(a.filter(x => x.id !== id)); renderSavedPlaylists();
+            if (!plStore(a.filter(x => x.id !== id))) showToast(PL_FAIL, 4000); renderSavedPlaylists();
         }
         function renderSavedPlaylists() {
             const box = document.getElementById('pmSaved'); if (!box) return;
@@ -3268,7 +3270,6 @@ ${ENRICH_RULES}
             ['Kore', '沉穩'], ['Aoede', '輕快'], ['Leda', '年輕'], ['Sulafat', '溫暖'],
             ['Charon', '清晰知性'], ['Puck', '活潑'], ['Achird', '親切'], ['Iapetus', '清楚']
         ];
-        const AI_RATE = { 0.7: 0.8, 0.9: 1.0, 1.1: 1.2 };   // AI 語音本身速度自然，對應的播放倍速
 
         let ttsDbPromise = null;
         function ttsDB() {
