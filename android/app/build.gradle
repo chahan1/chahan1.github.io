@@ -1,0 +1,33 @@
+plugins { id 'com.android.application' }
+
+def buildNum = (System.getenv('BUILD_NUM') ?: '1').toInteger()
+
+android {
+    namespace 'tw.chahan.engnotebook'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'tw.chahan.engnotebook'
+        minSdk 29
+        targetSdk 34
+        versionCode buildNum
+        versionName "0.1." + buildNum
+    }
+    signingConfigs {
+        release {
+            storeFile file('engnotebook.jks')
+            storePassword 'engnotebook'
+            keyAlias 'engnotebook'
+            keyPassword 'engnotebook'
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

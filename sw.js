@@ -1,6 +1,6 @@
 // 英語學習筆記本 - Service Worker（讓 App 可離線開啟）
 // 更新程式後，把版本號改掉，使用者下次開啟就會拿到新版
-const CACHE_NAME = 'eng-notebook-v2.42.0';
+const CACHE_NAME = 'eng-notebook-v2.43.0';
 const APP_FILES = [
   './',
   './index.html',
@@ -11,7 +11,8 @@ const APP_FILES = [
   './maskable-512.png',
   './apple-touch-icon.png',
   './screenshot-1.png',
-  './sortable.min.js'
+  './sortable.min.js',
+  './native.js'
 ];
 
 self.addEventListener('install', event => {

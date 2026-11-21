@@ -11,9 +11,10 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.42.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.43.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
+    <script src="native.js"></script>
     <style>
         /* Hallmark v2.0.0 (condensed) | shape: app screen | screen: note list with topics, words and sentences | signature: the word card (word, definition, etymology, sentence with its voice button) | tokens: generated from the existing palette, neutrals tinted to the notebook green, with a dark scheme | type: system sans, one family */
         /* critique: Google greys and 30 emoji icons read as a generic clone; one green family, one line-icon set, light and dark */
@@ -1269,7 +1270,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.42.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.43.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1365,6 +1366,15 @@
                 </div>
             </div>
             <div class="pm-hint" id="pmEngineHint"></div>
+            <div id="pmMixBox" style="display:none">
+                <div class="pm-label">和其他 App 的聲音（Android App）</div>
+                <div class="seg" id="pmMix">
+                    <button data-v="mix" onclick="setMixMode('mix')">同時播放</button>
+                    <button data-v="duck" onclick="setMixMode('duck')">讓對方變小聲</button>
+                    <button data-v="exclusive" onclick="setMixMode('exclusive')">被打斷就停</button>
+                </div>
+                <div class="pm-hint" id="pmMixHint"></div>
+            </div>
             <div class="pm-label">主題</div>
             <button class="pm-topic-btn" id="pmTopicBtn" onclick="openTopicPick()"></button>
             <div class="pm-label">播放範圍</div>
@@ -2928,6 +2938,27 @@ ${ENRICH_RULES}
         }, 1500);
         function closePlayModal() { document.getElementById('playModal').style.display = 'none'; }
 
+        // ---- v2.43.0 Android App：和 Facebook 等其他 App 的聲音怎麼相處 ----
+        const MIX_HINT = {
+            mix: '例句和其他 App（例如 Facebook 影片）同時出聲，誰都不會被停掉。',
+            duck: '念例句時，其他 App 會暫時變小聲；不會被停掉。',
+            exclusive: '和網頁版一樣：其他 App 開始播放時例句會暫停，回到 App 時自動接著播。'
+        };
+        function setMixMode(m) {
+            if (!window.nativeApp) return;
+            nativeApp.setMix(m);
+            refreshMixBox();
+            if (player.open && player.playing) showToast('下一次按 ▶ 播放時套用', 2000);
+        }
+        function refreshMixBox() {
+            const box = document.getElementById('pmMixBox'); if (!box) return;
+            box.style.display = window.nativeApp ? 'block' : 'none';
+            if (!window.nativeApp) return;
+            const m = nativeApp.getMix();
+            document.querySelectorAll('#pmMix button').forEach(b => b.classList.toggle('on', b.dataset.v === m));
+            document.getElementById('pmMixHint').textContent = MIX_HINT[m] + `（App 原生版本 ${nativeApp.version}）`;
+        }
+
         function setPlayOpt(key, val) {
             if (key === 'limit' && !playSettings._lc) playSettings.limitCustom = false;
             if (key === 'repeat') val = Math.max(1, Math.min(10, val));
@@ -2973,9 +3004,10 @@ ${ENRICH_RULES}
             document.getElementById('pmEngineHint').innerHTML = (
                 isFree ? '用 Free.ai 免費產生自然的語音，可關閉螢幕繼續播放。每句第一次播放時需上網產生，之後存在手機裡，離線也能播。'
                 : playSettings.engine === 'ai' ? '用 Gemini 產生語音（可能產生少量費用），可關閉螢幕繼續播放。每句只產生一次，之後離線也能播。'
-                : '免費、離線可用，但聲音較機械，且關閉螢幕後會暫停。')
+                : window.nativeApp ? '免費、離線可用，聲音較機械；在 App 裡關閉螢幕也會繼續播放。' : '免費、離線可用，但聲音較機械，且關閉螢幕後會暫停。')
                 + (needKey ? `<br><span style="color:var(--c-b3261e)">⚠️ 尚未設定 ${PROVIDER_NAME[voiceSpec().provider]} 金鑰，請到選單「AI 金鑰設定」填入。</span>` : '');
             refreshAICacheInfo();
+            refreshMixBox();
             document.querySelectorAll('#pmScope button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.scope));
             document.querySelectorAll('#pmDate button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.dateMode));
             refreshCurveBox();
@@ -3021,6 +3053,7 @@ ${ENRICH_RULES}
             return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
         }
         function keepAliveStart() {
+            if (window.nativeApp) return;   // Android App：由原生前景服務讓 App 在背景繼續，不需要無聲音軌
             try {
                 if (!keepAliveAudio) {
                     keepAliveAudio = new Audio(makeQuietWav());
@@ -3053,8 +3086,13 @@ ${ENRICH_RULES}
             set('stop', () => playerStop());
         }
         function updateMediaSession() {
-            if (!('mediaSession' in navigator)) return;
             const item = player.list[player.idx];
+            if (window.nativeApp && player.open) nativeApp.media({
+                title: item && !player.finished ? item.en : '例句播放完畢',
+                text: item ? `${player.idx + 1} / ${player.list.length}　${cleanForSpeech(item.word)}` : '英語學習筆記本',
+                playing: !!player.playing
+            });
+            if (!('mediaSession' in navigator)) return;
             try {
                 navigator.mediaSession.metadata = new MediaMetadata({
                     title: item ? item.en : '例句播放完畢',
@@ -3412,6 +3450,7 @@ ${ENRICH_RULES}
             document.body.classList.remove('player-open');
             highlightPlaying(false);
             if ('mediaSession' in navigator) { try { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; } catch (e) {} }
+            if (window.nativeApp) nativeApp.media(null);
         }
 
         // ================= AI 真人語音（Gemini TTS）=================
@@ -3590,7 +3629,7 @@ ${ENRICH_RULES}
         let aiAudio = null;
         function aiEnsureAudio() {
             if (aiAudio) return aiAudio;
-            aiAudio = new Audio();
+            aiAudio = window.NativeAudio ? new NativeAudio() : new Audio();   // v2.43.0：Android App 裡改由原生播放器播放（可和 Facebook 同時出聲）
             aiAudio.preload = 'auto';
             aiAudio.addEventListener('timeupdate', aiOnTime);
             aiAudio.addEventListener('ended', () => {
@@ -6765,6 +6804,11 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             try {
                 const fb = await syncInit();
                 let user = await new Promise(res => { const u = fb.onAuthStateChanged(sync.auth, x => { u(); res(x); }); });
+                if (!user && interactive && window.nativeApp) {   // Google 不允許在 App 內嵌網頁登入；原生登入下一版加入
+                    sync.starting = false;
+                    setSyncStatus('login', 'Android App 版暫時還不能登入雲端同步。請先在 Chrome 版選單按「下載備份」，再到 App 選單用「還原」匯入資料。');
+                    return;
+                }
                 if (!user && interactive) {
                     const provider = new fb.GoogleAuthProvider();
                     provider.setCustomParameters({ prompt: 'select_account' });
@@ -7075,12 +7119,16 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
         function downloadBackup() {
             if (tasks.length === 0) return alert("沒有筆記可備份！");
             const fileName = backupFileName('json');   // v2.39.6：和分享備份共用同一套檔名
-            const blob = new Blob([JSON.stringify(tasks, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = fileName; a.style.display = 'none';
-            document.body.appendChild(a); a.click();
-            setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 3000);
+            const json = JSON.stringify(tasks, null, 2);
+            if (window.nativeApp) {   // Android App：直接存進「下載」資料夾
+                if (!nativeApp.saveFile(fileName, 'application/json', json)) return showToast('⚠️ 備份檔存檔失敗，請再試一次', 3000);
+            } else {
+                const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+                const a = document.createElement('a');
+                a.href = url; a.download = fileName; a.style.display = 'none';
+                document.body.appendChild(a); a.click();
+                setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 3000);
+            }
 
             markBackedUp();
             const c = countWords();
