@@ -26,14 +26,24 @@ jobs:
           set -o pipefail
           gradle assembleRelease --no-daemon --stacktrace 2>&1 | tee ../build.log
           cp app/build/outputs/apk/release/app-release.apk ../eng-notebook.apk
+      - name: Release notes
+        run: |
+          NV=$(grep -oP 'VERSION = \K[0-9]+' android/app/src/main/java/tw/chahan/engnotebook/Bridge.java)
+          {
+            echo "原生版本 ${NV}（第 ${{ github.run_number }} 次打包）。用手機開啟下面的 eng-notebook.apk 下載並安裝。"
+            echo ""
+            echo "更新內容：$(head -c 600 android/whatsnew.txt)"
+            echo ""
+            echo "直接下載：https://github.com/chahan1/chahan1.github.io/releases/download/android-latest/eng-notebook.apk"
+            echo ""
+            echo "<!-- native=${NV} -->"
+          } > notes.md
       - name: Publish APK
         uses: softprops/action-gh-release@v2
         with:
           tag_name: android-latest
           name: 英語筆記本 Android App
-          body: |
-            第 ${{ github.run_number }} 版。用手機開啟下面的 eng-notebook.apk 下載並安裝。
-            直接下載：https://github.com/chahan1/chahan1.github.io/releases/download/android-latest/eng-notebook.apk
+          body_path: notes.md
           files: eng-notebook.apk
           make_latest: true
       - name: Clear old build log

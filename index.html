@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.47.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.48.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -1054,6 +1054,7 @@
         .tool-card.static { cursor: default; align-items: flex-start; }
         .tool-card .lv-stats { margin: calc(8px * var(--z)) 0 calc(6px * var(--z)); }
         .tool-link { font-size: calc(12px * var(--z)); color: var(--green); font-weight: 600; cursor: pointer; }
+        .nu-later { display: block; width: 100%; margin-top: calc(6px * var(--z)); background: none; border: none; color: var(--muted); font-size: calc(13.5px * var(--z)); padding: calc(8px * var(--z)); cursor: pointer; }
         /* v2.47.0 查單字 */
         .lk-word { font-size: calc(19px * var(--z)); overflow-wrap: anywhere; }
         .lk-say-row { display: flex; align-items: center; gap: calc(10px * var(--z)); flex-wrap: wrap; margin: calc(2px * var(--z)) 0 calc(10px * var(--z)); }
@@ -1281,7 +1282,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.47.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.48.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1963,6 +1964,17 @@
             <div class="pm-title"><h3 id="lkWord" class="lk-word"></h3><button class="pm-close" onclick="closeLookup()">×</button></div>
             <div class="lk-say-row"><span id="lkIpa" class="lk-ipa"></span><button class="lk-say" onclick="lookupSay()"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-volume"/></svg> 發音</button></div>
             <div id="lkBody" class="lk-body"></div>
+        </div>
+    </div>
+
+    <!-- v2.48.0 Android App：有新的原生版本 -->
+    <div id="nativeUpdModal" class="modal-overlay play-modal" onclick="if(event.target===this) laterNativeUpdate()">
+        <div class="modal-content">
+            <div class="pm-title"><h3>📲 App 有新版本</h3><button class="pm-close" onclick="laterNativeUpdate()">×</button></div>
+            <div class="bk-status" id="nuText"></div>
+            <div class="pm-hint">按「下載安裝」後，下載完成請點通知或「下載」資料夾裡的 eng-notebook.apk，直接覆蓋安裝，筆記和設定都會保留。</div>
+            <button class="btn-primary pm-start" onclick="downloadNativeUpdate()">下載安裝</button>
+            <button class="nu-later" onclick="laterNativeUpdate()">稍後再說</button>
         </div>
     </div>
 
@@ -2984,7 +2996,7 @@ ${ENRICH_RULES}
             if (!window.nativeApp) return;
             const m = nativeApp.getMix();
             document.querySelectorAll('#pmMix button').forEach(b => b.classList.toggle('on', b.dataset.v === m));
-            document.getElementById('pmMixHint').textContent = MIX_HINT[m] + `（App 原生版本 ${nativeApp.version}）`;
+            document.getElementById('pmMixHint').innerHTML = escapeHtml(MIX_HINT[m]) + `（App 原生版本 ${nativeApp.version}・<a href="#" onclick="checkNativeUpdate(true); return false;">檢查 App 更新</a>）`;
         }
 
         function setPlayOpt(key, val) {
@@ -7225,6 +7237,43 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             const c = countWords();
             showToast(`✅ 已下載搬家檔（${c.subs} 個單字、${c.grands} 個例句與全部學習紀錄）\n檔案在手機的「下載」資料夾`, 4000);
         }
+        // ---- v2.48.0 Android App 新版提示：讀 GitHub Releases 上的原生版本，比 App 裡的新就提醒下載 ----
+        const NATIVE_APK = 'https://github.com/chahan1/chahan1.github.io/releases/download/android-latest/eng-notebook.apk';
+        const NATIVE_CHECK_KEY = 'eng_nativeCheck';   // { at: 上次檢查時間, later: { 版本: 稍後再說的時間 } }
+        let nativeLatest = 0;
+        async function checkNativeUpdate(force = false) {
+            if (!window.nativeApp || !navigator.onLine) return;
+            let st = {}; try { st = JSON.parse(localStorage.getItem(NATIVE_CHECK_KEY)) || {}; } catch (e) {}
+            if (!force && Date.now() - (st.at || 0) < 6 * 3600 * 1000) return;   // 每 6 小時最多檢查一次
+            try {
+                const r = await fetch('https://api.github.com/repos/chahan1/chahan1.github.io/releases/tags/android-latest', { cache: 'no-store' });
+                if (!r.ok) { if (force) showToast('暫時查不到新版資訊，請稍後再試', 2500); return; }
+                const body = String((await r.json()).body || '');
+                const m = /native=(\d+)/.exec(body); if (!m) return;
+                st.at = Date.now(); try { localStorage.setItem(NATIVE_CHECK_KEY, JSON.stringify(st)); } catch (e) {}
+                nativeLatest = Number(m[1]);
+                if (nativeLatest <= nativeApp.version) { if (force) showToast(`✅ App 已經是最新版本（原生版本 ${nativeApp.version}）`, 2500); return; }
+                const later = (st.later || {})[nativeLatest] || 0;
+                if (!force && Date.now() - later < 3 * 86400000) return;   // 按過「稍後再說」：3 天後再提醒
+                const notes = (/更新內容：([^\n]*)/.exec(body) || [])[1] || '';
+                document.getElementById('nuText').innerHTML = `目前 App 的原生版本是 <b>${nativeApp.version}</b>，最新是 <b>${nativeLatest}</b>。` + (notes ? `<br>更新內容：${escapeHtml(notes)}` : '');
+                document.getElementById('nativeUpdModal').style.display = 'flex';
+            } catch (e) {}
+        }
+        function downloadNativeUpdate() {
+            document.getElementById('nativeUpdModal').style.display = 'none';
+            showToast('⏳ 正在用瀏覽器下載新版 App…\n下載完成後點開 eng-notebook.apk 安裝', 5000);
+            location.href = NATIVE_APK;   // App 會交給瀏覽器下載
+        }
+        function laterNativeUpdate() {
+            document.getElementById('nativeUpdModal').style.display = 'none';
+            let st = {}; try { st = JSON.parse(localStorage.getItem(NATIVE_CHECK_KEY)) || {}; } catch (e) {}
+            st.later = { [nativeLatest]: Date.now() };
+            try { localStorage.setItem(NATIVE_CHECK_KEY, JSON.stringify(st)); } catch (e) {}
+        }
+        if (window.nativeApp) setTimeout(() => checkNativeUpdate(), 4000);
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkNativeUpdate(); });
+
         // ---- v2.47.0 查單字：Android App 裡選取文字 → 選單「查單字」→ 顯示意思並念出發音 ----
         const lkCache = new Map();
         let lkText = '', lkToken = 0;
