@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.46.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.47.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -1054,6 +1054,17 @@
         .tool-card.static { cursor: default; align-items: flex-start; }
         .tool-card .lv-stats { margin: calc(8px * var(--z)) 0 calc(6px * var(--z)); }
         .tool-link { font-size: calc(12px * var(--z)); color: var(--green); font-weight: 600; cursor: pointer; }
+        /* v2.47.0 查單字 */
+        .lk-word { font-size: calc(19px * var(--z)); overflow-wrap: anywhere; }
+        .lk-say-row { display: flex; align-items: center; gap: calc(10px * var(--z)); flex-wrap: wrap; margin: calc(2px * var(--z)) 0 calc(10px * var(--z)); }
+        .lk-ipa { color: var(--muted); font-size: calc(14px * var(--z)); }
+        .lk-say { display: inline-flex; align-items: center; gap: calc(4px * var(--z)); border: 1px solid var(--c-dcefe2); background: var(--c-f6faf7); color: var(--c-137333); border-radius: 999px; padding: calc(5px * var(--z)) calc(12px * var(--z)); font-size: calc(13px * var(--z)); cursor: pointer; }
+        .lk-body { line-height: 1.6; }
+        .lk-zh { font-size: calc(16px * var(--z)); font-weight: 600; color: var(--c-202124); margin-bottom: calc(6px * var(--z)); }
+        .lk-pos { display: inline-block; font-size: calc(11.5px * var(--z)); font-weight: 500; color: var(--c-137333); background: var(--c-f6faf7); border: 1px solid var(--c-dcefe2); border-radius: 6px; padding: 0 calc(6px * var(--z)); margin-right: calc(6px * var(--z)); vertical-align: 2px; }
+        .lk-en { font-style: italic; color: var(--c-3c4043); font-size: calc(14px * var(--z)); margin-bottom: calc(6px * var(--z)); }
+        .lk-ex { color: var(--c-3c4043); font-size: calc(14px * var(--z)); border-left: 3px solid var(--c-dcefe2); padding-left: calc(8px * var(--z)); }
+        .lk-msg { color: var(--muted); font-size: calc(13.5px * var(--z)); }
         .bk-status { background: var(--c-f6faf7); border: 1px solid var(--c-dcefe2); border-radius: calc(12px * var(--z)); padding: calc(10px * var(--z)) calc(12px * var(--z)); font-size: calc(12.5px * var(--z)); color: var(--c-3c4043); line-height: 1.7; }
         .bk-status b { color: var(--green); }
         .bk-status .warn { color: var(--c-b06000); font-weight: 600; }
@@ -1270,7 +1281,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.46.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.47.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1943,6 +1954,15 @@
             <button class="tool-card" onclick="closeBackupModal(); exportVoicePack()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-volume"/></svg></i><span><b>下載 AI 語音包</b><small id="bkVoiceInfo">把已產生的 AI 語音存成一個檔案，可搬到 Android App 或其他手機</small></span></button>
             <button class="tool-card" onclick="closeBackupModal(); openVoiceImport()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-folder-open"/></svg></i><span><b>匯入 AI 語音包</b><small>匯入後這些句子不用再上網產生語音</small></span></button>
             <input type="file" id="voiceFile" accept="*/*" style="display:none" onchange="importVoicePack(event)">
+        </div>
+    </div>
+
+    <!-- v2.47.0 Android App：選字選單的「查單字」 -->
+    <div id="lookupModal" class="modal-overlay play-modal" onclick="if(event.target===this) closeLookup()">
+        <div class="modal-content">
+            <div class="pm-title"><h3 id="lkWord" class="lk-word"></h3><button class="pm-close" onclick="closeLookup()">×</button></div>
+            <div class="lk-say-row"><span id="lkIpa" class="lk-ipa"></span><button class="lk-say" onclick="lookupSay()"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-volume"/></svg> 發音</button></div>
+            <div id="lkBody" class="lk-body"></div>
         </div>
     </div>
 
@@ -7205,6 +7225,46 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             const c = countWords();
             showToast(`✅ 已下載搬家檔（${c.subs} 個單字、${c.grands} 個例句與全部學習紀錄）\n檔案在手機的「下載」資料夾`, 4000);
         }
+        // ---- v2.47.0 查單字：Android App 裡選取文字 → 選單「查單字」→ 顯示意思並念出發音 ----
+        const lkCache = new Map();
+        let lkText = '', lkToken = 0;
+        function lookupSay() { if (lkText) speakText(lkText); }
+        function closeLookup() { document.getElementById('lookupModal').style.display = 'none'; lkToken++; }
+        async function nbLookup(text) {
+            text = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+            if (!text) return;
+            lkText = text;
+            const token = ++lkToken, hasEn = /[a-z]/i.test(text);
+            document.getElementById('lkWord').textContent = text;
+            document.getElementById('lkIpa').textContent = '';
+            document.querySelector('#lookupModal .lk-say').style.display = hasEn ? '' : 'none';
+            const body = document.getElementById('lkBody');
+            document.getElementById('lookupModal').style.display = 'flex';
+            if (hasEn) lookupSay();
+            if (lkCache.has(text)) return showLookup(lkCache.get(text));
+            if (!hasTextKey()) { body.innerHTML = '<div class="lk-msg">要先在選單「AI 金鑰設定」填好金鑰，才能查詢意思（發音不受影響）。</div>'; return; }
+            body.innerHTML = '<div class="lk-msg">查詢中…</div>';
+            try {
+                const d = await aiJSON(`請解釋這段文字："${text.replace(/"/g, '\\"')}"（可能是英文單字、片語或句子）。
+只回傳 JSON，不要有其他文字或 Markdown：
+{"ipa":"美式音標，例如 /lɪft/（只有單字或短片語才給，句子給空字串）","pos":"詞性，用中文，例如 名詞、動詞、片語（句子給空字串）","zh":"在一般用法裡最常見的繁體中文意思；如果是句子就給整句的自然翻譯；如果原文是中文就給英文翻譯","en":"簡短的英文解釋（句子給空字串）","example":"一個自然的英文例句，後面加括號附繁體中文翻譯（句子給空字串）"}`, { temperature: 0.3 });
+                if (token !== lkToken) return;
+                const r = { ipa: String(d.ipa || ''), pos: String(d.pos || ''), zh: String(d.zh || ''), en: String(d.en || ''), example: String(d.example || '') };
+                lkCache.set(text, r);
+                showLookup(r);
+            } catch (e) {
+                if (token !== lkToken) return;
+                body.innerHTML = `<div class="lk-msg">查詢失敗：${escapeHtml(e.kind === 'offline' ? '目前沒有網路' : (e.message || String(e)))}</div>`;
+            }
+        }
+        function showLookup(r) {
+            document.getElementById('lkIpa').textContent = r.ipa;
+            document.getElementById('lkBody').innerHTML =
+                (r.zh ? `<div class="lk-zh">${r.pos ? `<span class="lk-pos">${escapeHtml(r.pos)}</span>` : ''}${escapeHtml(r.zh)}</div>` : '') +
+                (r.en ? `<div class="lk-en">${escapeHtml(r.en)}</div>` : '') +
+                (r.example ? `<div class="lk-ex">${escapeHtml(r.example)}</div>` : '');
+        }
+
         function openMoveImport() {
             showToast('請選「下載」資料夾裡的 english-notes-move_….json 檔', 3500);
             setTimeout(() => document.getElementById('moveFile').click(), 400);

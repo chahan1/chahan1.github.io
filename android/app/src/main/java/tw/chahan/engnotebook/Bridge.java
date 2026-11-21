@@ -15,7 +15,7 @@ import java.nio.charset.StandardCharsets;
 
 /** 網頁呼叫的介面：window.NativeNB（網頁端的包裝在 native.js） */
 public class Bridge {
-    static final int VERSION = 1;
+    static final int VERSION = 2;
     private final Context ctx;
 
     Bridge(Context ctx) { this.ctx = ctx; }

@@ -58,7 +58,7 @@ public class MainActivity extends Activity {
         Player.init(this);
         Speech.init(this);
 
-        web = new WebView(this);
+        web = new NbWebView(this);   // 自訂選字選單（查單字、翻譯）
         web.setBackgroundColor(Color.rgb(248, 249, 250));
         setContentView(web);
         WebView.setWebContentsDebuggingEnabled(true);
