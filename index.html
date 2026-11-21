@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.49.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.49.1 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -1284,7 +1284,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.49.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.49.1</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -7312,7 +7312,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             const sel = document.getElementById('awTopic');
             let last = null; try { last = localStorage.getItem(ADD_TOPIC_KEY); } catch (e) {}
             sel.innerHTML = tasks.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.text)}</option>`).join('');
-            if (last && findMain(last)) sel.value = last;
+            if (last && topicByValue(last)) sel.value = last;
             updateAddWordHint();
             document.getElementById('awText').oninput = updateAddWordHint;
             document.getElementById('addWordModal').style.display = 'flex';
@@ -7321,10 +7321,12 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             const same = findSameWord(document.getElementById('awText').value);
             document.getElementById('awHint').textContent = same ? `⚠️「${same.sub.text}」已經在主題「${same.topic.text}」裡了，再加會多一筆。` : '加入後會放在主題最上面，並自動查詢釋義和例句。';
         }
+        // 主題編號可能是數字，下拉選單的值一定是文字，所以用文字比對
+        function topicByValue(v) { return tasks.find(t => String(t.id) === String(v)) || null; }
         function closeAddWord() { document.getElementById('addWordModal').style.display = 'none'; }
         async function confirmAddWord() {
             const text = cleanPicked(document.getElementById('awText').value);
-            const task = findMain(document.getElementById('awTopic').value);
+            const task = topicByValue(document.getElementById('awTopic').value);
             if (!text) return showToast('請輸入要加入的單字或片語', 2000);
             if (!task) return showToast('請選擇主題', 2000);
             closeAddWord();
