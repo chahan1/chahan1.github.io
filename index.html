@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.44.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.45.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -1270,7 +1270,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.44.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.45.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1935,6 +1935,10 @@
             <button class="tool-card" onclick="closeBackupModal(); shareBackupToDrive()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-cloud"/></svg></i><span><b>備份到 Google Drive</b><small>用手機的「分享」存到雲端硬碟（建議）</small></span></button>
             <button class="tool-card" onclick="closeBackupModal(); downloadBackup()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-download"/></svg></i><span><b>下載備份檔到手機</b><small>存成一個檔案，放在手機的「下載」資料夾</small></span></button>
             <button class="tool-card" onclick="closeBackupModal(); openRestore()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-folder-open"/></svg></i><span><b>從備份檔還原</b><small>可直接選 Google Drive 或手機裡的備份檔</small></span></button>
+            <div class="pm-label">搬家：Chrome ↔ Android App（v2.45.0）</div>
+            <button class="tool-card" onclick="closeBackupModal(); exportMovePack()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-download"/></svg></i><span><b>下載搬家檔</b><small>筆記＋學習報表＋練習清單＋各種設定，整份搬過去（不含 AI 金鑰）</small></span></button>
+            <button class="tool-card" onclick="closeBackupModal(); openMoveImport()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-folder-open"/></svg></i><span><b>匯入搬家檔</b><small>會取代這裡目前的筆記與學習紀錄，變成和原來那邊一模一樣</small></span></button>
+            <input type="file" id="moveFile" accept="*/*" style="display:none" onchange="importMovePack(event)">
             <div class="pm-label">AI 語音（v2.44.0）</div>
             <button class="tool-card" onclick="closeBackupModal(); exportVoicePack()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-volume"/></svg></i><span><b>下載 AI 語音包</b><small id="bkVoiceInfo">把已產生的 AI 語音存成一個檔案，可搬到 Android App 或其他手機</small></span></button>
             <button class="tool-card" onclick="closeBackupModal(); openVoiceImport()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-folder-open"/></svg></i><span><b>匯入 AI 語音包</b><small>匯入後這些句子不用再上網產生語音</small></span></button>
@@ -7165,6 +7169,63 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
         }
         function quickBackup() { canShareFiles() ? shareBackupToDrive() : downloadBackup(); }
         // 還原：檔案選擇畫面可以直接選 Google Drive 裡的備份檔
+        // ---- v2.45.0 搬家檔：筆記（保留原本的編號）＋所有學習紀錄與設定，整份搬到另一邊 ----
+        // 「備份檔」只有筆記，而且還原時會重新編號；學習報表的每日紀錄、練習清單、已保存的播放清單都在別的地方，所以另外做搬家檔
+        const MOVE_SKIP = ['eng_sync', 'eng_sync_editAt', 'eng_presync_backup', 'eng_beforeProof', 'eng_beforeMove', 'eng_mixMode'];   // 和這台裝置綁在一起的、或是暫存的大檔
+        function moveKeys() {
+            const out = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if ((k === STORAGE_KEY || k.startsWith('eng_')) && !MOVE_SKIP.includes(k) && !/api_key/i.test(k)) out.push(k);
+            }
+            return out;
+        }
+        function exportMovePack() {
+            if (quietSaveTimer) flushQuietSave();
+            const data = {}; moveKeys().forEach(k => { data[k] = localStorage.getItem(k); });
+            const json = JSON.stringify({ app: 'eng-notebook-move', v: 1, at: Date.now(), data });
+            const name = backupFileName('json').replace('english-notes-backup', 'english-notes-move');
+            if (window.nativeApp) {
+                if (!nativeApp.saveFile(name, 'application/json', json)) return showToast('⚠️ 搬家檔存檔失敗，請再試一次', 3000);
+            } else {
+                const url = URL.createObjectURL(new Blob([json], { type: 'application/json' })), a = document.createElement('a');
+                a.href = url; a.download = name; a.style.display = 'none';
+                document.body.appendChild(a); a.click();
+                setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 3000);
+            }
+            const c = countWords();
+            showToast(`✅ 已下載搬家檔（${c.subs} 個單字、${c.grands} 個例句與全部學習紀錄）\n檔案在手機的「下載」資料夾`, 4000);
+        }
+        function openMoveImport() {
+            showToast('請選「下載」資料夾裡的 english-notes-move_….json 檔', 3500);
+            setTimeout(() => document.getElementById('moveFile').click(), 400);
+        }
+        async function importMovePack(event) {
+            const file = event.target.files[0]; event.target.value = '';
+            if (!file) return;
+            let pack;
+            try { pack = JSON.parse(await file.text()); } catch (e) { return alert('讀取失敗！請確認是本程式下載的搬家檔。'); }
+            if (!pack || pack.app !== 'eng-notebook-move' || !pack.data || typeof pack.data[STORAGE_KEY] !== 'string') {
+                return alert(Array.isArray(pack) ? '這是「備份檔」（只有筆記），請改用「從備份檔還原」。' : '這不是本程式下載的搬家檔。');
+            }
+            let n = 0; try { n = normalizeTasks(JSON.parse(pack.data[STORAGE_KEY])).reduce((a, t) => a + t.subtasks.reduce((b, s) => b + s.grandtasks.length, 0), 0); } catch (e) {}
+            const when = new Date(pack.at || 0).toLocaleString();
+            if (!confirm(`要匯入 ${when} 的搬家檔嗎？（${n} 個例句）\n\n這裡目前的筆記、學習紀錄和設定都會被取代。`)) return;
+            const before = localStorage.getItem(STORAGE_KEY);   // 萬一選錯檔，留一份原本的筆記
+            try {
+                if (quietSaveTimer) { clearTimeout(quietSaveTimer); quietSaveTimer = null; }
+                moveKeys().forEach(k => localStorage.removeItem(k));
+                Object.entries(pack.data).forEach(([k, v]) => { if ((k === STORAGE_KEY || k.startsWith('eng_')) && !MOVE_SKIP.includes(k) && !/api_key/i.test(k) && typeof v === 'string') localStorage.setItem(k, v); });
+                try { if (before) localStorage.setItem('eng_beforeMove', before); } catch (e) {}
+            } catch (e) {
+                if (before) try { localStorage.setItem(STORAGE_KEY, before); } catch (e2) {}
+                return alert('匯入失敗：手機儲存空間不足。');
+            }
+            if (syncState && syncState.on) { try { localStorage.removeItem(SYNC_KEY); } catch (e) {} }   // 雲端同步要重新比對，避免把舊資料推上去
+            alert('✅ 匯入完成，App 會重新開啟。');
+            location.reload();
+        }
+
         // ---- v2.44.0 AI 語音包：把 IndexedDB 裡的 AI 語音整包匯出／匯入（例如從 Chrome 搬到 Android App）----
         // 檔案格式：開頭 "ENGVOICE1\n"，之後每句 [key 長度][key][取樣率][PCM 長度][PCM]，數字都是 4 位元組 little-endian
         const VOICE_MAGIC = 'ENGVOICE1\n';
