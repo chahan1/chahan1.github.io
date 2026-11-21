@@ -13,11 +13,11 @@ import android.webkit.WebView;
 import org.json.JSONArray;
 
 /**
- * 自訂選字選單：選取文字後出現「查單字」「翻譯」，並保留複製、全選（輸入框裡還有剪下、貼上）；
+ * 自訂選字選單：選取文字後出現「查單字」「加入單字」「翻譯」，並保留複製、全選（輸入框裡還有剪下、貼上）；
  * 其他項目（網路搜尋、分享、其他 App 的功能）拿掉，讓選單短一點。
  */
 public class NbWebView extends WebView {
-    private static final int ID_LOOKUP = 0x4e420001, ID_TRANSLATE = 0x4e420002;
+    private static final int ID_LOOKUP = 0x4e420001, ID_TRANSLATE = 0x4e420002, ID_ADD = 0x4e420003;
 
     public NbWebView(Context c) { super(c); }
 
@@ -28,7 +28,7 @@ public class NbWebView extends WebView {
     public ActionMode startActionMode(ActionMode.Callback cb) { return super.startActionMode(wrap(cb)); }
 
     private static boolean keep(int id) {
-        return id == ID_LOOKUP || id == ID_TRANSLATE || id == android.R.id.copy || id == android.R.id.selectAll
+        return id == ID_LOOKUP || id == ID_ADD || id == ID_TRANSLATE || id == android.R.id.copy || id == android.R.id.selectAll
                 || id == android.R.id.cut || id == android.R.id.paste || id == android.R.id.pasteAsPlainText;
     }
 
@@ -39,8 +39,10 @@ public class NbWebView extends WebView {
         }
         if (menu.findItem(ID_LOOKUP) == null)
             menu.add(Menu.NONE, ID_LOOKUP, 0, "查單字").setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        if (menu.findItem(ID_ADD) == null)
+            menu.add(Menu.NONE, ID_ADD, 1, "加入單字").setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
         if (menu.findItem(ID_TRANSLATE) == null)
-            menu.add(Menu.NONE, ID_TRANSLATE, 1, "翻譯").setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+            menu.add(Menu.NONE, ID_TRANSLATE, 2, "翻譯").setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
     }
 
     private ActionMode.Callback wrap(ActionMode.Callback cb) {
@@ -59,11 +61,12 @@ public class NbWebView extends WebView {
 
             @Override public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
                 int id = item.getItemId();
-                if (id != ID_LOOKUP && id != ID_TRANSLATE) return cb.onActionItemClicked(mode, item);
+                if (id != ID_LOOKUP && id != ID_ADD && id != ID_TRANSLATE) return cb.onActionItemClicked(mode, item);
                 withSelection(text -> {
                     mode.finish();
                     if (text.isEmpty()) return;
-                    if (id == ID_LOOKUP) lookup(text);
+                    if (id == ID_LOOKUP) callJs("nbLookup", text);
+                    else if (id == ID_ADD) callJs("nbAddWord", text);
                     else translate(getContext(), text);
                 });
                 return true;
@@ -91,9 +94,11 @@ public class NbWebView extends WebView {
         });
     }
 
-    private void lookup(String text) {
+    /** 呼叫網頁裡的函式（例如 nbLookup、nbAddWord），把選取的文字傳過去 */
+    private void callJs(String fn, String text) {
         String q = new JSONArray().put(text).toString();   // 安全地把文字變成 JS 字串
-        evaluateJavascript("(function(t){if(window.nbLookup)nbLookup(t);else if(window.showToast)showToast('請先更新網頁版（關掉 App 再打開）',3000);})(" + q + "[0])", null);
+        evaluateJavascript("(function(t){if(typeof window." + fn + "==='function')window." + fn + "(t);"
+                + "else if(window.showToast)showToast('請先更新網頁版（關掉 App 再打開）',3000);})(" + q + "[0])", null);
     }
 
     /** 用 Google 翻譯 App 翻譯；沒有安裝就開翻譯網頁 */

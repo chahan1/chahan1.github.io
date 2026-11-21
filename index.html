@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.48.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.49.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -1054,6 +1054,8 @@
         .tool-card.static { cursor: default; align-items: flex-start; }
         .tool-card .lv-stats { margin: calc(8px * var(--z)) 0 calc(6px * var(--z)); }
         .tool-link { font-size: calc(12px * var(--z)); color: var(--green); font-weight: 600; cursor: pointer; }
+        .aw-input { width: 100%; box-sizing: border-box; font-size: calc(16px * var(--z)); padding: calc(10px * var(--z)) calc(12px * var(--z)); border: 1px solid var(--c-dadce0); border-radius: calc(10px * var(--z)); margin-bottom: calc(4px * var(--z)); }
+        .lk-add { margin-top: calc(14px * var(--z)); }
         .nu-later { display: block; width: 100%; margin-top: calc(6px * var(--z)); background: none; border: none; color: var(--muted); font-size: calc(13.5px * var(--z)); padding: calc(8px * var(--z)); cursor: pointer; }
         /* v2.47.0 查單字 */
         .lk-word { font-size: calc(19px * var(--z)); overflow-wrap: anywhere; }
@@ -1282,7 +1284,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.48.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.49.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1964,6 +1966,20 @@
             <div class="pm-title"><h3 id="lkWord" class="lk-word"></h3><button class="pm-close" onclick="closeLookup()">×</button></div>
             <div class="lk-say-row"><span id="lkIpa" class="lk-ipa"></span><button class="lk-say" onclick="lookupSay()"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-volume"/></svg> 發音</button></div>
             <div id="lkBody" class="lk-body"></div>
+            <button class="btn-outline pm-start lk-add" onclick="closeLookup(); nbAddWord(lkText)">＋ 加入到筆記</button>
+        </div>
+    </div>
+
+    <!-- v2.49.0 選字選單「加入單字」 -->
+    <div id="addWordModal" class="modal-overlay play-modal" onclick="if(event.target===this) closeAddWord()">
+        <div class="modal-content">
+            <div class="pm-title"><h3>＋ 加入單字／片語</h3><button class="pm-close" onclick="closeAddWord()">×</button></div>
+            <div class="pm-label">單字或片語（可修改）</div>
+            <input id="awText" class="aw-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
+            <div class="pm-label">加到哪個主題</div>
+            <select id="awTopic" class="mv-select"></select>
+            <div class="pm-hint" id="awHint"></div>
+            <button class="btn-primary pm-start" onclick="confirmAddWord()">加入並查詢釋義、例句</button>
         </div>
     </div>
 
@@ -7274,6 +7290,47 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
         if (window.nativeApp) setTimeout(() => checkNativeUpdate(), 4000);
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkNativeUpdate(); });
 
+        // ---- v2.49.0 加入單字：選取文字 → 選單「加入單字」（或查單字視窗的「加入到筆記」）→ 選主題 → 新增並用 AI 查釋義與例句 ----
+        const ADD_TOPIC_KEY = 'eng_addTopic';   // 上次加到哪個主題
+        function cleanPicked(t) {
+            return String(t || '').replace(/\s+/g, ' ').trim()
+                .replace(/^[\s"'“”‘’(（\[,.;:!?，。；：！？、-]+/, '').replace(/[\s"“”(（\[,.;:!?，。；：！？、-]+$/, '').slice(0, 120);
+        }
+        function findSameWord(text) {
+            const k = cleanForSpeech(text).toLowerCase();
+            if (!k) return null;
+            for (const t of tasks) for (const sb of t.subtasks || []) if (cleanForSpeech(sb.text).toLowerCase() === k) return { topic: t, sub: sb };
+            return null;
+        }
+        function nbAddWord(text) {
+            text = cleanPicked(text);
+            if (!text) return;
+            if (!tasks.length) return showToast('請先建立一個主題，再加入單字', 3000);
+            document.getElementById('awText').value = text;
+            const sel = document.getElementById('awTopic');
+            let last = null; try { last = localStorage.getItem(ADD_TOPIC_KEY); } catch (e) {}
+            sel.innerHTML = tasks.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.text)}</option>`).join('');
+            if (last && findMain(last)) sel.value = last;
+            updateAddWordHint();
+            document.getElementById('awText').oninput = updateAddWordHint;
+            document.getElementById('addWordModal').style.display = 'flex';
+        }
+        function updateAddWordHint() {
+            const same = findSameWord(document.getElementById('awText').value);
+            document.getElementById('awHint').textContent = same ? `⚠️「${same.sub.text}」已經在主題「${same.topic.text}」裡了，再加會多一筆。` : '加入後會放在主題最上面，並自動查詢釋義和例句。';
+        }
+        function closeAddWord() { document.getElementById('addWordModal').style.display = 'none'; }
+        async function confirmAddWord() {
+            const text = cleanPicked(document.getElementById('awText').value);
+            const task = findMain(document.getElementById('awTopic').value);
+            if (!text) return showToast('請輸入要加入的單字或片語', 2000);
+            if (!task) return showToast('請選擇主題', 2000);
+            closeAddWord();
+            try { localStorage.setItem(ADD_TOPIC_KEY, task.id); } catch (e) {}
+            showToast(`＋ 已加入「${text}」到「${task.text}」，正在查詢…`, 2500);
+            await insertNewSub(task, text, { scroll: true });
+        }
+
         // ---- v2.47.0 查單字：Android App 裡選取文字 → 選單「查單字」→ 顯示意思並念出發音 ----
         const lkCache = new Map();
         let lkText = '', lkToken = 0;
@@ -7565,8 +7622,12 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             }
 
             if (!text || !text.trim()) return;
-            text = text.trim();
+            await insertNewSub(task, text.trim(), opts);
+        }
 
+        // 把新單字放到主題最上面並查詢釋義與例句（「＋」新增單字與選字選單「加入單字」共用）
+        async function insertNewSub(task, text, opts = {}) {
+            const mainTaskId = task.id;
             const subId = newId();
 
             // 離線：先存起來，標記為「待補齊」，上線後自動查詢
