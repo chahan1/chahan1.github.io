@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.41.1 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.42.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <style>
@@ -1269,7 +1269,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.41.1</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.42.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -2601,7 +2601,7 @@ ${ENRICH_RULES}
             if (token !== player.token || !player.open || player.list !== list) return;   // 這段期間換了清單或關閉
             const built = buildPlaylistAudio(list, clips);
             const segNo = built.segments.findIndex(x => x.idx === idx && x.rep === Math.min(rep, itemRepeat(list[idx]) - 1));
-            aiAudio.pause();
+            aiPauseSelf();
             if (player.aiUrl) URL.revokeObjectURL(player.aiUrl);
             player.aiUrl = built.url; player.segments = built.segments;
             aiAudio.src = built.url;
@@ -3025,8 +3025,15 @@ ${ENRICH_RULES}
                 if (!keepAliveAudio) {
                     keepAliveAudio = new Audio(makeQuietWav());
                     keepAliveAudio.loop = true;
-                    keepAliveAudio.addEventListener('pause', () => {   // 被系統暫停時，若仍在播放就再接上
-                        if (player.playing) setTimeout(() => keepAliveAudio.play().catch(() => {}), 300);
+                    keepAliveAudio.addEventListener('pause', () => {
+                        if (!player.playing || player.mode !== 'phone') return;
+                        if (document.visibilityState === 'hidden') {
+                            // v2.42.0：在背景被系統暫停＝其他 App 開始播聲音。不再硬搶回來，先停下，回到 App 時自動接著播
+                            markInterrupted();
+                            player.playing = false; player.token++;
+                            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+                            updatePlayerView();
+                        } else setTimeout(() => { if (player.playing) keepAliveAudio.play().catch(() => {}); }, 300);   // 畫面開著時被暫停：照舊再接上
                     });
                 }
                 keepAliveAudio.play().catch(() => {});
@@ -3162,6 +3169,7 @@ ${ENRICH_RULES}
 
         function playerPlay() {
             if (!player.open || !player.list.length) return;
+            player.interrupted = 0;
             // 隨機播放：播完再按 ▶ → 重新隨機挑一組
             if (player.finished && playSettings.order === 'random') { startPlayer(); return; }
             if (player.mode === 'ai') {
@@ -3180,7 +3188,8 @@ ${ENRICH_RULES}
         }
 
         function playerPause() {
-            if (player.mode === 'ai' && aiAudio) { aiAudio.pause(); player.playing = false; updatePlayerView(); return; }
+            player.interrupted = 0;   // 自己按暫停：回到 App 時不要自動播
+            if (player.mode === 'ai' && aiAudio) { aiPauseSelf(); player.playing = false; updatePlayerView(); return; }
             player.playing = false; player.token++;
             if ('speechSynthesis' in window) window.speechSynthesis.cancel();
             keepAliveStop();
@@ -3387,7 +3396,7 @@ ${ENRICH_RULES}
 
         // ⏹ 停止：回到第一句，視窗保留
         function playerStop() {
-            if (player.mode === 'ai') { if (aiAudio) { aiAudio.pause(); if (player.segments) aiSeekTo(0); } player.playing = false; highlightPlaying(false); updatePlayerView(); return; }
+            if (player.mode === 'ai') { if (aiAudio) { aiPauseSelf(); if (player.segments) aiSeekTo(0); } player.playing = false; highlightPlaying(false); updatePlayerView(); return; }
             playerPause();
             player.idx = 0; player.rep = 0; player.finished = false;
             highlightPlaying(false); updatePlayerView();
@@ -3589,10 +3598,39 @@ ${ENRICH_RULES}
                 clearSession();
                 highlightPlaying(false); updatePlayerView();
             });
-            aiAudio.addEventListener('play', () => { player.playing = true; player.finished = false; updatePlayerView(); });
-            aiAudio.addEventListener('pause', () => { if (!aiAudio.ended) { player.playing = false; updatePlayerView(); } });
+            aiAudio.addEventListener('play', () => { player.playing = true; player.finished = false; player.interrupted = 0; updatePlayerView(); });
+            aiAudio.addEventListener('pause', () => {
+                if (aiAudio.ended) return;
+                // v2.42.0：不是 App 自己暫停的（例如 Facebook 開始播聲音搶走播放權）→ 記下「被中斷」，回到 App 時自動接著播
+                if (player.selfPause) player.selfPause = false;
+                else if (player.playing && player.open) markInterrupted();
+                player.playing = false; updatePlayerView();
+            });
             return aiAudio;
         }
+        function aiPauseSelf() { if (aiAudio && !aiAudio.paused) { player.selfPause = true; aiAudio.pause(); } }
+        // ---- v2.42.0 被其他 App 中斷後，回到 App 時自動接著播 ----
+        const INTERRUPT_RESUME_MS = 30 * 60 * 1000;   // 中斷超過 30 分鐘就不自動播，避免突然出聲
+        function markInterrupted() { player.interrupted = Date.now(); }
+        function resumeAfterInterrupt() {
+            const at = player.interrupted;
+            if (!at || !player.open || player.playing || player.finished) return;
+            player.interrupted = 0;
+            if (Date.now() - at > INTERRUPT_RESUME_MS) { showToast('⏸ 播放之前被其他 App 中斷了，按 ▶ 可以繼續'); return; }
+            const n = player.idx + 1;
+            if (player.mode === 'ai') {
+                if (!aiAudio || !player.segments) return;
+                const seg = player.segments.find(x => x.idx === player.idx && x.rep === player.rep) || player.segments.find(x => x.idx === player.idx);
+                if (seg) { player.lastSeg = player.segments.indexOf(seg); aiAudio.currentTime = seg.start; }   // 這一句從頭念，不重複記錄播放
+                aiAudio.play().then(() => showToast(`▶ 剛才被其他 App 中斷，從第 ${n} 句接著播`))
+                    .catch(() => showToast('⏸ 播放被其他 App 中斷了，按 ▶ 繼續'));
+            } else {
+                player.rep = 0;
+                playerPlay();
+                showToast(`▶ 剛才被其他 App 中斷，從第 ${n} 句接著播`);
+            }
+        }
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(resumeAfterInterrupt, 400); });
         function aiOnTime() {
             const t = aiAudio.currentTime, segs = player.segments || [];
             let seg = segs[0];
@@ -3621,7 +3659,7 @@ ${ENRICH_RULES}
             highlightPlaying(true); updatePlayerView();
         }
         function aiReleaseAudio() {
-            if (aiAudio) { aiAudio.pause(); }
+            if (aiAudio) { aiPauseSelf(); }
             if (player.aiUrl) { URL.revokeObjectURL(player.aiUrl); player.aiUrl = null; }
             player.segments = null;
         }
