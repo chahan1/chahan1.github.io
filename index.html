@@ -7294,7 +7294,9 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
         const ADD_TOPIC_KEY = 'eng_addTopic';   // 上次加到哪個主題
         function cleanPicked(t) {
             return String(t || '').replace(/\s+/g, ' ').trim()
-                .replace(/^[\s"'“”‘’(（\[,.;:!?，。；：！？、-]+/, '').replace(/[\s"“”(（\[,.;:!?，。；：！？、-]+$/, '').slice(0, 120);
+                .replace(/^[\s"'“”‘’(（\[,.;:!?，。；：！？、-]+/, '').replace(/[\s"“”(（\[,.;:!?，。；：！？、-]+$/, '')
+                .replace(/^(.*[^(]*)[)）]$/, (m, a) => (a.match(/[(（]/g) || []).length ? m : a)   // 前面沒有左括號的話，拿掉結尾的右括號
+                .slice(0, 120);
         }
         function findSameWord(text) {
             const k = cleanForSpeech(text).toLowerCase();
