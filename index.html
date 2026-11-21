@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.45.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.46.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -1270,7 +1270,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.45.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.46.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -3775,13 +3775,22 @@ ${ENRICH_RULES}
 
         // 單句 🔊：AI 模式下優先用 AI 語音（已存過的直接播，不花費）
         let singleAudio = null;
+        // v2.46.0：單句播放用的播放器。Android App 裡改用原生播放器（可和 Facebook 同時出聲），每種用途共用一個，不會越開越多
+        const nativeClipPlayers = {};
+        function clipAudio(slot, url) {
+            if (!window.NativeAudio) return new Audio(url);
+            const a = nativeClipPlayers[slot] || (nativeClipPlayers[slot] = new NativeAudio());
+            a.onended = a.onerror = a.onpause = null;
+            a.src = url;
+            return a;
+        }
         async function speakSingleAI(text) {
             const en = cleanForSpeech(text);
             if (!en) return false;
             try {
                 const clip = await getClip(en, voiceSpec());
                 if (singleAudio) { singleAudio.pause(); URL.revokeObjectURL(singleAudio.src); }
-                singleAudio = new Audio(URL.createObjectURL(new Blob([wavHeader(clip.rate, clip.pcm.byteLength), clip.pcm], { type: 'audio/wav' })));
+                singleAudio = clipAudio('single', URL.createObjectURL(new Blob([wavHeader(clip.rate, clip.pcm.byteLength), clip.pcm], { type: 'audio/wav' })));
                 singleAudio.playbackRate = aiSpeed();
                 await singleAudio.play();
                 return true;
@@ -3926,7 +3935,7 @@ ${ENRICH_RULES}
                     if (token !== rt.token) return;
                     await new Promise(resolve => {
                         if (rt.audio) { rt.audio.pause(); URL.revokeObjectURL(rt.audio.src); }
-                        const a = rt.audio = new Audio(URL.createObjectURL(new Blob([wavHeader(clip.rate, clip.pcm.byteLength), clip.pcm], { type: 'audio/wav' })));
+                        const a = rt.audio = clipAudio('rate', URL.createObjectURL(new Blob([wavHeader(clip.rate, clip.pcm.byteLength), clip.pcm], { type: 'audio/wav' })));
                         a.playbackRate = aiSpeed(); a.onended = resolve; a.onerror = resolve; a.onpause = resolve;
                         a.play().catch(resolve);
                     });
