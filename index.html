@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.43.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.44.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -1270,7 +1270,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.43.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.44.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1935,6 +1935,10 @@
             <button class="tool-card" onclick="closeBackupModal(); shareBackupToDrive()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-cloud"/></svg></i><span><b>備份到 Google Drive</b><small>用手機的「分享」存到雲端硬碟（建議）</small></span></button>
             <button class="tool-card" onclick="closeBackupModal(); downloadBackup()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-download"/></svg></i><span><b>下載備份檔到手機</b><small>存成一個檔案，放在手機的「下載」資料夾</small></span></button>
             <button class="tool-card" onclick="closeBackupModal(); openRestore()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-folder-open"/></svg></i><span><b>從備份檔還原</b><small>可直接選 Google Drive 或手機裡的備份檔</small></span></button>
+            <div class="pm-label">AI 語音（v2.44.0）</div>
+            <button class="tool-card" onclick="closeBackupModal(); exportVoicePack()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-volume"/></svg></i><span><b>下載 AI 語音包</b><small id="bkVoiceInfo">把已產生的 AI 語音存成一個檔案，可搬到 Android App 或其他手機</small></span></button>
+            <button class="tool-card" onclick="closeBackupModal(); openVoiceImport()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-folder-open"/></svg></i><span><b>匯入 AI 語音包</b><small>匯入後這些句子不用再上網產生語音</small></span></button>
+            <input type="file" id="voiceFile" accept="*/*" style="display:none" onchange="importVoicePack(event)">
         </div>
     </div>
 
@@ -6978,6 +6982,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
         // ---- 備份與還原 ----
         function openBackupModal() {
             closeMenu();
+            refreshVoiceInfo();
             const last = Number(localStorage.getItem('eng_lastBackupAt') || 0);
             const days = last ? Math.floor((Date.now() - last) / 86400000) : null;
             const n = tasks.reduce((a, t) => a + t.subtasks.length, 0), m = tasks.reduce((a, t) => a + t.subtasks.reduce((b, s) => b + s.grandtasks.length, 0), 0);
@@ -7160,6 +7165,76 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
         }
         function quickBackup() { canShareFiles() ? shareBackupToDrive() : downloadBackup(); }
         // 還原：檔案選擇畫面可以直接選 Google Drive 裡的備份檔
+        // ---- v2.44.0 AI 語音包：把 IndexedDB 裡的 AI 語音整包匯出／匯入（例如從 Chrome 搬到 Android App）----
+        // 檔案格式：開頭 "ENGVOICE1\n"，之後每句 [key 長度][key][取樣率][PCM 長度][PCM]，數字都是 4 位元組 little-endian
+        const VOICE_MAGIC = 'ENGVOICE1\n';
+        async function ttsAllEntries() {
+            const db = await ttsDB();
+            return await new Promise((res, rej) => {
+                const out = [], tx = db.transaction('clips'), st = tx.objectStore('clips'), q = st.openCursor();
+                q.onsuccess = () => { const c = q.result; if (c) { if (c.value && c.value.pcm) out.push([String(c.key), c.value]); c.continue(); } else res(out); };
+                q.onerror = () => rej(q.error);
+            });
+        }
+        async function refreshVoiceInfo() {
+            const el = document.getElementById('bkVoiceInfo'); if (!el) return;
+            try {
+                const all = await ttsAllEntries();
+                const mb = all.reduce((n, [, v]) => n + v.pcm.byteLength, 0) / 1048576;
+                el.textContent = all.length ? `目前手機裡有 ${all.length} 句 AI 語音（約 ${mb.toFixed(0)} MB），存成一個檔案可搬到 Android App` : '這台手機裡還沒有 AI 語音';
+            } catch (e) {}
+        }
+        async function exportVoicePack() {
+            if (window.nativeApp) return showToast('請在 Chrome 版「備份與還原」下載語音包，再到 App 匯入', 3500);
+            let all;
+            try { all = await ttsAllEntries(); } catch (e) { return showToast('讀取 AI 語音失敗：' + (e.message || e), 3000); }
+            if (!all.length) return showToast('這台手機裡還沒有 AI 語音', 2500);
+            const enc = new TextEncoder(), parts = [enc.encode(VOICE_MAGIC)];
+            for (const [k, v] of all) {
+                const kb = enc.encode(k), head = new DataView(new ArrayBuffer(4));
+                head.setUint32(0, kb.length, true); parts.push(head.buffer, kb);
+                const h2 = new DataView(new ArrayBuffer(8));
+                h2.setUint32(0, v.rate || 24000, true); h2.setUint32(4, v.pcm.byteLength, true);
+                parts.push(h2.buffer, v.pcm);
+            }
+            const blob = new Blob(parts, { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob), a = document.createElement('a');
+            a.href = url; a.download = backupFileName('engvoice').replace('english-notes-backup', 'english-notes-voice'); a.style.display = 'none';
+            document.body.appendChild(a); a.click();
+            setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 10000);
+            showToast(`✅ 已下載 ${all.length} 句 AI 語音（約 ${(blob.size / 1048576).toFixed(0)} MB）\n檔案在手機的「下載」資料夾`, 4000);
+        }
+        function openVoiceImport() {
+            showToast('請選「下載」資料夾裡的 english-notes-voice_….engvoice 檔', 3500);
+            setTimeout(() => document.getElementById('voiceFile').click(), 400);
+        }
+        async function importVoicePack(event) {
+            const file = event.target.files[0]; event.target.value = '';
+            if (!file) return;
+            showToast('⏳ 正在匯入 AI 語音…', 60000);
+            try {
+                const buf = await file.arrayBuffer(), u8 = new Uint8Array(buf), dv = new DataView(buf), dec = new TextDecoder();
+                if (dec.decode(u8.subarray(0, VOICE_MAGIC.length)) !== VOICE_MAGIC) throw new Error('這不是本程式匯出的 AI 語音包');
+                const recs = [];
+                for (let o = VOICE_MAGIC.length; o < u8.length;) {
+                    const kl = dv.getUint32(o, true); o += 4;
+                    const key = dec.decode(u8.subarray(o, o + kl)); o += kl;
+                    const rate = dv.getUint32(o, true), pl = dv.getUint32(o + 4, true); o += 8;
+                    if (o + pl > u8.length) throw new Error('檔案不完整');
+                    recs.push([key, { rate, pcm: buf.slice(o, o + pl) }]); o += pl;
+                }
+                const db = await ttsDB();
+                for (let i = 0; i < recs.length; i += 200) {   // 每 200 句存一次，避免一次佔用太多記憶體
+                    await new Promise((res, rej) => {
+                        const tx = db.transaction('clips', 'readwrite'), st = tx.objectStore('clips');
+                        recs.slice(i, i + 200).forEach(([k, v]) => st.put(v, k));
+                        tx.oncomplete = res; tx.onerror = () => rej(tx.error); tx.onabort = () => rej(tx.error || new Error('儲存空間不足'));
+                    });
+                }
+                showToast(`✅ 已匯入 ${recs.length} 句 AI 語音，這些句子播放時不用再上網產生`, 4000);
+            } catch (e) { showToast('⚠️ 匯入失敗：' + (e.message || e), 4000); }
+        }
+
         function openRestore() {
             showToast('在檔案選擇畫面點左上角 ☰\n選「雲端硬碟」就能找到 Google Drive 裡的備份檔', 5000);
             setTimeout(() => document.getElementById('importFile').click(), 400);
