@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.55.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.55.1 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -1284,7 +1284,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.55.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.55.1</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -6294,6 +6294,33 @@ ${isCore ? `這是片語「${word}」中的核心字 ${found.title}，開頭請�
 ${ETYM_RULE}`, { temperature: 0.2 });
             return { etym: cleanEtym(r.etymology), src: 'ai', exists };
         }
+        // ---- v2.55.1 一鍵把舊字源改成詞素拆解（自己改過的、已是新格式的不動）----
+        const etymNeedsReformat = s => !!(s.etym && s.etymV !== 2 && clozeTarget(s.text) && !s.isLoading && !s.pendingAI);
+        let etymReformatBusy = false;
+        async function reformatEtymology() {
+            if (etymReformatBusy) return showToast('字源重整進行中，請稍候');
+            const subs = tasks.flatMap(t => t.subtasks).filter(etymNeedsReformat);
+            if (!subs.length) return showToast('所有字源都已經是詞素拆解了 👍');
+            if (!navigator.onLine) return showToast('📴 目前離線，連上網路後再試');
+            if (!hasTextKey()) return openKeyModal();
+            if (!confirm(`要把 ${subs.length} 個單字的字源改成「詞素拆解」嗎？\n\n會先查維基詞典，再請 AI 整理；每個單字大約用 1 次 AI，大約需要 ${Math.max(1, Math.round(subs.length * 4 / 2 / 60))} 分鐘。過程中可以繼續使用，關掉 App 會中斷，下次再按會從還沒改的接著做。\n\n自己修改過的字源不會被覆蓋。`)) return;
+            etymReformatBusy = true;
+            let ok = 0, fail = 0, stop = '', next = 0, saveTimer = null;
+            const saveSoon = () => { clearTimeout(saveTimer); saveTimer = setTimeout(saveData, 1500); };
+            const worker = async () => {
+                while (next < subs.length && !stop) {
+                    const s = subs[next++];
+                    try {
+                        const et = await fetchEtymology(clozeTarget(s.text));
+                        if (et.etym && s.etymV !== 2) { s.etym = et.etym; s.etymSrc = et.src; s.etymV = 2; ok++; saveSoon(); } else fail++;
+                    } catch (e) { const k = e.kind || classifyError(e); if (k === 'key' || k === 'offline' || k === 'quota') stop = e.message || k; else fail++; }
+                    showToast(`🌱 字源改成詞素拆解中… ${ok + fail} / ${subs.length}`, 60000);
+                }
+            };
+            try { await Promise.all([worker(), worker()]); }
+            finally { etymReformatBusy = false; clearTimeout(saveTimer); saveData(); }
+            showToast(`✅ 已把 ${ok} 個字源改成詞素拆解${fail ? `\n${fail} 個沒有成功，保留原本內容` : ''}${stop ? `\n（中斷：${stop}，之後再按會接著做）` : ''}`, 5000);
+        }
         async function reverifyEtymology() {
             const subs = tasks.flatMap(t => t.subtasks).filter(s => clozeTarget(s.text) && s.etymSrc !== 'wiktionary' && !s.isLoading && !s.pendingAI);
             if (!subs.length) return showToast('所有字源都已用維基詞典查證過 👍');
@@ -6439,7 +6466,7 @@ ${words.map((w, k) => `#${k + 1} ${w}`).join('\n')}
                     showToast(`🌱 查證字源中… ${i + 1} / ${etTargets.length}`, 60000);
                     try {
                         const et = await fetchEtymology(clozeTarget(sub.text));
-                        if (et.etym && !sub.etym) { sub.etym = et.etym; sub.etymSrc = et.src; etymDone++; saveData(); }
+                        if (et.etym && !sub.etym) { sub.etym = et.etym; sub.etymSrc = et.src; sub.etymV = 2; etymDone++; saveData(); }
                     } catch (e) { const k = e.kind || classifyError(e); if (k === 'key' || k === 'offline' || k === 'quota') { stop = e.message; break; } }
                 }
             }
@@ -6670,7 +6697,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
                     const changedWord = clozeTarget(f.from) !== clozeTarget(f.to);
                     s.text = f.to; s.proofed = f.to;
                     if (changedWord) {   // 英文寫法改了：釋義、同義字等要依正確的字重新建立
-                        s.definition = ''; ['synonyms', 'usage', 'common', 'collocations', 'cefr', 'noSynonyms', 'etym'].forEach(k => delete s[k]);
+                        s.definition = ''; ['synonyms', 'usage', 'common', 'collocations', 'cefr', 'noSynonyms', 'etym', 'etymV'].forEach(k => delete s[k]);
                         reEnrich.push({ s, def: true });
                     }
                 } else {
@@ -7232,6 +7259,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
                 unproofS: sents.filter(g => /[a-z]{2}/i.test(cleanForSpeech(g.text)) && g.proofed !== proofKey(g.text)).length,
                 uv: sents.filter(g => g.unverified && g.unverified === proofKey(g.text)).length,
                 etymTodo: words.filter(s => s.etymSrc !== 'wiktionary').length,
+                etymOld: words.filter(etymNeedsReformat).length,
                 lv, lvNone, words: words.length,
                 undo: !!localStorage.getItem('eng_beforeProof')
             };
@@ -7250,6 +7278,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             html += card('🧩', '替沒有例句的單字補例句', st.noEx ? `${st.noEx} 個單字還沒有例句` : '每個單字都有例句了', 'fillMissingExamples()', st.noEx);
             html += card('🩺', '檢查並修正例句與單字', st.unproofW + st.unproofS ? `${st.unproofW} 個單字、${st.unproofS} 句例句還沒檢查；列出建議後由你確認才修改` : '全部都檢查過了', 'proofAll()', st.unproofW + st.unproofS,
                 st.uv ? `<small class="warn">⚠️ ${st.uv} 句例句標示「待確認」，可在筆記中點一下重新產生</small>` : '');
+            html += card('🌱', '字源改成詞素拆解', st.etymOld ? `${st.etymOld} 個單字的字源還是舊格式` : '所有字源都是詞素拆解了', 'reformatEtymology()', st.etymOld);
             html += card('🔎', '用維基詞典查證字源', st.etymTodo ? `${st.etymTodo} 個字源還沒用維基詞典查證` : '所有字源都查證過了', 'reverifyEtymology()', st.etymTodo);
             html += `<div class="tool-card static"><i>🏷️</i><span><b>單字難易度分布</b><small>新增單字與「一鍵補齊」都會自動判斷；點單字旁的標籤可手動修改</small>
                 <div class="lv-stats">${CEFR.map(l => `<div class="lv-stat"><span class="lv-badge lv-${l}">${l}</span><b>${st.lv[l]}</b></div>`).join('')}<div class="lv-stat"><span class="lv-badge lv-none">Lv</span><b>${st.lvNone}</b></div></div>
@@ -7305,7 +7334,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             const sub = findSub(mainTaskId, subTaskId); if (!sub) return;
             const v = await uiPrompt('修改字源', sub.etym || '', { sub: cleanForSpeech(sub.text) || sub.text, hint: '清空即刪除' });
             if (v === null) return;
-            if (v.trim()) sub.etym = v.trim(); else delete sub.etym;
+            if (v.trim()) { sub.etym = v.trim(); sub.etymV = 2; } else delete sub.etym;   // 自己改過的不會被一鍵重整覆蓋
             saveData();
         }
         async function editListField(subTaskId, mainTaskId, field) {
@@ -7880,7 +7909,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             if (result.cefr && !CEFR.includes(sub.cefr)) sub.cefr = result.cefr;
             if (result.synonyms && result.synonyms.length && !(sub.synonyms && sub.synonyms.length)) sub.synonyms = result.synonyms;
             applyUsageFields(sub, result);
-            if (result.etymology && !sub.etym) { sub.etym = result.etymology; if (result.etymSrc) sub.etymSrc = result.etymSrc; }
+            if (result.etymology && !sub.etym) { sub.etym = result.etymology; sub.etymV = 2; if (result.etymSrc) sub.etymSrc = result.etymSrc; }
             if (result.aiModel) sub.aiModel = result.aiModel;
             if (result.entryVerified) sub.entryVerified = true;
             if (result.correctedWord && result.originalWord) {
@@ -8053,7 +8082,7 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
             saveData();
         }
         // 清除舊資料並重新查詢
-        const SUB_AI_FIELDS = ['synonyms', 'usage', 'common', 'collocations', 'cefr', 'etym', 'etymSrc', 'spellWarn', 'entryVerified', 'aiModel', 'noSynonyms', 'proofed', 'genEx'];
+        const SUB_AI_FIELDS = ['synonyms', 'usage', 'common', 'collocations', 'cefr', 'etym', 'etymSrc', 'etymV', 'spellWarn', 'entryVerified', 'aiModel', 'noSynonyms', 'proofed', 'genEx'];
         async function rebuildSub(sub, topicId) {
             SUB_AI_FIELDS.forEach(k => delete sub[k]);
             sub.grandtasks = [];
@@ -8205,7 +8234,7 @@ ${PT_JSON_SPEC}${ptStyleNote()}`);
             sub.definition = String(d.usage || '').trim() || MANUAL_DEF_TEXT;
             sub.pattern = true; sub.showDef = true;
             if (d.__engine && d.__engine.name) sub.aiModel = d.__engine.name;   // v2.39.1：只存模型名稱
-            ['synonyms', 'collocations', 'common', 'etym', 'etymSrc', 'cefr', 'usage', 'pendingAI', 'spellWarn'].forEach(k => delete sub[k]);
+            ['synonyms', 'collocations', 'common', 'etym', 'etymSrc', 'etymV', 'cefr', 'usage', 'pendingAI', 'spellWarn'].forEach(k => delete sub[k]);
             const exist = new Set((sub.grandtasks || []).map(g => cleanForSpeech(g.text).toLowerCase()));
             const exText = x => x.text ? String(x.text).trim() : `${String(x.en || '').trim()}${x.zh ? ` (${String(x.zh).trim()})` : ''}`;
             const add = d.examples.filter(x => x && (x.text || x.en) && !exist.has(cleanForSpeech(exText(x)).toLowerCase())).slice(0, 2)
