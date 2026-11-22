@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.49.1 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.50.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -1284,7 +1284,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.49.1</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.50.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1688,6 +1688,7 @@
                 <button data-v="10" onclick="setRecallOpt('limit',10)">10 題</button>
                 <button data-v="20" onclick="setRecallOpt('limit',20)">20 題</button>
                 <button data-v="0" onclick="setRecallOpt('limit',0)">全部</button>
+                <button data-v="custom" id="rcLimitCustom" onclick="customRecallLimit()">自訂</button>
             </div>
             <div class="pm-count" id="rcCount"></div>
             <button class="btn-primary pm-start" id="rcStart" onclick="rc.fromHist = null; startRecall()">開始</button>
@@ -4361,10 +4362,21 @@ ${ENRICH_RULES}
             setRecallOpt('blankTypes', bt);
         }
         function setRecallOpt(k, v) { recallSettings[k] = v; localStorage.setItem(RECALL_KEY, JSON.stringify(recallSettings)); refreshRecallSetup(); }
+        // v2.50.0：題數可以自訂（1～200 題）
+        async function customRecallLimit() {
+            const cur = Number(recallSettings.limit) || '';
+            const v = await uiPrompt('自訂題數', [5, 10, 20, 0].includes(Number(cur)) ? '' : String(cur), { sub: '口說回想一次要練幾題？', hint: '請輸入 1～200 的數字', icon: 'hi-speech' });
+            if (v === null || v === undefined || !String(v).trim()) return;
+            const n = Math.round(Number(String(v).replace(/[^\d.]/g, '')));
+            if (!n || n < 1) return showToast('請輸入 1～200 的數字', 2500);
+            setRecallOpt('limit', Math.min(200, n));
+        }
         function refreshRecallSetup() {
             [['#rcOrder', 'order'], ['#rcMode', 'mode'], ['#rcBlanks', 'blanks'], ['#rcScope', 'scope'], ['#rcDate', 'dateMode']].forEach(([sel, k]) =>
                 document.querySelectorAll(sel + ' button').forEach(b => b.classList.toggle('on', b.dataset.v === recallSettings[k])));
-            document.querySelectorAll('#rcLimit button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === Number(recallSettings.limit)));
+            const limNow = Number(recallSettings.limit) || 0, isPreset = [5, 10, 20, 0].includes(limNow);
+            document.querySelectorAll('#rcLimit button').forEach(b => b.classList.toggle('on', b.dataset.v === 'custom' ? !isPreset : Number(b.dataset.v) === limNow));
+            document.getElementById('rcLimitCustom').innerHTML = isPreset ? '自訂' : `自訂<br><small>${limNow} 題</small>`;
             document.querySelectorAll('#rcSil button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === rcSilence));
             const all = getPlaylist(recallSettings).length, n = recallPool().length, lim = Number(recallSettings.limit) || 0, q = lim ? Math.min(lim, n) : n;
             document.getElementById('rcCount').textContent = n ? `共 ${n} 句有中文翻譯，這次練 ${q} 句${all > n ? `（${all - n} 句沒有中文，略過）` : ''}` : '這個範圍沒有附中文翻譯的例句';

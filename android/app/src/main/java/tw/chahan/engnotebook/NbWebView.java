@@ -27,15 +27,24 @@ public class NbWebView extends WebView {
     @Override
     public ActionMode startActionMode(ActionMode.Callback cb) { return super.startActionMode(wrap(cb)); }
 
-    private static boolean keep(int id) {
-        return id == ID_LOOKUP || id == ID_ADD || id == ID_TRANSLATE || id == android.R.id.copy || id == android.R.id.selectAll
-                || id == android.R.id.cut || id == android.R.id.paste || id == android.R.id.pasteAsPlainText;
+    // WebView 自己的「複製、全選、剪下、貼上」用的是它內部的編號，所以同時用標題來認（英文、繁中、簡中）
+    private static final java.util.Set<String> KEEP_TITLES = new java.util.HashSet<>(java.util.Arrays.asList(
+            "copy", "select all", "cut", "paste", "paste as plain text",
+            "複製", "全選", "剪下", "貼上", "以純文字貼上", "貼上純文字",
+            "复制", "全选", "剪切", "粘贴", "粘贴为纯文本"));
+
+    private static boolean keep(MenuItem it) {
+        int id = it.getItemId();
+        if (id == ID_LOOKUP || id == ID_ADD || id == ID_TRANSLATE || id == android.R.id.copy || id == android.R.id.selectAll
+                || id == android.R.id.cut || id == android.R.id.paste || id == android.R.id.pasteAsPlainText) return true;
+        CharSequence t = it.getTitle();
+        return t != null && KEEP_TITLES.contains(t.toString().trim().toLowerCase(java.util.Locale.ROOT));
     }
 
     private static void tidy(Menu menu) {
         for (int i = menu.size() - 1; i >= 0; i--) {
             MenuItem it = menu.getItem(i);
-            if (!keep(it.getItemId())) menu.removeItem(it.getItemId());
+            if (!keep(it)) menu.removeItem(it.getItemId());
         }
         if (menu.findItem(ID_LOOKUP) == null)
             menu.add(Menu.NONE, ID_LOOKUP, 0, "查單字").setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
