@@ -1,1 +1,1 @@
-App 內可直接匯出 AI 語音包，備份與語音包都能一鍵分享到 Google Drive。
+App 裡可以用 Google 帳號登入雲端同步了，Chrome 和 App 的筆記會自動同步。
