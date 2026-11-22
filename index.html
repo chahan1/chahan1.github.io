@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.56.1 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.56.2 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -1284,7 +1284,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.56.1</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.56.2</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -6277,16 +6277,28 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
   spoken＝日常口語很常用；neutral＝口語、書面都常用；formal＝偏正式／書面，日常說話較少用；rare＝不常見，母語人士日常很少用）
 （common：只有 usage 為 formal 或 rare 時，給 1～2 個意思相同、日常更常用的說法（例如 postpone → put off、push back；purchase → buy）；其他情況給空陣列）
 （collocations 為 2～3 個母語人士最常用的搭配或固定說法，必須包含這個單字／片語，例如 agenda → set the agenda、on the agenda；每個不超過 5 個字）`;
-        const ETYM_RULE = `（etymology：用繁體中文寫成「詞素拆解」，格式固定如下（用換行分隔）：
-第 1 行：一句總說明，講來源語言、由哪些部分組成，以及字面意思，例如「源自拉丁文，由前綴＋詞根＋名詞後綴組成，字面意思是「完全抓住（腦中的影像或概念）」。」
-第 2 行起：每個詞素一行，寫成「詞素（前綴／詞根／後綴）：意思」；詞根要說明演變自哪個字（含原文與意思），例如：
-per-（前綴）：完全地、徹底地
--cept-（詞根）：演變自拉丁文動詞 capere（過去分詞 captus），意思是抓取、拿取、接收
--ion（後綴）：名詞字尾，表示行為、狀態或結果
-只拆主要、有意義的詞素，通常 2～4 行；每行 40 字以內。
-片語則每個組成字一行說明意思，最後一行用「→」說明怎麼引申成現在的意思，例如 put off：第 1 行「由動詞 put 和副詞 off 組成，字面意思是「放到一邊」。」，接著「put：放」「off：離開、脫離」「→ 把事情放到一邊 → 延後」。
-沒有可拆的詞素（例如 dog、know）時只寫一行，簡短說明來源，例如「源自古英文 cnawan（知道），無法再拆解。」
-不確定的部分不要編造，真的不清楚就寫「字源不明」）`;   // v2.55.0 改成詞素拆解
+        const ETYM_RULE = `（etymology：用繁體中文寫，分成兩段，格式固定如下（用換行分隔，標題照抄）：
+1. 詞素拆解
+每個詞素一行，寫成「詞素（前綴／詞根／後綴）：意思（英文意思）」。詞根要寫出演變自哪個拉丁文／希臘文／古英文的字（含原文）和它的意思。
+2. 演變脈絡
+1～2 句：說明原本的字怎麼組成、原意是什麼，再用「→」帶到現在的英文意思。
+範例 pertain：
+1. 詞素拆解
+per-（前綴）：在這裡意思是「貫穿、徹底、一直到」（through, thoroughly）
+-tain（詞根）：演變自拉丁文動詞 tenēre，意思是「握住、保持、延伸」（to hold, keep, reach）
+2. 演變脈絡
+拉丁文動詞 pertinēre（per- 貫穿＋tenēre 延伸／握住）原意為「一路延伸過去、觸及」→ 引申為「與…有關、屬於」。
+範例 perception：
+1. 詞素拆解
+per-（前綴）：完全地、徹底地（thoroughly, completely）
+-cept-（詞根）：演變自拉丁文動詞 capere（過去分詞 captus），意思是「抓取、拿取、接收」（to take, seize, grasp）
+-ion（後綴）：名詞字尾，表示「行為、狀態或結果」
+2. 演變脈絡
+拉丁文 perceptio（完全抓住）原指「收集、取得」→ 引申為用感官或心智「抓住」事物 → 知覺、感知。
+就算英文字是整個從拉丁文借來的（例如 pertain 來自 pertineo），也要把拉丁文原字再拆成前綴＋詞根說明。只拆主要、有意義的詞素，通常 2～4 行。
+片語：「1. 詞素拆解」改成每個組成字一行說明意思，「2. 演變脈絡」說明怎麼引申成現在的意思。
+真的沒有可拆的詞素（例如 dog、know）時，省略「1. 詞素拆解」，只寫「2. 演變脈絡」說明來源，例如「源自古英文 cnawan（知道）。」
+不確定的部分不要編造，真的不清楚就寫「字源不明」）`;   // v2.55.2 詞素拆解＋演變脈絡
         // ---- 字源查證：維基詞典（Wiktionary）原文 → AI 只負責翻成中文摘要 ----
         const WK_API = 'https://en.wiktionary.org/w/api.php';
         const wkCache = new Map();
@@ -6353,17 +6365,29 @@ per-（前綴）：完全地、徹底地
 ---
 ${found.etym}
 ---
-請「只根據上面的原文」整理字源。用繁體中文寫成「詞素拆解」，格式固定如下（用換行分隔）：
-第 1 行：一句總說明，講來源語言、由哪些部分組成，以及字面意思，例如「源自拉丁文，由前綴＋詞根＋名詞後綴組成，字面意思是「完全抓住（腦中的影像或概念）」。」
-第 2 行起：每個詞素一行，寫成「詞素（前綴／詞根／後綴）：意思」；詞根要說明演變自哪個字（含原文與意思），例如：
-per-（前綴）：完全地、徹底地
--cept-（詞根）：演變自拉丁文動詞 capere（過去分詞 captus），意思是抓取、拿取、接收
--ion（後綴）：名詞字尾，表示行為、狀態或結果
-只拆主要、有意義的詞素，通常 2～4 行；每行 40 字以內。
-片語則每個組成字一行說明意思，最後一行用「→」說明怎麼引申成現在的意思，例如 put off：第 1 行「由動詞 put 和副詞 off 組成，字面意思是「放到一邊」。」，接著「put：放」「off：離開、脫離」「→ 把事情放到一邊 → 延後」。
-沒有可拆的詞素（例如 dog、know）時只寫一行，簡短說明來源，例如「源自古英文 cnawan（知道），無法再拆解。」
+請整理成幫助記憶的字源。用繁體中文寫，分成兩段，格式固定如下（用換行分隔，標題照抄）：
+1. 詞素拆解
+每個詞素一行，寫成「詞素（前綴／詞根／後綴）：意思（英文意思）」。詞根要寫出演變自哪個拉丁文／希臘文／古英文的字（含原文）和它的意思。
+2. 演變脈絡
+1～2 句：說明原本的字怎麼組成、原意是什麼，再用「→」帶到現在的英文意思。
+範例 pertain：
+1. 詞素拆解
+per-（前綴）：在這裡意思是「貫穿、徹底、一直到」（through, thoroughly）
+-tain（詞根）：演變自拉丁文動詞 tenēre，意思是「握住、保持、延伸」（to hold, keep, reach）
+2. 演變脈絡
+拉丁文動詞 pertinēre（per- 貫穿＋tenēre 延伸／握住）原意為「一路延伸過去、觸及」→ 引申為「與…有關、屬於」。
+範例 perception：
+1. 詞素拆解
+per-（前綴）：完全地、徹底地（thoroughly, completely）
+-cept-（詞根）：演變自拉丁文動詞 capere（過去分詞 captus），意思是「抓取、拿取、接收」（to take, seize, grasp）
+-ion（後綴）：名詞字尾，表示「行為、狀態或結果」
+2. 演變脈絡
+拉丁文 perceptio（完全抓住）原指「收集、取得」→ 引申為用感官或心智「抓住」事物 → 知覺、感知。
+就算英文字是整個從拉丁文借來的（例如 pertain 來自 pertineo），也要把拉丁文原字再拆成前綴＋詞根說明。只拆主要、有意義的詞素，通常 2～4 行。
+片語：「1. 詞素拆解」改成每個組成字一行說明意思，「2. 演變脈絡」說明怎麼引申成現在的意思。
+真的沒有可拆的詞素（例如 dog、know）時，省略「1. 詞素拆解」，只寫「2. 演變脈絡」說明來源，例如「源自古英文 cnawan（知道）。」
 ${isCore ? `這是片語「${word}」中的核心字 ${found.title}，開頭請寫「${found.title}：」。` : ''}
-不可以加入原文沒有的資訊；如果原文沒有實質的字源資訊，etymology 回傳空字串。
+來源語言、經過哪些語言演變，要以上面的原文為準，不可捏造；但可以用你對拉丁文、希臘文構詞的知識，把原文裡的拉丁文／希臘文原字拆成前綴、詞根並說明意思（例如原文只寫 pertineo，你可以拆成 per-＋tenēre）。如果原文沒有實質的字源資訊，etymology 回傳空字串。
 只回傳 JSON：{"etymology": "..."}`, { temperature: 0.2 });
                 const et = cleanEtym(r.etymology);
                 if (et) return { etym: et, src: 'wiktionary', exists: exists !== undefined ? exists : true };
@@ -6373,7 +6397,7 @@ ${ETYM_RULE}`, { temperature: 0.2 });
             return { etym: cleanEtym(r.etymology), src: 'ai', exists };
         }
         // ---- v2.55.1 一鍵把舊字源改成詞素拆解（自己改過的、已是新格式的不動）----
-        const etymNeedsReformat = s => !!(s.etym && s.etymV !== 2 && clozeTarget(s.text) && !s.isLoading && !s.pendingAI);
+        const etymNeedsReformat = s => !!(s.etym && s.etymV !== 3 && !s.etymManual && clozeTarget(s.text) && !s.isLoading && !s.pendingAI);
         let etymReformatBusy = false;
         async function reformatEtymology() {
             if (etymReformatBusy) return showToast('字源重整進行中，請稍候');
@@ -6390,7 +6414,7 @@ ${ETYM_RULE}`, { temperature: 0.2 });
                     const s = subs[next++];
                     try {
                         const et = await fetchEtymology(clozeTarget(s.text));
-                        if (et.etym && s.etymV !== 2) { s.etym = et.etym; s.etymSrc = et.src; s.etymV = 2; ok++; saveSoon(); } else fail++;
+                        if (et.etym && s.etymV !== 3 && !s.etymManual) { s.etym = et.etym; s.etymSrc = et.src; s.etymV = 3; ok++; saveSoon(); } else fail++;
                     } catch (e) { const k = e.kind || classifyError(e); if (k === 'key' || k === 'offline' || k === 'quota') stop = e.message || k; else fail++; }
                     showToast(`🌱 字源改成詞素拆解中… ${ok + fail} / ${subs.length}`, 60000);
                 }
@@ -6428,7 +6452,7 @@ ${ETYM_RULE}`, { temperature: 0.2 });
         }
         function cleanEtym(t) {   // v2.55.0 詞素拆解有多行：保留換行，長度上限放寬
             const v = String(t || '').split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean).join('\n');
-            return v && v.length <= 400 ? v : (v ? v.slice(0, 400) + '…' : '');
+            return v && v.length <= 600 ? v : (v ? v.slice(0, 600) + '…' : '');
         }
         function cleanUsageFields(r, word) {
             const usage = String(r.usage || '').toLowerCase().trim();
@@ -6544,7 +6568,7 @@ ${words.map((w, k) => `#${k + 1} ${w}`).join('\n')}
                     showToast(`🌱 查證字源中… ${i + 1} / ${etTargets.length}`, 60000);
                     try {
                         const et = await fetchEtymology(clozeTarget(sub.text));
-                        if (et.etym && !sub.etym) { sub.etym = et.etym; sub.etymSrc = et.src; sub.etymV = 2; etymDone++; saveData(); }
+                        if (et.etym && !sub.etym) { sub.etym = et.etym; sub.etymSrc = et.src; sub.etymV = 3; etymDone++; saveData(); }
                     } catch (e) { const k = e.kind || classifyError(e); if (k === 'key' || k === 'offline' || k === 'quota') { stop = e.message; break; } }
                 }
             }
@@ -7412,7 +7436,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             const sub = findSub(mainTaskId, subTaskId); if (!sub) return;
             const v = await uiPrompt('修改字源', sub.etym || '', { sub: cleanForSpeech(sub.text) || sub.text, hint: '清空即刪除' });
             if (v === null) return;
-            if (v.trim()) { sub.etym = v.trim(); sub.etymV = 2; } else delete sub.etym;   // 自己改過的不會被一鍵重整覆蓋
+            if (v.trim()) { sub.etym = v.trim(); sub.etymV = 3; sub.etymManual = true; } else delete sub.etym;   // 自己改過的不會被一鍵重整覆蓋
             saveData();
         }
         async function editListField(subTaskId, mainTaskId, field) {
@@ -7987,7 +8011,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             if (result.cefr && !CEFR.includes(sub.cefr)) sub.cefr = result.cefr;
             if (result.synonyms && result.synonyms.length && !(sub.synonyms && sub.synonyms.length)) sub.synonyms = result.synonyms;
             applyUsageFields(sub, result);
-            if (result.etymology && !sub.etym) { sub.etym = result.etymology; sub.etymV = 2; if (result.etymSrc) sub.etymSrc = result.etymSrc; }
+            if (result.etymology && !sub.etym) { sub.etym = result.etymology; sub.etymV = 3; if (result.etymSrc) sub.etymSrc = result.etymSrc; }
             if (result.aiModel) sub.aiModel = result.aiModel;
             if (result.entryVerified) sub.entryVerified = true;
             if (result.correctedWord && result.originalWord) {
@@ -8160,7 +8184,7 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
             saveData();
         }
         // 清除舊資料並重新查詢
-        const SUB_AI_FIELDS = ['synonyms', 'usage', 'common', 'collocations', 'cefr', 'etym', 'etymSrc', 'etymV', 'spellWarn', 'entryVerified', 'aiModel', 'noSynonyms', 'proofed', 'genEx'];
+        const SUB_AI_FIELDS = ['synonyms', 'usage', 'common', 'collocations', 'cefr', 'etym', 'etymSrc', 'etymV', 'etymManual', 'spellWarn', 'entryVerified', 'aiModel', 'noSynonyms', 'proofed', 'genEx'];
         async function rebuildSub(sub, topicId) {
             SUB_AI_FIELDS.forEach(k => delete sub[k]);
             sub.grandtasks = [];
