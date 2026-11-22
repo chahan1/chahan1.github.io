@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.56.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.56.1 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -1284,7 +1284,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.56.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.56.1</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -2446,14 +2446,14 @@
         // --- 2. Gemini API 呼叫 ---
         async function callGemini(model, apiKey, promptText) {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-            const response = await fetch(url, {
+            const response = await fetchT(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
                 body: JSON.stringify({
                     contents: [{ parts: [{ text: promptText }] }],
                     generationConfig: { responseMimeType: "application/json" }
                 })
-            });
+            }, 40000);
             if (!response.ok) {
                 let msg = `HTTP ${response.status}`;
                 try { const err = await response.json(); msg = err.error?.message || msg; } catch (e) {}
@@ -2464,8 +2464,18 @@
             return response.json();
         }
 
+        // v2.56.1 Gemini 請求加上逾時：免費金鑰有時會一直沒有回應，卡在「查詢中」
+        async function fetchT(url, opts, ms) {
+            const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms);
+            try { return await fetch(url, Object.assign({}, opts, { signal: ac.signal })); }
+            catch (e) {
+                if (e && e.name === 'AbortError') { const x = new Error(`${Math.round(ms / 1000)} 秒沒有回應`); x.status = 408; x.timeout = true; throw x; }
+                throw e;
+            } finally { clearTimeout(t); }
+        }
         // AI 查詢錯誤的分類，方便決定「稍後重試」或「停止」
         function classifyError(err) {
+            if (err && err.timeout) return 'timeout';
             if (!navigator.onLine || err instanceof TypeError) return 'offline';     // 沒網路 / 連不上
             if (err && (err.status === 401 || err.status === 403 || (err.status === 400 && /api key/i.test(err.message)))) return 'key';
             if (err && err.status === 429) return 'quota';
@@ -3633,7 +3643,7 @@ ${ENRICH_RULES}
         }
 
         async function postJSON(url, apiKey, body) {
-            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }, body: JSON.stringify(body) });
+            const res = await fetchT(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }, body: JSON.stringify(body) }, 60000);
             if (!res.ok) {
                 let msg = `HTTP ${res.status}`;
                 try { const j = await res.json(); msg = j.error?.message || msg; } catch (e) {}
@@ -3685,7 +3695,7 @@ ${ENRICH_RULES}
                 } catch (e) {
                     lastErr = e;
                     const k = classifyError(e);
-                    if (k === 'key' || k === 'offline') break;
+                    if (k === 'key' || k === 'offline' || k === 'timeout') break;
                 }
             }
             throw lastErr || new Error('AI 語音產生失敗');
@@ -5365,10 +5375,11 @@ review_sentence 的規則（非常重要）：
             const m = gemCoolMap(), msg = String(e && e.message || '');
             let until;
             if (classifyError(e) === 'key') until = Date.now() + 60 * 60 * 1000;   // 金鑰無效：1 小時後再試
+            else if (classifyError(e) === 'timeout') until = Date.now() + 10 * 60 * 1000;   // 沒有回應：10 分鐘內先用下一把
             else if (/per.?day|daily|PerDay/i.test(msg)) {                          // 每日額度用完：等到美西午夜（台灣約下午 4 點）重置
                 const d = new Date(); d.setUTCHours(8, 0, 0, 0); if (d <= new Date()) d.setUTCDate(d.getUTCDate() + 1); until = d.getTime();
             } else until = Date.now() + 70 * 1000;                                  // 每分鐘次數用完：稍等一下
-            m[slot.p] = until; try { localStorage.setItem(GEM_COOL, JSON.stringify(m)); } catch (x) {}
+            m[slot.p] = until; m[slot.p + '_why'] = msg.slice(0, 80); try { localStorage.setItem(GEM_COOL, JSON.stringify(m)); } catch (x) {}
         }
         // fn(key) 用某一把金鑰呼叫；失敗就換下一把（免費金鑰額度用完會暫停一段時間）
         async function withGeminiKeys(fn) {
@@ -5381,7 +5392,7 @@ review_sentence 的規則（非常重要）：
                     last = e;
                     const k = classifyError(e);
                     if (k === 'offline') throw e;
-                    if (slot.free && (k === 'quota' || k === 'key')) gemCoolDown(slot, e);
+                    if (slot.free && (k === 'quota' || k === 'key' || k === 'timeout')) gemCoolDown(slot, e);
                 }
             }
             throw last;
@@ -5436,7 +5447,7 @@ review_sentence 的規則（非常重要）：
                     try {
                         const data = await callGemini(model, key, prompt);
                         return extractJSON(data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '');
-                    } catch (e) { last = e; const k = classifyError(e); if (k === 'key' || k === 'offline') break; }
+                    } catch (e) { last = e; const k = classifyError(e); if (k === 'key' || k === 'offline' || k === 'timeout') break; }
                 }
                 throw last;
             });
@@ -5562,7 +5573,7 @@ review_sentence 的規則（非常重要）：
             const cool = gemCoolMap(), hm = t => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
             ['groq', 'freeai', 'gemini', 'gemfree1', 'gemfree2'].forEach(p => {
                 document.getElementById('ks_' + p).value = getKey(p);
-                document.getElementById('ks_' + p + '_st').textContent = !getKey(p) ? '尚未設定' : cool[p] > Date.now() ? `已設定・額度用完，${hm(cool[p])} 後再使用` : '已設定';
+                document.getElementById('ks_' + p + '_st').textContent = !getKey(p) ? '尚未設定' : cool[p] > Date.now() ? `已設定・暫停到 ${hm(cool[p])}（${cool[p + '_why'] || '額度用完'}）` : '已設定';
                 document.getElementById('ks_' + p + '_st').className = 'ks-st';
             });
             document.getElementById('ks_tier').value = geminiTier();
@@ -5575,7 +5586,7 @@ review_sentence 的規則（非常重要）：
         function saveKey(p) {
             const v = document.getElementById('ks_' + p).value.trim();
             if (v) localStorage.setItem(KEY_STORE[p], v); else localStorage.removeItem(KEY_STORE[p]);
-            const m = gemCoolMap(); if (m[p]) { delete m[p]; localStorage.setItem(GEM_COOL, JSON.stringify(m)); }   // 換了金鑰就清掉暫停紀錄
+            const m = gemCoolMap(); if (m[p]) { delete m[p]; delete m[p + '_why']; localStorage.setItem(GEM_COOL, JSON.stringify(m)); }   // 換了金鑰就清掉暫停紀錄
         }
         function toggleKeyVisible(p) { const el = document.getElementById('ks_' + p); el.type = el.type === 'password' ? 'text' : 'password'; }
         function setGeminiTier(v) {
@@ -5981,14 +5992,14 @@ ${words.map((w, k) => `#${k + 1} ${w}`).join('\n')}
 issues 最多 4 項；如果念得很好，issues 可以是空陣列，並給進階建議（如連音、語調）。`;
             for (const model of geminiModels()) {
                 try {
-                    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+                    const r = await fetchT(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
                         body: JSON.stringify({ contents: [{ parts: [{ inline_data: { mime_type: 'audio/wav', data: audio } }, { text: prompt }] }], generationConfig: { responseMimeType: 'application/json' } })
-                    });
+                    }, 60000);
                     if (!r.ok) { let m = 'HTTP ' + r.status; try { m = (await r.json()).error.message || m; } catch (e) {} const e = new Error(m); e.status = r.status; throw e; }
                     const j = await r.json();
                     return extractJSON((j?.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join(''));
-                } catch (e) { last = e; const k = classifyError(e); if (k === 'key' || k === 'offline') break; }
+                } catch (e) { last = e; const k = classifyError(e); if (k === 'key' || k === 'offline' || k === 'timeout') break; }
             }
             throw last;
         }
