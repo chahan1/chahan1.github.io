@@ -17,7 +17,7 @@ import java.nio.charset.StandardCharsets;
 
 /** 網頁呼叫的介面：window.NativeNB（網頁端的包裝在 native.js） */
 public class Bridge {
-    static final int VERSION = 5;
+    static final int VERSION = 6;
     private final Context ctx;
 
     Bridge(Context ctx) { this.ctx = ctx; }
@@ -51,6 +51,9 @@ public class Bridge {
     @JavascriptInterface public void srStart(int id, String lang, boolean interim, int maxAlt) { Recognizer.start(ctx, id, lang, interim, maxAlt); }
     @JavascriptInterface public void srStop(int id) { Recognizer.stop(id); }
     @JavascriptInterface public void srAbort(int id) { Recognizer.abort(id); }
+
+    // ---- 原生 Google 登入（雲端同步用） ----
+    @JavascriptInterface public void googleLogin(int id, String clientId) { MainActivity.googleLogin(id, clientId); }
 
     // ---- 通知列／鎖定畫面的播放控制：json 空字串＝關閉播放視窗 ----
     @JavascriptInterface public void media(String json) {

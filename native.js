@@ -21,6 +21,18 @@
         media(info) { call('media', info ? JSON.stringify(info) : ''); },
         // share=true：存進「下載」後跳出分享選單（選 Google Drive 就會存到雲端）
         saveFile(name, mime, text, share) { return call('saveFile', name, mime, text, !!share) === true; },
+        // 原生 Google 登入：成功回傳 { token, email }；取消時丟出 code = 'cancel'
+        googleLogin(clientId) {
+            return new Promise((res, rej) => {
+                const id = ++seq;
+                handlers['g' + id] = (type, d) => {
+                    delete handlers['g' + id];
+                    if (type === 'ok') res(d);
+                    else { const e = new Error(d.msg || d.code || 'login failed'); e.code = d.code; rej(e); }
+                };
+                call('googleLogin', id, clientId);
+            });
+        },
         // 大檔（例如 AI 語音包）：分段傳給原生寫入，避免一次塞爆記憶體
         async saveBlob(name, mime, blob, share) {
             if (call('fileOpen', name, mime) !== true) return false;

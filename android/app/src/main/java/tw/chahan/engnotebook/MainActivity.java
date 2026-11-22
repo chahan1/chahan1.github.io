@@ -40,6 +40,15 @@ public class MainActivity extends Activity {
         });
     }
 
+    /** 原生 Google 登入（結果用 Bridge.emit('g', id, …) 回傳網頁） */
+    static void googleLogin(int id, String clientId) {
+        main.post(() -> {
+            MainActivity a = current.get();
+            if (a == null) { Bridge.emit("g", id, "err", "{\"code\":\"noactivity\",\"msg\":\"\"}"); return; }
+            GoogleLogin.start(a, id, clientId);
+        });
+    }
+
     /** 需要麥克風時呼叫：已有權限直接 ok，否則先問使用者 */
     static void needMic(Runnable ok, Runnable denied) {
         main.post(() -> {

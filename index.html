@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.51.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.52.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -1284,7 +1284,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.51.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.52.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -6690,6 +6690,8 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             messagingSenderId: '61959186614',
             appId: '1:61959186614:web:e0595213e65cae72185e17'
         };
+        // v2.52.0 Android App 原生 Google 登入用的「網頁用戶端 ID」（Firebase → Authentication → Google → 網頁 SDK 設定）
+        const GOOGLE_WEB_CLIENT_ID = '';
         const SYNC_KEY = 'eng_sync';
         const SYNC_LOCAL_ONLY = ['collapsed', 'isLoading'];   // 只屬於這台裝置的畫面狀態，不上傳
         const sync = {
@@ -6897,10 +6899,21 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             try {
                 const fb = await syncInit();
                 let user = await new Promise(res => { const u = fb.onAuthStateChanged(sync.auth, x => { u(); res(x); }); });
-                if (!user && interactive && window.nativeApp) {   // Google 不允許在 App 內嵌網頁登入；原生登入下一版加入
-                    sync.starting = false;
-                    setSyncStatus('login', 'Android App 版暫時還不能登入雲端同步。請先在 Chrome 版選單按「下載備份」，再到 App 選單用「還原」匯入資料。');
-                    return;
+                if (!user && interactive && window.nativeApp) {   // Google 不允許在 App 內嵌網頁登入，改用原生登入拿 ID token
+                    if (nativeApp.version < 6 || !GOOGLE_WEB_CLIENT_ID) {
+                        sync.starting = false;
+                        setSyncStatus('login', nativeApp.version < 6 ? '請先更新 App（播放設定裡「檢查 App 更新」），新版才能登入雲端同步。' : 'App 版的 Google 登入還沒設定好，請先用搬家檔搬資料。');
+                        return;
+                    }
+                    let g;
+                    try { g = await nativeApp.googleLogin(GOOGLE_WEB_CLIENT_ID); }
+                    catch (e) {
+                        sync.starting = false;
+                        if (e.code === 'cancel') { setSyncStatus(syncState.on ? 'login' : 'off', '已取消登入。'); return; }
+                        setSyncStatus('error', 'Google 登入失敗：' + (e.message || e.code) + '\n（若提到 developer console／未設定，請確認 Firebase 已加入 Android 應用程式與 SHA-1）');
+                        return;
+                    }
+                    user = (await fb.signInWithCredential(sync.auth, fb.GoogleAuthProvider.credential(g.token))).user;
                 }
                 if (!user && interactive) {
                     const provider = new fb.GoogleAuthProvider();
