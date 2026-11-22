@@ -1,1 +1,1 @@
-App 裡可以用 Google 帳號登入雲端同步了，Chrome 和 App 的筆記會自動同步。
+Google 登入沒成功時，會顯示 Google 回報的原因，方便找出問題。

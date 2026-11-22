@@ -40,7 +40,7 @@ final class GoogleLogin {
                         } catch (Exception e) { fail(id, "parse", String.valueOf(e.getMessage())); }
                     }
                     @Override public void onError(GetCredentialException e) {
-                        if (e instanceof GetCredentialCancellationException) fail(id, "cancel", "");
+                        if (e instanceof GetCredentialCancellationException) fail(id, "cancel", String.valueOf(e.getMessage()));
                         else fail(id, String.valueOf(e.getType()), String.valueOf(e.getMessage()));
                     }
                 });

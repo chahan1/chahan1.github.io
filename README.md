@@ -356,6 +356,7 @@ v2.14.0 起分別集中在「🧰 AI 工具箱」「👀 顯示設定」「💾 
 
 | 版本 | 更新內容 |
 |---|---|
+| v2.52.1 | App 的 Google 登入沒完成時顯示 Google 回報的原因（原生版本 7） |
 | v2.52.0 | Android App（原生版本 6）可以用 Google 帳號登入雲端同步（原生 Google 登入取得 ID token，再登入 Firebase）；需先在 Firebase 加入 Android 應用程式（tw.chahan.engnotebook＋簽章 SHA-1） |
 | v2.51.0 | Android App（原生版本 5）可直接匯出 AI 語音包（分段寫進「下載」，不用再回 Chrome）；「備份到 Google Drive」「分享 AI 語音包到 Google Drive」存好後跳出分享選單，選「雲端硬碟」即可 |
 | v2.50.1 | 口說回想的自訂題數改成和「播放例句」自訂句數一樣的樣式：按「✏️ 自訂」後直接在下方用 −5／−1／＋1／＋5 或輸入數字調整 |
