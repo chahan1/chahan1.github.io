@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.54.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.55.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -491,7 +491,7 @@
         .definition-box { display: block; font-size: calc(12px * var(--z)); color: var(--c-555a5f); background: var(--c-f7f9f8); border-left: 2px solid var(--green); padding: calc(4px * var(--z)) calc(8px * var(--z)); margin: 0 calc(4px * var(--z)) calc(5px * var(--z)) calc(30px * var(--z)); border-radius: 0 calc(6px * var(--z)) calc(6px * var(--z)) 0; cursor: pointer; }
         .definition-box:active { background: var(--green-light); }
         body.hide-def .definition-box { display: none !important; }
-        .etym-box { display: block; font-size: calc(12px * var(--z)); color: var(--c-6d4c1f); background: var(--c-fdf7ec); border-left: 2px solid var(--c-e3a33b); padding: calc(4px * var(--z)) calc(8px * var(--z)); margin: 0 calc(4px * var(--z)) calc(5px * var(--z)) calc(30px * var(--z)); border-radius: 0 calc(6px * var(--z)) calc(6px * var(--z)) 0; cursor: pointer; line-height: 1.5; }
+        .etym-box { white-space: pre-line; display: block; font-size: calc(12px * var(--z)); color: var(--c-6d4c1f); background: var(--c-fdf7ec); border-left: 2px solid var(--c-e3a33b); padding: calc(4px * var(--z)) calc(8px * var(--z)); margin: 0 calc(4px * var(--z)) calc(5px * var(--z)) calc(30px * var(--z)); border-radius: 0 calc(6px * var(--z)) calc(6px * var(--z)) 0; cursor: pointer; line-height: 1.5; }
         .etym-src { font-size: calc(9.5px * var(--z)); margin-left: calc(6px * var(--z)); padding: 0 calc(5px * var(--z)); border-radius: calc(4px * var(--z)); background: var(--c-f1f3f4); color: var(--c-80868b); white-space: nowrap; font-weight: 600; vertical-align: 1px; }
         .etym-src.ok { background: var(--c-e6f4ea); color: var(--c-137333); }
         .uv-badge { display: inline-block; font-size: calc(9.5px * var(--z)); font-weight: 600; border-radius: calc(5px * var(--z)); padding: 0 calc(5px * var(--z)); margin-left: calc(5px * var(--z)); line-height: calc(15px * var(--z)); background: var(--c-fef7e0); color: var(--c-b06000); cursor: pointer; white-space: nowrap; vertical-align: 1px; font-style: normal; }
@@ -1284,7 +1284,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.54.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.55.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -6199,7 +6199,16 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
   spoken＝日常口語很常用；neutral＝口語、書面都常用；formal＝偏正式／書面，日常說話較少用；rare＝不常見，母語人士日常很少用）
 （common：只有 usage 為 formal 或 rare 時，給 1～2 個意思相同、日常更常用的說法（例如 postpone → put off、push back；purchase → buy）；其他情況給空陣列）
 （collocations 為 2～3 個母語人士最常用的搭配或固定說法，必須包含這個單字／片語，例如 agenda → set the agenda、on the agenda；每個不超過 5 個字）`;
-        const ETYM_RULE = `（etymology：用繁體中文簡短說明字源，幫助記憶，40 字以內。拆解字首、字根、字尾並說明各部分的意思，再用箭頭帶到現在的意思，例如 postpone → "post-（在…之後）＋ pon（放置，拉丁文）→ 放到後面 → 延後"；片語則說明組成字的意思與引申，例如 put off → "put（放）＋ off（離開）→ 放到一邊 → 延後"；沒有可拆解的字根時，簡短說明來源，例如 "來自古英文 cnawan（知道）"。不確定的部分不要編造，真的不清楚就寫 "字源不明"）`;
+        const ETYM_RULE = `（etymology：用繁體中文寫成「詞素拆解」，格式固定如下（用換行分隔）：
+第 1 行：一句總說明，講來源語言、由哪些部分組成，以及字面意思，例如「源自拉丁文，由前綴＋詞根＋名詞後綴組成，字面意思是「完全抓住（腦中的影像或概念）」。」
+第 2 行起：每個詞素一行，寫成「詞素（前綴／詞根／後綴）：意思」；詞根要說明演變自哪個字（含原文與意思），例如：
+per-（前綴）：完全地、徹底地
+-cept-（詞根）：演變自拉丁文動詞 capere（過去分詞 captus），意思是抓取、拿取、接收
+-ion（後綴）：名詞字尾，表示行為、狀態或結果
+只拆主要、有意義的詞素，通常 2～4 行；每行 40 字以內。
+片語則每個組成字一行說明意思，最後一行用「→」說明怎麼引申成現在的意思，例如 put off：第 1 行「由動詞 put 和副詞 off 組成，字面意思是「放到一邊」。」，接著「put：放」「off：離開、脫離」「→ 把事情放到一邊 → 延後」。
+沒有可拆的詞素（例如 dog、know）時只寫一行，簡短說明來源，例如「源自古英文 cnawan（知道），無法再拆解。」
+不確定的部分不要編造，真的不清楚就寫「字源不明」）`;   // v2.55.0 改成詞素拆解
         // ---- 字源查證：維基詞典（Wiktionary）原文 → AI 只負責翻成中文摘要 ----
         const WK_API = 'https://en.wiktionary.org/w/api.php';
         const wkCache = new Map();
@@ -6266,7 +6275,16 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
 ---
 ${found.etym}
 ---
-請「只根據上面的原文」，用繁體中文寫出幫助記憶的簡短字源（50 字以內）：拆出字首／字根／字尾（或組成的字）並說明各自意思，再用箭頭帶到現在的意思，例如 "post-（在…之後）＋ ponere（放置，拉丁文）→ 放到後面 → 延後"。${isCore ? `這是片語「${word}」中的核心字 ${found.title}，開頭請寫「${found.title}：」。` : ''}
+請「只根據上面的原文」整理字源。用繁體中文寫成「詞素拆解」，格式固定如下（用換行分隔）：
+第 1 行：一句總說明，講來源語言、由哪些部分組成，以及字面意思，例如「源自拉丁文，由前綴＋詞根＋名詞後綴組成，字面意思是「完全抓住（腦中的影像或概念）」。」
+第 2 行起：每個詞素一行，寫成「詞素（前綴／詞根／後綴）：意思」；詞根要說明演變自哪個字（含原文與意思），例如：
+per-（前綴）：完全地、徹底地
+-cept-（詞根）：演變自拉丁文動詞 capere（過去分詞 captus），意思是抓取、拿取、接收
+-ion（後綴）：名詞字尾，表示行為、狀態或結果
+只拆主要、有意義的詞素，通常 2～4 行；每行 40 字以內。
+片語則每個組成字一行說明意思，最後一行用「→」說明怎麼引申成現在的意思，例如 put off：第 1 行「由動詞 put 和副詞 off 組成，字面意思是「放到一邊」。」，接著「put：放」「off：離開、脫離」「→ 把事情放到一邊 → 延後」。
+沒有可拆的詞素（例如 dog、know）時只寫一行，簡短說明來源，例如「源自古英文 cnawan（知道），無法再拆解。」
+${isCore ? `這是片語「${word}」中的核心字 ${found.title}，開頭請寫「${found.title}：」。` : ''}
 不可以加入原文沒有的資訊；如果原文沒有實質的字源資訊，etymology 回傳空字串。
 只回傳 JSON：{"etymology": "..."}`, { temperature: 0.2 });
                 const et = cleanEtym(r.etymology);
@@ -6303,9 +6321,9 @@ ${ETYM_RULE}`, { temperature: 0.2 });
             const w = String(word || '').toLowerCase().trim();
             return [...new Set(list.map(x => String(x || '').replace(/[()（）]/g, '').trim()).filter(x => x && /[a-z]/i.test(x) && x.toLowerCase() !== w))].slice(0, 2);
         }
-        function cleanEtym(t) {
-            const v = String(t || '').replace(/\s+/g, ' ').trim();
-            return v && v.length <= 120 ? v : (v ? v.slice(0, 120) + '…' : '');
+        function cleanEtym(t) {   // v2.55.0 詞素拆解有多行：保留換行，長度上限放寬
+            const v = String(t || '').split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean).join('\n');
+            return v && v.length <= 400 ? v : (v ? v.slice(0, 400) + '…' : '');
         }
         function cleanUsageFields(r, word) {
             const usage = String(r.usage || '').toLowerCase().trim();
