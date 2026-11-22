@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.55.1 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.56.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -1284,7 +1284,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.55.1</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.56.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1855,6 +1855,20 @@
         <div class="modal-content">
             <div class="pm-title"><h3><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-key"/></svg> AI 金鑰設定</h3><button class="pm-close" onclick="closeKeyModal()">×</button></div>
             <div class="pm-hint"><b>Gemini 是主要服務</b>（付費，品質最好，資料不會被拿去訓練）；Groq 和 Free.ai 是<b>免費備用</b>。查單字、例句、AI 語音、朗讀評分都會先用 Gemini，失敗或額度用完時自動改用備用服務。金鑰只存在這支手機。</div>
+
+            <div class="ks-row">
+                <div class="ks-head"><b>Gemini 免費金鑰 1</b><span class="ks-tag">優先使用</span><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">申請</a></div>
+                <div class="ks-input"><input type="password" id="ks_gemfree1" placeholder="AIza…（沒開帳單的 Google 帳號）" autocomplete="off" spellcheck="false" oninput="saveKey('gemfree1')">
+                    <button class="ks-eye" onclick="toggleKeyVisible('gemfree1')"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-eye"/></svg></button><button class="ks-test" onclick="testProvider('gemfree1')">測試</button></div>
+                <div class="ks-st" id="ks_gemfree1_st"></div>
+            </div>
+            <div class="ks-row">
+                <div class="ks-head"><b>Gemini 免費金鑰 2</b><span class="ks-tag">優先使用</span></div>
+                <div class="ks-input"><input type="password" id="ks_gemfree2" placeholder="AIza…（另一個 Google 帳號）" autocomplete="off" spellcheck="false" oninput="saveKey('gemfree2')">
+                    <button class="ks-eye" onclick="toggleKeyVisible('gemfree2')"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-eye"/></svg></button><button class="ks-test" onclick="testProvider('gemfree2')">測試</button></div>
+                <div class="ks-st" id="ks_gemfree2_st"></div>
+                <div class="ks-tier-note">Gemini 會依序使用：免費金鑰 1 → 免費金鑰 2 → 付費金鑰。免費金鑰的額度用完（每分鐘或每天的次數上限）會自動換下一把，每日額度在台灣時間約下午 4 點重置。注意：Google 免費方案的內容可能被用來改進 Google 的產品。</div>
+            </div>
 
             <div class="ks-row">
                 <div class="ks-head"><b>Gemini</b><span class="ks-tag">主要・付費</span><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">申請</a></div>
@@ -2566,7 +2580,7 @@ ${ENRICH_RULES}
             if (player.playing) playerPause();   // 手動點朗讀時，先暫停連續播放
             const englishOnly = cleanForSpeech(text);
             if (!englishOnly) return;
-            if (playSettings.engine !== 'phone' && getKey(voiceSpec().provider)) {
+            if (playSettings.engine !== 'phone' && provAvail(voiceSpec().provider)) {
                 speakSingleAI(englishOnly).then(ok => { if (!ok) speakWithPhone(englishOnly); });
                 return;
             }
@@ -2607,7 +2621,7 @@ ${ENRICH_RULES}
         // v2.10.0：Gemini 改為主要語音。之前選「免費 AI 語音」且已有 Gemini 金鑰的，升級時改成 Gemini 一次（Free.ai 會自動當備用）
         if (!localStorage.getItem('eng_geminiPrimary')) {
             localStorage.setItem('eng_geminiPrimary', '1');
-            if (playSettings.engine === 'freeai' && (localStorage.getItem(API_KEY_STORAGE) || '').trim()) { playSettings.engine = 'ai'; localStorage.setItem(PLAY_KEY, JSON.stringify(playSettings)); }
+            if (playSettings.engine === 'freeai' && hasGemini()) { playSettings.engine = 'ai'; localStorage.setItem(PLAY_KEY, JSON.stringify(playSettings)); }
         }
         if (!playSettings.speed) playSettings.speed = { 0.7: 0.8, 0.9: 1.0, 1.1: 1.2 }[playSettings.rate] || 1.0;   // 舊設定轉換
         const aiSpeed = () => Math.max(0.5, Math.min(1.5, Number(playSettings.speed) || 1));
@@ -2830,7 +2844,7 @@ ${ENRICH_RULES}
         const drillCn = item => playSettings.drill && item && item.cn ? item.cn : '';
         const thinkSec = () => Math.max(1, Math.min(15, Number(playSettings.think) || 4));
         function cnSpec() {
-            if (getKey('gemini')) return { provider: 'gemini', voice: playSettings.voice || 'Kore' };
+            if (hasGemini()) return { provider: 'gemini', voice: playSettings.voice || 'Kore' };
             if (getKey('freeai')) return { provider: 'freeai', voice: 'zf_xiaobei' };
             return null;
         }
@@ -3096,7 +3110,7 @@ ${ENRICH_RULES}
             vs.innerHTML = vlist.map(([v, d]) => `<option value="${v}">${isFree ? d : `${v}（${d}）`}</option>`).join('');
             vs.value = isFree ? (playSettings.fvoice || 'af_heart') : (playSettings.voice || 'Kore');
             document.getElementById('pmVoiceBox').style.display = playSettings.engine !== 'phone' ? 'block' : 'none';
-            const needKey = playSettings.engine !== 'phone' && !getKey(voiceSpec().provider);
+            const needKey = playSettings.engine !== 'phone' && !provAvail(voiceSpec().provider);
             document.getElementById('pmEngineHint').innerHTML = (
                 isFree ? '用 Free.ai 免費產生自然的語音，可關閉螢幕繼續播放。每句第一次播放時需上網產生，之後存在手機裡，離線也能播。'
                 : playSettings.engine === 'ai' ? '用 Gemini 產生語音（可能產生少量費用），可關閉螢幕繼續播放。每句只產生一次，之後離線也能播。'
@@ -3651,9 +3665,11 @@ ${ENRICH_RULES}
         }
         // 依序嘗試可用的語音模型，成功的會記住，下次優先使用
         async function fetchTTS(text, voice) {
-            const apiKey = localStorage.getItem(API_KEY_STORAGE);
-            if (!apiKey) { const e = new Error('尚未設定 Gemini 金鑰'); e.status = 401; throw e; }
+            if (!hasGemini()) { const e = new Error('尚未設定 Gemini 金鑰'); e.status = 401; throw e; }
             if (!navigator.onLine) throw new TypeError('offline');
+            return withGeminiKeys(apiKey => fetchTTSWith(text, voice, apiKey));
+        }
+        async function fetchTTSWith(text, voice, apiKey) {
             const ix = geminiTier() === 'economy' ? TTS_IX_MODELS : ['gemini-3.8-flash-tts', ...TTS_IX_MODELS.filter(m => m !== 'gemini-3.8-flash-tts')];
             const tries = [...ix.map(m => 'ix:' + m), ...TTS_GC_MODELS.map(m => 'gc:' + m)];
             const pref = localStorage.getItem('eng_ttsModel');
@@ -3686,7 +3702,7 @@ ${ENRICH_RULES}
         const FEMALE_GEMINI = ['Kore', 'Aoede', 'Leda', 'Sulafat', 'Zephyr', 'Callirrhoe', 'Autonoe', 'Despina', 'Erinome', 'Laomedeia', 'Achernar', 'Gacrux', 'Pulcherrima', 'Vindemiatrix'];
         function backupSpec(spec) {
             if (spec.provider === 'gemini' && getKey('freeai')) return { provider: 'freeai', voice: FEMALE_GEMINI.includes(spec.voice) ? 'af_heart' : 'am_michael' };
-            if (spec.provider === 'freeai' && getKey('gemini')) return { provider: 'gemini', voice: /^(af|bf)_/.test(spec.voice) ? 'Kore' : 'Charon' };
+            if (spec.provider === 'freeai' && hasGemini()) return { provider: 'gemini', voice: /^(af|bf)_/.test(spec.voice) ? 'Kore' : 'Charon' };
             return null;
         }
         async function getClip(text, spec) {
@@ -4043,7 +4059,7 @@ ${ENRICH_RULES}
         }
         // 念一句並等它念完（AI 語音優先，失敗改手機語音）
         async function speakAwait(en, token) {
-            if (playSettings.engine !== 'phone' && getKey(voiceSpec().provider)) {
+            if (playSettings.engine !== 'phone' && provAvail(voiceSpec().provider)) {
                 try {
                     const clip = await getClip(en, voiceSpec());
                     if (token !== rt.token) return;
@@ -5327,11 +5343,50 @@ review_sentence 的規則（非常重要）：
         }
 
         // ================= 多家 AI 服務（Groq / Free.ai / Gemini）=================
-        const KEY_STORE = { gemini: API_KEY_STORAGE, groq: 'user_groq_api_key', freeai: 'user_freeai_api_key' };
+        const KEY_STORE = { gemini: API_KEY_STORAGE, groq: 'user_groq_api_key', freeai: 'user_freeai_api_key', gemfree1: 'user_gemini_free1_api_key', gemfree2: 'user_gemini_free2_api_key' };
         const PROVIDER_NAME = { groq: 'Groq', freeai: 'Free.ai', gemini: 'Gemini' };
         const TEXT_ORDER = ['gemini', 'groq', 'freeai'];            // 查單字、例句的使用順序（v2.10.0：Gemini 為主要，免費服務為備用）
         const getKey = p => (localStorage.getItem(KEY_STORE[p]) || '').trim();
-        const hasTextKey = () => TEXT_ORDER.some(p => getKey(p));
+        // ---- v2.56.0 Gemini 可以有 2 個免費金鑰：先用免費的，額度用完自動換下一個，最後才用付費金鑰 ----
+        const GEM_SLOTS = [{ p: 'gemfree1', label: '免費金鑰 1', free: true }, { p: 'gemfree2', label: '免費金鑰 2', free: true }, { p: 'gemini', label: '付費金鑰', free: false }];
+        const GEM_COOL = 'eng_gemCool';   // { 金鑰代號: 暫停到幾點 }
+        let gemForce = null;              // 測試單一金鑰時使用
+        const gemCoolMap = () => { try { return JSON.parse(localStorage.getItem(GEM_COOL)) || {}; } catch (e) { return {}; } };
+        function geminiKeyList() {
+            if (gemForce) return [{ p: gemForce, label: '', free: gemForce !== 'gemini', key: getKey(gemForce) }].filter(x => x.key);
+            const cool = gemCoolMap(), now = Date.now();
+            const all = GEM_SLOTS.map(x => Object.assign({ key: getKey(x.p) }, x)).filter(x => x.key);
+            const ok = all.filter(x => !(cool[x.p] > now));
+            return ok.length ? ok : all;   // 全部都在暫停中就照順序再試一次
+        }
+        const hasGemini = () => GEM_SLOTS.some(x => getKey(x.p));
+        const provAvail = p => p === 'gemini' ? hasGemini() : !!getKey(p);
+        function gemCoolDown(slot, e) {
+            const m = gemCoolMap(), msg = String(e && e.message || '');
+            let until;
+            if (classifyError(e) === 'key') until = Date.now() + 60 * 60 * 1000;   // 金鑰無效：1 小時後再試
+            else if (/per.?day|daily|PerDay/i.test(msg)) {                          // 每日額度用完：等到美西午夜（台灣約下午 4 點）重置
+                const d = new Date(); d.setUTCHours(8, 0, 0, 0); if (d <= new Date()) d.setUTCDate(d.getUTCDate() + 1); until = d.getTime();
+            } else until = Date.now() + 70 * 1000;                                  // 每分鐘次數用完：稍等一下
+            m[slot.p] = until; try { localStorage.setItem(GEM_COOL, JSON.stringify(m)); } catch (x) {}
+        }
+        // fn(key) 用某一把金鑰呼叫；失敗就換下一把（免費金鑰額度用完會暫停一段時間）
+        async function withGeminiKeys(fn) {
+            const list = geminiKeyList();
+            if (!list.length) { const e = new Error('尚未設定 Gemini 金鑰'); e.status = 401; throw e; }
+            let last = null;
+            for (const slot of list) {
+                try { return await fn(slot.key); }
+                catch (e) {
+                    last = e;
+                    const k = classifyError(e);
+                    if (k === 'offline') throw e;
+                    if (slot.free && (k === 'quota' || k === 'key')) gemCoolDown(slot, e);
+                }
+            }
+            throw last;
+        }
+        const hasTextKey = () => TEXT_ORDER.some(provAvail);
         const FREEAI_BASE = 'https://api.free.ai';
         const FREEAI_CHAT_MODELS = ['qwen7b'];
         const FREE_VOICES = [
@@ -5375,14 +5430,16 @@ review_sentence 的規則（非常重要）：
             throw last;
         }
         async function chatGemini(prompt) {
-            const key = getKey('gemini'); let last = null;
-            for (const model of geminiModels()) {
-                try {
-                    const data = await callGemini(model, key, prompt);
-                    return extractJSON(data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '');
-                } catch (e) { last = e; const k = classifyError(e); if (k === 'key' || k === 'offline') break; }
-            }
-            throw last;
+            return withGeminiKeys(async key => {
+                let last = null;
+                for (const model of geminiModels()) {
+                    try {
+                        const data = await callGemini(model, key, prompt);
+                        return extractJSON(data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '');
+                    } catch (e) { last = e; const k = classifyError(e); if (k === 'key' || k === 'offline') break; }
+                }
+                throw last;
+            });
         }
 
         // ---- 模型清單：內容一律優先用大模型；Free.ai 小模型只在沒有其他選擇時才用 ----
@@ -5392,7 +5449,7 @@ review_sentence 的規則（非常重要）：
             { id: 'groq:llama', provider: 'groq', model: 'llama-3.3-70b-versatile', name: 'Groq Llama 3.3 70B', strong: true },
             { id: 'freeai', provider: 'freeai', name: 'Free.ai Qwen 7B（小模型）', strong: false }
         ];
-        const availEngines = () => ENGINES.filter(e => getKey(e.provider)).map(e => e.provider === 'gemini' ? Object.assign({}, e, { name: geminiTier() === 'economy' ? 'Gemini Flash-Lite' : 'Gemini Flash' }) : e);
+        const availEngines = () => ENGINES.filter(e => provAvail(e.provider)).map(e => e.provider === 'gemini' ? Object.assign({}, e, { name: geminiTier() === 'economy' ? 'Gemini Flash-Lite' : 'Gemini Flash' }) : e);
         const strongEngines = () => availEngines().filter(e => e.strong);
         async function callEngine(e, prompt, temperature) {
             if (e.provider === 'groq') {
@@ -5502,9 +5559,10 @@ review_sentence 的規則（非常重要）：
 
         // ---- 金鑰設定視窗 ----
         function openKeyModal() {
-            ['groq', 'freeai', 'gemini'].forEach(p => {
+            const cool = gemCoolMap(), hm = t => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+            ['groq', 'freeai', 'gemini', 'gemfree1', 'gemfree2'].forEach(p => {
                 document.getElementById('ks_' + p).value = getKey(p);
-                document.getElementById('ks_' + p + '_st').textContent = getKey(p) ? '已設定' : '尚未設定';
+                document.getElementById('ks_' + p + '_st').textContent = !getKey(p) ? '尚未設定' : cool[p] > Date.now() ? `已設定・額度用完，${hm(cool[p])} 後再使用` : '已設定';
                 document.getElementById('ks_' + p + '_st').className = 'ks-st';
             });
             document.getElementById('ks_tier').value = geminiTier();
@@ -5517,6 +5575,7 @@ review_sentence 的規則（非常重要）：
         function saveKey(p) {
             const v = document.getElementById('ks_' + p).value.trim();
             if (v) localStorage.setItem(KEY_STORE[p], v); else localStorage.removeItem(KEY_STORE[p]);
+            const m = gemCoolMap(); if (m[p]) { delete m[p]; localStorage.setItem(GEM_COOL, JSON.stringify(m)); }   // 換了金鑰就清掉暫停紀錄
         }
         function toggleKeyVisible(p) { const el = document.getElementById('ks_' + p); el.type = el.type === 'password' ? 'text' : 'password'; }
         function setGeminiTier(v) {
@@ -5538,12 +5597,16 @@ review_sentence 的規則（非常重要）：
                     catch (e) { lines.push(`❌ ${eng.name}：` + why(e)); }
                 }
             } else {
-                try { await ({ freeai: chatFreeAI, gemini: chatGemini })[p](q); lines.push('✅ 查單字／例句：可以使用'); }
+                if (p.startsWith('gem')) gemForce = p;   // 只測這一把金鑰
+                try { await (p === 'freeai' ? chatFreeAI : chatGemini)(q); lines.push('✅ 查單字／例句：可以使用'); }
                 catch (e) { lines.push('❌ 查單字／例句：' + why(e)); }
+                finally { if (p !== 'gemini' && p !== 'freeai') gemForce = null; }
             }
-            if (p === 'gemini') {
+            if (p.startsWith('gem')) {
+                gemForce = p;
                 try { const c = await fetchTTS('Hello! This is a test.', 'Kore'); lines.push(c.pcm.byteLength ? '✅ AI 語音：可以使用' : '❌ AI 語音：沒有聲音'); }
-                catch (e) { lines.push('❌ AI 語音：' + why(e)); }
+                catch (e) { lines.push('❌ AI 語音：' + why(e) + (p !== 'gemini' ? '（免費額度可能不含語音，會自動改用付費金鑰）' : '')); }
+                finally { gemForce = null; }
             }
             if (p === 'freeai') {
                 try { const c = await fetchFreeTTS('Hello! This is a test.', 'af_heart'); lines.push(c.pcm.byteLength ? '✅ AI 語音：可以使用' : '❌ AI 語音：沒有聲音'); }
@@ -5905,7 +5968,11 @@ ${words.map((w, k) => `#${k + 1} ${w}`).join('\n')}
             return bytesToB64(wav);
         }
         async function geminiListen(target, clip) {
-            const key = getKey('gemini'), audio = await clipToWavB64(clip); let last = null;
+            const audio = await clipToWavB64(clip);
+            return withGeminiKeys(key => geminiListenWith(target, audio, key));
+        }
+        async function geminiListenWith(target, audio, key) {
+            let last = null;
             const prompt = `這是一位以中文為母語的學生朗讀英文句子的錄音。目標句子是：
 "${target}"
 請仔細聽錄音，以英語老師的角度評估：發音是否清楚正確、有沒有漏念或念錯的字、流暢度、重音與語調。
@@ -5932,7 +5999,7 @@ issues 最多 4 項；如果念得很好，issues 可以是空陣列，並給進
             const wpm = Math.round(words / Math.max(1, clip.dur) * 60);
             // 流暢度：每分鐘 90～170 字算自然
             const fluencyPts = wpm >= 90 && wpm <= 170 ? 100 : wpm < 90 ? Math.max(30, Math.round(wpm / 90 * 100)) : Math.max(50, Math.round(100 - (wpm - 170) / 2));
-            if (getKey('gemini')) {
+            if (hasGemini()) {
                 try {
                     const g = await geminiListen(target, clip);
                     const diff = wordDiff(target, g.transcript || '');
@@ -5966,7 +6033,7 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
             const c = rec.clips[id], it = rd.list.find(x => x.id === id);
             if (!c || !it || rec.busy) return;
             if (!navigator.onLine) return showToast('📴 需要網路才能 AI 評分');
-            if (!getKey('groq') && !getKey('gemini') && !getKey('freeai')) return openKeyModal();
+            if (!getKey('groq') && !hasGemini() && !getKey('freeai')) return openKeyModal();
             if (!localStorage.getItem('eng_recConsent')) {
                 if (!confirm('AI 評分會把這段錄音上傳到你設定的 AI 服務（Gemini／Groq／Free.ai）進行分析。\n錄音不會存到其他地方。要繼續嗎？')) return;
                 localStorage.setItem('eng_recConsent', '1');
