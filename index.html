@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.52.1 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.53.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -1284,7 +1284,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.52.1</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.53.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1935,7 +1935,7 @@
             <button class="tool-card" id="syncNowBtn" onclick="syncNowClick()"><i>🔄</i><span><b>立即同步</b><small>平常會自動同步，通常不需要按</small></span></button>
             <button class="tool-card" id="syncUndoBtn" onclick="restorePresyncBackup()"><i>↩</i><span><b>還原第一次同步前的筆記</b><small>合併結果不如預期時使用</small></span></button>
             <button class="tool-card" id="syncOutBtn" onclick="syncOutClick()"><i>⏹</i><span><b>登出並停止同步</b><small>這台裝置的筆記會保留</small></span></button>
-            <div class="pm-hint">• 會同步：主題、單字、釋義、字源、例句、熟記勾選、熟悉度評分與播放／練習紀錄。<br>• 不會同步：AI 金鑰、AI 語音檔、顯示與播放設定（每台裝置各自保留）。<br>• 「💾 備份與還原」照常可用；在一台還原備份，其他裝置也會跟著更新。</div>
+            <div class="pm-hint">• 會同步：主題、單字、釋義、字源、例句、熟記勾選、熟悉度評分與播放／練習紀錄，以及學習報表的每日紀錄（各裝置加總）。<br>• 不會同步：AI 金鑰、AI 語音檔、顯示與播放設定（每台裝置各自保留）。<br>• 「💾 備份與還原」照常可用；在一台還原備份，其他裝置也會跟著更新。</div>
         </div>
     </div>
     <div id="syncMerge" class="modal-overlay play-modal">
@@ -4877,6 +4877,7 @@ ${ENRICH_RULES}
             const keys = Object.keys(daily).sort();
             while (keys.length > 120) delete daily[keys.shift()];
             try { localStorage.setItem(DAILY_KEY, JSON.stringify(daily)); } catch (e) {}
+            if (typeof syncPushDailySoon === 'function') syncPushDailySoon();
         }
         function findGrand(id) {
             for (const t of tasks) for (const s of t.subtasks) { const g = s.grandtasks.find(x => x.id === id); if (g) return { g, s, t }; }
@@ -4966,7 +4967,8 @@ ${ENRICH_RULES}
             const total = items.length, done = items.filter(it => it.g.checked).length;
             const plays = items.reduce((a, it) => a + (it.g.playCount || 0), 0);
             const czR = items.reduce((a, it) => a + (it.g.czRight || 0), 0), czT = czR + items.reduce((a, it) => a + (it.g.czWrong || 0), 0);
-            const today = daily[dayKey(Date.now())] || {};
+            const allDaily = reportDaily();
+            const today = allDaily[dayKey(Date.now())] || {};
             const never = items.filter(it => !(it.g.playCount || 0)).length;
             const tile = (label, value, sub) => `<div class="rp-tile"><div class="rp-tile-label">${label}</div><div class="rp-tile-value">${value}</div><div class="rp-tile-sub">${sub}</div></div>`;
             document.getElementById('rpTiles').innerHTML =
@@ -4984,16 +4986,16 @@ ${ENRICH_RULES}
                  <div class="rp-fam-legend">${[1, 2, 3, 4, 5, 0].map(n => `<span><i style="background:${FAM_COLOR[n]}"></i>${n ? n + ' 分' : '未評'} <b>${fc[n]}</b></span>`).join('')}</div>
                  <div class="rp-tile-sub">${rated ? `已評 ${rated} 句，平均 ${([1, 2, 3, 4, 5].reduce((a, n) => a + n * fc[n], 0) / rated).toFixed(1)} 分` : '還沒有評分，可以到「聽力熟悉度評分」開始'}</div>
                  ${(() => { const sp = items.filter(it => it.g.sfam); return `<div class="rp-tile-sub">🗣 口說熟悉度：${sp.length ? `已有 ${sp.length} 句，平均 ${(sp.reduce((a, it) => a + it.g.sfam, 0) / sp.length).toFixed(1)} 分（由口說回想、克漏字自動調整）` : '還沒有，做「口說回想」後會自動產生'}</div>`; })()}`;
-            renderBars('rpChartP', 'p', '次');
-            renderBars('rpChartQ', 'q', '題');
+            renderBars('rpChartP', 'p', '次', allDaily);
+            renderBars('rpChartQ', 'q', '題', allDaily);
             renderReportList();
         }
 
         // 最近 14 天的長條圖（每張圖只有一個數列）
-        function renderBars(elId, field, unit) {
+        function renderBars(elId, field, unit, src = daily) {
             const days = [];
             for (let i = 13; i >= 0; i--) { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - i); days.push(d); }
-            const vals = days.map(d => (daily[dayKey(d.getTime())] || {})[field] || 0);
+            const vals = days.map(d => (src[dayKey(d.getTime())] || {})[field] || 0);
             const max = Math.max(...vals), el = document.getElementById(elId);
             if (!max) { el.innerHTML = `<div class="rp-empty">最近 14 天還沒有紀錄</div>`; return; }
             const maxIdx = vals.lastIndexOf(max);
@@ -6702,6 +6704,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
         let syncState = { on: false, uid: '', email: '', shadow: {}, lastAt: 0, dev: '' };
         try { Object.assign(syncState, JSON.parse(localStorage.getItem(SYNC_KEY)) || {}); } catch (e) {}
         if (!syncState.dev) syncState.dev = Math.random().toString(36).slice(2, 10);
+        Object.keys(syncState.shadow || {}).forEach(k => { if (k.startsWith('d_')) delete syncState.shadow[k]; });
         function saveSyncState() { try { localStorage.setItem(SYNC_KEY, JSON.stringify(syncState)); } catch (e) {} }
 
         // 簡單又快的雜湊，用來判斷某一筆有沒有改過
@@ -6780,6 +6783,41 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
         function syncBuildDiffPreview() {   // 上傳期間又有新改動 → 再傳一次
             const docs = syncBuildDocs(), sh = syncState.shadow, out = {};
             for (const k in docs) if (docs[k] && sh[k] !== docHash(docs[k]) && !sync.inflight[k]) out[k] = 1;
+            return out;
+        }
+
+        // ---- v2.53.0 學習報表的每日紀錄（播放、克漏字、口說回想次數）也同步 ----
+        // 每台裝置只上傳自己的紀錄（d_裝置代號），報表把所有裝置加總，彼此不會互相覆蓋。
+        const dailyRemote = {};   // 裝置代號 → 那台的每日紀錄
+        function syncGotDaily(r) {
+            if (r.id === syncState.dev) return;
+            if (r.del) delete dailyRemote[r.id];
+            else { try { dailyRemote[r.id] = JSON.parse(r.data) || {}; } catch (e) { return; } }
+            if (document.body.classList.contains('report-open')) renderReport();
+        }
+        let dailyPushTimer = null;
+        function syncPushDailySoon() { if (!syncState.on || !sync.ready) return; clearTimeout(dailyPushTimer); dailyPushTimer = setTimeout(syncPushDaily, 5000); }
+        async function syncPushDaily() {
+            clearTimeout(dailyPushTimer); dailyPushTimer = null;
+            if (!sync.ready || !sync.user) return;
+            try {
+                await sync.fb.setDoc(syncRef('d_' + syncState.dev), { kind: 'd', id: syncState.dev, data: JSON.stringify(daily), del: false, ts: sync.fb.serverTimestamp(), dev: syncState.dev });
+            } catch (e) { console.warn('daily sync', e); }
+        }
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && dailyPushTimer) syncPushDaily(); });
+        // 報表用：這台＋其他裝置加總。同一天兩台紀錄完全相同，是搬家檔複製過來的，只算一次
+        function reportDaily() {
+            const out = {}, seen = {};
+            [daily, ...Object.values(dailyRemote)].forEach(src => {
+                for (const day in src) {
+                    const v = src[day] || {}, sig = JSON.stringify(Object.keys(v).sort().map(k => [k, v[k]]));
+                    if (!seen[day]) seen[day] = new Set();
+                    if (seen[day].has(sig)) continue;
+                    seen[day].add(sig);
+                    const o = out[day] = out[day] || {};
+                    for (const f in v) o[f] = (o[f] || 0) + (Number(v[f]) || 0);
+                }
+            });
             return out;
         }
 
@@ -6931,14 +6969,18 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
                 // 第一次同步（或之前的比對紀錄不見了）：先讀一次雲端，決定怎麼合併
                 if (!Object.keys(syncState.shadow).length) {
                     const qs = await fb.getDocs(fb.collection(sync.db, 'users', user.uid, 'items'));
-                    const remote = []; qs.forEach(d => remote.push(syncDocFromSnap(d)));
+                    const remote = []; qs.forEach(d => { const r = syncDocFromSnap(d); if (r.kind === 'd') syncGotDaily(r); else remote.push(r); });
                     const ok = await syncFirstMerge(remote);
                     if (!ok) { sync.starting = false; await syncStop(false); return; }
                 }
                 sync.ready = true;
                 sync.unsub = fb.onSnapshot(fb.collection(sync.db, 'users', user.uid, 'items'), snap => {
                     const list = [];
-                    snap.docChanges().forEach(ch => { if (ch.type !== 'removed' && !ch.doc.metadata.hasPendingWrites) list.push(syncDocFromSnap(ch.doc)); });
+                    snap.docChanges().forEach(ch => {
+                        if (ch.type === 'removed' || ch.doc.metadata.hasPendingWrites) return;
+                        const r = syncDocFromSnap(ch.doc);
+                        if (r.kind === 'd') syncGotDaily(r); else list.push(r);   // v2.53.0 學習報表的每日紀錄另外處理，不走筆記的合併
+                    });
                     const n = syncApplyRemote(list, false);
                     if (n && sync.status !== 'loading') showToast(`☁️ 已從其他裝置同步 ${n} 筆更新`, 1800);
                     if (!snap.metadata.fromCache) { syncState.lastAt = Date.now(); saveSyncState(); if (sync.status !== 'pushing') setSyncStatus('idle'); }
@@ -6946,6 +6988,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
                 sync.starting = false;
                 setSyncStatus('idle');
                 syncPush();
+                syncPushDaily();
             } catch (e) {
                 sync.starting = false;
                 if (e && /popup-closed-by-user|cancelled-popup-request/.test(e.code || '')) { setSyncStatus(syncState.on ? 'login' : 'off', '已取消登入。'); return; }
@@ -6958,6 +7001,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             try { if (sync.unsub) sync.unsub(); } catch (e) {}
             sync.unsub = null; sync.ready = false; sync.starting = false; clearTimeout(sync.timer); sync.timer = null; sync.inflight = {};
             if (signOut && sync.auth && sync.fb) { try { await sync.fb.signOut(sync.auth); } catch (e) {} }
+            if (signOut) Object.keys(dailyRemote).forEach(k => delete dailyRemote[k]);
             syncState.on = false; if (signOut) { syncState.shadow = {}; syncState.uid = ''; syncState.email = ''; }
             saveSyncState();
             setSyncStatus('off');

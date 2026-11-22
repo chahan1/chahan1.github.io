@@ -356,6 +356,7 @@ v2.14.0 起分別集中在「🧰 AI 工具箱」「👀 顯示設定」「💾 
 
 | 版本 | 更新內容 |
 |---|---|
+| v2.53.0 | 雲端同步加入學習報表的每日紀錄（今天次數、最近 14 天長條圖）：每台裝置上傳自己的紀錄，報表把所有裝置加總；同一天兩台完全相同的紀錄（搬家檔複製來的）只算一次 |
 | v2.52.1 | App 的 Google 登入沒完成時顯示 Google 回報的原因（原生版本 7） |
 | v2.52.0 | Android App（原生版本 6）可以用 Google 帳號登入雲端同步（原生 Google 登入取得 ID token，再登入 Firebase）；需先在 Firebase 加入 Android 應用程式（tw.chahan.engnotebook＋簽章 SHA-1） |
 | v2.51.0 | Android App（原生版本 5）可直接匯出 AI 語音包（分段寫進「下載」，不用再回 Chrome）；「備份到 Google Drive」「分享 AI 語音包到 Google Drive」存好後跳出分享選單，選「雲端硬碟」即可 |
