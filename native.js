@@ -19,7 +19,22 @@
         getMix: mixNow,
         setMix(m) { try { localStorage.setItem(MIX_KEY, m); } catch (e) {} call('setMix', m); },
         media(info) { call('media', info ? JSON.stringify(info) : ''); },
-        saveFile(name, mime, text) { return call('saveFile', name, mime, text) === true; },
+        // share=true：存進「下載」後跳出分享選單（選 Google Drive 就會存到雲端）
+        saveFile(name, mime, text, share) { return call('saveFile', name, mime, text, !!share) === true; },
+        // 大檔（例如 AI 語音包）：分段傳給原生寫入，避免一次塞爆記憶體
+        async saveBlob(name, mime, blob, share) {
+            if (call('fileOpen', name, mime) !== true) return false;
+            let ok = true;
+            try {
+                const CH = 512 * 1024;
+                for (let i = 0; i < blob.size; i += CH) {
+                    const u8 = new Uint8Array(await blob.slice(i, i + CH).arrayBuffer());
+                    if (call('fileWrite', toB64(u8)) !== true) { ok = false; break; }
+                    if (i % (CH * 8) === 0) await new Promise(r => setTimeout(r, 0));
+                }
+            } catch (e) { console.warn('saveBlob', e); ok = false; }
+            return call('fileClose', ok, !!share) === true && ok;
+        },
         // 「被打斷就停」模式下，手機語音被其他 App 打斷：和網頁版一樣記下來，回到 App 時接著播
         _interrupted() {
             try {

@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.50.1 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.51.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -1284,7 +1284,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.50.1</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.51.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1963,6 +1963,7 @@
             <input type="file" id="moveFile" accept="*/*" style="display:none" onchange="importMovePack(event)">
             <div class="pm-label">AI 語音（v2.44.0）</div>
             <button class="tool-card" onclick="closeBackupModal(); exportVoicePack()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-volume"/></svg></i><span><b>下載 AI 語音包</b><small id="bkVoiceInfo">把已產生的 AI 語音存成一個檔案，可搬到 Android App 或其他手機</small></span></button>
+            <button class="tool-card" onclick="closeBackupModal(); exportVoicePack(true)"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-cloud"/></svg></i><span><b>分享 AI 語音包到 Google Drive</b><small>存好後跳出分享選單，選「雲端硬碟」就備份到雲端</small></span></button>
             <button class="tool-card" onclick="closeBackupModal(); openVoiceImport()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-folder-open"/></svg></i><span><b>匯入 AI 語音包</b><small>匯入後這些句子不用再上網產生語音</small></span></button>
             <input type="file" id="voiceFile" accept="*/*" style="display:none" onchange="importVoicePack(event)">
         </div>
@@ -7236,6 +7237,12 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
         // 備份到 Google Drive：用手機的「分享」，在分享選單選「雲端硬碟」直接存進 Drive（不需要任何設定）
         async function shareBackupToDrive() {
             if (tasks.length === 0) return alert("沒有筆記可備份！");
+            if (window.nativeApp && nativeApp.version >= 5) {   // v2.51.0 Android App：存進「下載」並跳出分享選單
+                if (!nativeApp.saveFile(backupFileName('json'), 'application/json', JSON.stringify(tasks, null, 2), true)) return showToast('⚠️ 備份檔存檔失敗，請再試一次', 3000);
+                markBackedUp();
+                showToast('✅ 已存到「下載」，請在分享選單選「雲端硬碟」', 4000);
+                return;
+            }
             const file = new File([JSON.stringify(tasks, null, 2)], backupFileName('txt'), { type: 'text/plain' });
             if (!canShareFiles() || !navigator.canShare({ files: [file] })) {
                 showToast('這個瀏覽器不支援直接分享\n改為下載到手機，可再從「檔案」App 上傳到 Drive', 4000);
@@ -7251,7 +7258,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
                 showToast('分享失敗，改為下載到手機', 3000); downloadBackup();
             }
         }
-        function quickBackup() { canShareFiles() ? shareBackupToDrive() : downloadBackup(); }
+        function quickBackup() { (canShareFiles() || (window.nativeApp && nativeApp.version >= 5)) ? shareBackupToDrive() : downloadBackup(); }
         // 還原：檔案選擇畫面可以直接選 Google Drive 裡的備份檔
         // ---- v2.45.0 搬家檔：筆記（保留原本的編號）＋所有學習紀錄與設定，整份搬到另一邊 ----
         // 「備份檔」只有筆記，而且還原時會重新編號；學習報表的每日紀錄、練習清單、已保存的播放清單都在別的地方，所以另外做搬家檔
@@ -7451,8 +7458,8 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
                 el.textContent = all.length ? `目前手機裡有 ${all.length} 句 AI 語音（約 ${mb.toFixed(0)} MB），存成一個檔案可搬到 Android App` : '這台手機裡還沒有 AI 語音';
             } catch (e) {}
         }
-        async function exportVoicePack() {
-            if (window.nativeApp) return showToast('請在 Chrome 版「備份與還原」下載語音包，再到 App 匯入', 3500);
+        async function exportVoicePack(share) {
+            if (window.nativeApp && nativeApp.version < 5) return showToast('請先更新 App（設定裡「檢查 App 更新」）才能匯出語音包', 3500);
             let all;
             try { all = await ttsAllEntries(); } catch (e) { return showToast('讀取 AI 語音失敗：' + (e.message || e), 3000); }
             if (!all.length) return showToast('這台手機裡還沒有 AI 語音', 2500);
@@ -7465,8 +7472,14 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
                 parts.push(h2.buffer, v.pcm);
             }
             const blob = new Blob(parts, { type: 'application/octet-stream' });
+            const vname = backupFileName('engvoice').replace('english-notes-backup', 'english-notes-voice');
+            if (window.nativeApp) {   // v2.51.0 Android App：分段寫進「下載」，可順便分享到 Drive
+                showToast('正在存語音包，請稍候…', 2500);
+                if (!(await nativeApp.saveBlob(vname, 'application/octet-stream', blob, !!share))) return showToast('⚠️ 語音包存檔失敗（可能空間不足），請再試一次', 3500);
+                return showToast(`✅ 已存 ${all.length} 句 AI 語音（約 ${(blob.size / 1048576).toFixed(0)} MB）\n` + (share ? '請在分享選單選「雲端硬碟」' : '檔案在手機的「下載」資料夾'), 4000);
+            }
             const url = URL.createObjectURL(blob), a = document.createElement('a');
-            a.href = url; a.download = backupFileName('engvoice').replace('english-notes-backup', 'english-notes-voice'); a.style.display = 'none';
+            a.href = url; a.download = vname; a.style.display = 'none';
             document.body.appendChild(a); a.click();
             setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 10000);
             showToast(`✅ 已下載 ${all.length} 句 AI 語音（約 ${(blob.size / 1048576).toFixed(0)} MB）\n檔案在手機的「下載」資料夾`, 4000);
