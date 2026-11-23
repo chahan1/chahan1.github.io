@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.56.2 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.56.3 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -1284,7 +1284,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.56.2</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.56.3</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1867,7 +1867,7 @@
                 <div class="ks-input"><input type="password" id="ks_gemfree2" placeholder="AIza…（另一個 Google 帳號）" autocomplete="off" spellcheck="false" oninput="saveKey('gemfree2')">
                     <button class="ks-eye" onclick="toggleKeyVisible('gemfree2')"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-eye"/></svg></button><button class="ks-test" onclick="testProvider('gemfree2')">測試</button></div>
                 <div class="ks-st" id="ks_gemfree2_st"></div>
-                <div class="ks-tier-note">Gemini 會依序使用：免費金鑰 1 → 免費金鑰 2 → 付費金鑰。免費金鑰的額度用完（每分鐘或每天的次數上限）會自動換下一把，每日額度在台灣時間約下午 4 點重置。注意：Google 免費方案的內容可能被用來改進 Google 的產品。</div>
+                <div class="ks-tier-note">Gemini 會依序使用：免費金鑰 1 → 免費金鑰 2 → 付費金鑰。免費金鑰的額度用完（每分鐘或每天的次數上限）會自動換下一把；標準模式下免費金鑰只用 Flash，不會改用較差的 Flash-Lite。兩把免費金鑰要來自不同 Google 帳號（或不同專案），額度才會加倍。每日額度在台灣時間約下午 4 點重置。注意：Google 免費方案的內容可能被用來改進 Google 的產品。</div>
             </div>
 
             <div class="ks-row">
@@ -3677,9 +3677,9 @@ ${ENRICH_RULES}
         async function fetchTTS(text, voice) {
             if (!hasGemini()) { const e = new Error('尚未設定 Gemini 金鑰'); e.status = 401; throw e; }
             if (!navigator.onLine) throw new TypeError('offline');
-            return withGeminiKeys(apiKey => fetchTTSWith(text, voice, apiKey));
+            return withGeminiKeys((apiKey, slot) => fetchTTSWith(text, voice, apiKey, slot));
         }
-        async function fetchTTSWith(text, voice, apiKey) {
+        async function fetchTTSWith(text, voice, apiKey, slot) {
             const ix = geminiTier() === 'economy' ? TTS_IX_MODELS : ['gemini-3.8-flash-tts', ...TTS_IX_MODELS.filter(m => m !== 'gemini-3.8-flash-tts')];
             const tries = [...ix.map(m => 'ix:' + m), ...TTS_GC_MODELS.map(m => 'gc:' + m)];
             const pref = localStorage.getItem('eng_ttsModel');
@@ -3695,7 +3695,7 @@ ${ENRICH_RULES}
                 } catch (e) {
                     lastErr = e;
                     const k = classifyError(e);
-                    if (k === 'key' || k === 'offline' || k === 'timeout') break;
+                    if (k === 'key' || k === 'offline' || k === 'timeout' || (k === 'quota' && slot && slot.free)) break;
                 }
             }
             throw lastErr || new Error('AI 語音產生失敗');
@@ -5370,6 +5370,8 @@ review_sentence 的規則（非常重要）：
             return ok.length ? ok : all;   // 全部都在暫停中就照順序再試一次
         }
         const hasGemini = () => GEM_SLOTS.some(x => getKey(x.p));
+        // v2.56.3 免費金鑰不降級：標準模式只用 Flash（不改用 Flash-Lite），額度一用完就換下一把，最後由付費金鑰用 Flash 回答
+        const gemModelsFor = slot => slot && slot.free && geminiTier() === 'standard' ? geminiModels().filter(m => !/lite/.test(m)) : geminiModels();
         const provAvail = p => p === 'gemini' ? hasGemini() : !!getKey(p);
         function gemCoolDown(slot, e) {
             const m = gemCoolMap(), msg = String(e && e.message || '');
@@ -5387,7 +5389,7 @@ review_sentence 的規則（非常重要）：
             if (!list.length) { const e = new Error('尚未設定 Gemini 金鑰'); e.status = 401; throw e; }
             let last = null;
             for (const slot of list) {
-                try { return await fn(slot.key); }
+                try { return await fn(slot.key, slot); }
                 catch (e) {
                     last = e;
                     const k = classifyError(e);
@@ -5441,13 +5443,13 @@ review_sentence 的規則（非常重要）：
             throw last;
         }
         async function chatGemini(prompt) {
-            return withGeminiKeys(async key => {
+            return withGeminiKeys(async (key, slot) => {
                 let last = null;
-                for (const model of geminiModels()) {
+                for (const model of gemModelsFor(slot)) {
                     try {
                         const data = await callGemini(model, key, prompt);
                         return extractJSON(data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '');
-                    } catch (e) { last = e; const k = classifyError(e); if (k === 'key' || k === 'offline' || k === 'timeout') break; }
+                    } catch (e) { last = e; const k = classifyError(e); if (k === 'key' || k === 'offline' || k === 'timeout' || (k === 'quota' && slot.free)) break; }
                 }
                 throw last;
             });
@@ -5980,9 +5982,9 @@ ${words.map((w, k) => `#${k + 1} ${w}`).join('\n')}
         }
         async function geminiListen(target, clip) {
             const audio = await clipToWavB64(clip);
-            return withGeminiKeys(key => geminiListenWith(target, audio, key));
+            return withGeminiKeys((key, slot) => geminiListenWith(target, audio, key, slot));
         }
-        async function geminiListenWith(target, audio, key) {
+        async function geminiListenWith(target, audio, key, slot) {
             let last = null;
             const prompt = `這是一位以中文為母語的學生朗讀英文句子的錄音。目標句子是：
 "${target}"
@@ -5990,7 +5992,7 @@ ${words.map((w, k) => `#${k + 1} ${w}`).join('\n')}
 請只回傳 JSON（說明都用繁體中文）：
 {"transcript": "你實際聽到的英文", "score": 0到100的總分, "pronunciation": 0到100, "fluency": 0到100, "summary": "一句話總評", "issues": [{"word": "有問題的英文字", "tip": "具體怎麼改進"}], "suggestions": ["其他建議"], "encouragement": "一句鼓勵"}
 issues 最多 4 項；如果念得很好，issues 可以是空陣列，並給進階建議（如連音、語調）。`;
-            for (const model of geminiModels()) {
+            for (const model of gemModelsFor(slot)) {
                 try {
                     const r = await fetchT(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
@@ -5999,7 +6001,7 @@ issues 最多 4 項；如果念得很好，issues 可以是空陣列，並給進
                     if (!r.ok) { let m = 'HTTP ' + r.status; try { m = (await r.json()).error.message || m; } catch (e) {} const e = new Error(m); e.status = r.status; throw e; }
                     const j = await r.json();
                     return extractJSON((j?.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join(''));
-                } catch (e) { last = e; const k = classifyError(e); if (k === 'key' || k === 'offline' || k === 'timeout') break; }
+                } catch (e) { last = e; const k = classifyError(e); if (k === 'key' || k === 'offline' || k === 'timeout' || (k === 'quota' && slot && slot.free)) break; }
             }
             throw last;
         }
