@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.56.3 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.57.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -1284,7 +1284,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.56.3</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.57.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1302,7 +1302,6 @@
                     <div class="dropdown-item" id="itemEditMode" onclick="toggleEditMode()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-pencil"/></svg></i><span>開啟修改模式</span></div>
                     <div class="dropdown-item" onclick="openMoveModal()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-folder"/></svg></i><span>批次搬移單字</span></div>
                     <div class="dropdown-item" onclick="openPatternModal()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-ai"/></svg></i><span>每日句型</span></div>
-                    <div class="dropdown-item" onclick="addDeconTopic()"><i>🍎</i><span>解構十二句（骨架句型）</span></div>
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-label">學習與複習</div>
                     <div class="dropdown-item" onclick="openRecallSetup()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-speech"/></svg></i><span>口說回想（中→英）</span></div>
@@ -1459,20 +1458,6 @@
                 <button onclick="setPlayOpt('gap', Math.round((Number(playSettings.gap) - 0.5) * 10) / 10)">−</button>
                 <div class="num" id="pmGap">1.2 秒</div>
                 <button onclick="setPlayOpt('gap', Math.round((Number(playSettings.gap) + 0.5) * 10) / 10)">＋</button>
-            </div>
-            <div class="pm-label">練習方式（v2.54.0）</div>
-            <div class="seg" id="pmDrill">
-                <button data-v="0" onclick="setPlayOpt('drill', false)">只聽英文</button>
-                <button data-v="1" onclick="setPlayOpt('drill', true)">🧠 中→想→英→跟讀</button>
-            </div>
-            <div id="pmDrillBox" style="display:none">
-                <div class="pm-label">想一想的時間（念完中文後停頓）</div>
-                <div class="stepper">
-                    <button onclick="setPlayOpt('think', thinkSec() - 1)">−</button>
-                    <div class="num" id="pmThink">4 秒</div>
-                    <button onclick="setPlayOpt('think', thinkSec() + 1)">＋</button>
-                </div>
-                <div class="pm-hint">先念中文，停幾秒讓你在心裡或開口說出英文，再播英文答案。英文至少念 2 次，第二次請跟著唸。這是不看螢幕也能做的回想練習，比單純重複聽更容易記住。沒有中文翻譯的句子只播英文。</div>
             </div>
             <div class="pm-hint" id="pmLvNote" style="display:none"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-sliders"/></svg> 念幾次和語速已改成依熟悉度分別設定（見上方「<svg class="hi hi-star" viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-star"/></svg> 依熟悉度」）。</div>
             <div id="pmUniform">
@@ -2575,11 +2560,6 @@ ${ENRICH_RULES}
                 .replace(/\s+/g, ' ').trim();
         }
 
-        function pickChineseVoice() {
-            const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
-            const n = v => v.lang.replace('_', '-');
-            return voices.find(v => /zh-(TW|Hant)/i.test(n(v))) || voices.find(v => /^(zh|cmn)/i.test(n(v)));
-        }
         function pickEnglishVoice() {
             const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
             return voices.find(v => v.lang.replace('_', '-').includes('en-US')) || voices.find(v => v.lang.startsWith('en'));
@@ -2625,7 +2605,7 @@ ${ENRICH_RULES}
 
         // --- 例句連續播放 ---
         const PLAY_KEY = 'eng_playSettings';
-        let playSettings = { speed: 0, engine: 'ai', voice: 'Kore', fvoice: 'af_heart', scope: 'all', repeat: 2, rate: 0.9, gap: 1.2, dateMode: 'all', day: '', order: 'seq', limit: 20, curve: [1, 3, 7], curveCatch: false, drill: false, think: 4, weights: { 1: 5, 2: 4, 3: 3, 4: 2, 5: 1, 0: 3 } };
+        let playSettings = { speed: 0, engine: 'ai', voice: 'Kore', fvoice: 'af_heart', scope: 'all', repeat: 2, rate: 0.9, gap: 1.2, dateMode: 'all', day: '', order: 'seq', limit: 20, curve: [1, 3, 7], curveCatch: false, weights: { 1: 5, 2: 4, 3: 3, 4: 2, 5: 1, 0: 3 } };
         const CURVE_DAYS = [0, 1, 2, 3, 4, 5, 7, 10, 14, 15, 21, 30, 45, 60, 90, 180];
         try { Object.assign(playSettings, JSON.parse(localStorage.getItem(PLAY_KEY)) || {}); } catch (e) {}
         // v2.10.0：Gemini 改為主要語音。之前選「免費 AI 語音」且已有 Gemini 金鑰的，升級時改成 Gemini 一次（Free.ai 會自動當備用）
@@ -2717,10 +2697,8 @@ ${ENRICH_RULES}
             const wasPlaying = !aiAudio.paused, idx = player.idx, rep = player.rep, finished = player.finished;
             try { for (const it of list) clips[it.id] = await getClip(it.en, spec); }   // 都已存在手機裡，直接讀取
             catch (e) { showToast('間隔已記住，下次播放時套用'); return; }
-            const cnClips = player.cnClips || (player.cnClips = {}), cspec = playSettings.drill ? cnSpec() : null;
-            if (cspec) for (const it of list) if (drillCn(it) && !cnClips[it.id]) { try { cnClips[it.id] = await getClip(it.cn, cspec); } catch (e) {} }
             if (token !== player.token || !player.open || player.list !== list) return;   // 這段期間換了清單或關閉
-            const built = buildPlaylistAudio(list, clips, cnClips);
+            const built = buildPlaylistAudio(list, clips);
             const segNo = built.segments.findIndex(x => x.idx === idx && x.rep === Math.min(rep, itemRepeat(list[idx]) - 1));
             aiPauseSelf();
             if (player.aiUrl) URL.revokeObjectURL(player.aiUrl);
@@ -2849,15 +2827,7 @@ ${ENRICH_RULES}
         const clampSpeed = v => Math.round(Math.max(0.5, Math.min(1.5, Number(v) || 1)) * 10) / 10;
         const lvActive = () => playSettings.order === 'weighted' && playSettings.lv && playSettings.lv.on;
         const lvCfg = item => lvActive() && item ? playSettings.lv.fam[item.fam || 0] || null : null;
-        const itemRepeat = item => { const c = lvCfg(item), n = c ? Math.max(1, Math.min(10, Number(c.r) || 1)) : playSettings.repeat; return playSettings.drill ? Math.max(2, n) : n; };   // v2.54.0 回想跟讀：英文至少念 2 次（第二次跟讀）
-        // v2.54.0「中→想→英→跟讀」：先念中文、停頓讓你說英文，再播英文答案
-        const drillCn = item => playSettings.drill && item && item.cn ? item.cn : '';
-        const thinkSec = () => Math.max(1, Math.min(15, Number(playSettings.think) || 4));
-        function cnSpec() {
-            if (hasGemini()) return { provider: 'gemini', voice: playSettings.voice || 'Kore' };
-            if (getKey('freeai')) return { provider: 'freeai', voice: 'zf_xiaobei' };
-            return null;
-        }
+        const itemRepeat = item => { const c = lvCfg(item); return c ? Math.max(1, Math.min(10, Number(c.r) || 1)) : playSettings.repeat; };
         const itemSpeed = item => { const c = lvCfg(item); return c ? clampSpeed(c.s) : aiSpeed(); };
         const famText = f => f ? `⭐${f} ${FAM_NAME[f]}` : '未評分';
         function savePlay() { const { _lc, ...o } = playSettings; localStorage.setItem(PLAY_KEY, JSON.stringify(o)); }
@@ -3082,12 +3052,11 @@ ${ENRICH_RULES}
             if (key === 'limit' && !playSettings._lc) playSettings.limitCustom = false;
             if (key === 'repeat') val = Math.max(1, Math.min(10, val));
             if (key === 'gap') val = Math.max(0.5, Math.min(15, val));
-            if (key === 'think') val = Math.max(1, Math.min(15, val));
             if (key === 'speed') { playSettings.speed = val; changeSpeed(0); return; }
             playSettings[key] = val;
             savePlay();
             refreshPlayModal();
-            if (player.open && ['gap', 'repeat', 'drill', 'think'].includes(key)) { updateGapView(); updatePlayerView(); scheduleAiRebuild(); }   // v2.41.1：播放中改間隔、次數立即套用，不重新產生清單
+            if (player.open && (key === 'gap' || key === 'repeat')) { updateGapView(); updatePlayerView(); scheduleAiRebuild(); }   // v2.41.1：播放中改間隔、次數立即套用，不重新產生清單
         }
 
         // ---- v2.36.0 只播指定主題（可複選；不選＝全部主題）----
@@ -3135,9 +3104,6 @@ ${ENRICH_RULES}
             updateSpeedView();
             document.getElementById('pmRepeat').textContent = `${playSettings.repeat} 次`;
             document.getElementById('pmGap').textContent = `${Number(playSettings.gap || 1.2).toFixed(1)} 秒`;
-            document.querySelectorAll('#pmDrill button').forEach(b => b.classList.toggle('on', (b.dataset.v === '1') === !!playSettings.drill));
-            document.getElementById('pmDrillBox').style.display = playSettings.drill ? 'block' : 'none';
-            document.getElementById('pmThink').textContent = `${thinkSec()} 秒`;
             document.querySelectorAll('#pmOrder button').forEach(b => b.classList.toggle('on', b.dataset.v === playSettings.order));
             const isCustom = playSettings.limitCustom || !LIMIT_PRESETS.includes(Number(playSettings.limit) || 0);
             document.querySelectorAll('#pmLimit button').forEach(b => b.classList.toggle('on', b.dataset.v === 'custom' ? isCustom : !isCustom && Number(b.dataset.v) === Number(playSettings.limit)));
@@ -3228,7 +3194,7 @@ ${ENRICH_RULES}
         }
 
         // 念一次，念完才回傳
-        function speakOnce(text, rate, lang = 'en-US') {
+        function speakOnce(text, rate) {
             return new Promise(resolve => {
                 let finished = false;
                 const done = () => { if (!finished) { finished = true; clearTimeout(safety); resolve(); } };
@@ -3236,14 +3202,14 @@ ${ENRICH_RULES}
                 if ('speechSynthesis' in window) {
                     try {
                         const u = new SpeechSynthesisUtterance(text);
-                        u.lang = lang; u.rate = rate;
-                        const v = lang.startsWith('zh') ? pickChineseVoice() : pickEnglishVoice(); if (v) u.voice = v;
+                        u.lang = 'en-US'; u.rate = rate;
+                        const v = pickEnglishVoice(); if (v) u.voice = v;
                         u.onend = done; u.onerror = done;
                         window.speechSynthesis.speak(u);
                         return;
                     } catch (e) {}
                 }
-                const a = new Audio(`https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${lang}&q=${encodeURIComponent(text)}`);
+                const a = new Audio(`https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=${encodeURIComponent(text)}`);
                 a.playbackRate = rate; a.onended = done; a.onerror = done;
                 a.play().catch(done);
             });
@@ -3370,15 +3336,6 @@ ${ENRICH_RULES}
                 }
                 highlightPlaying(true);
                 updateSpeedView();
-                const cnP = drillCn(player.list[player.idx]);
-                if (cnP && player.rep <= 0) {   // v2.54.0 先念中文，停頓讓你說英文
-                    player.rep = -1; updatePlayerView();
-                    await speakOnce(cnP, 1, 'zh-TW');
-                    if (!alive()) return;
-                    for (const t0 = Date.now(); alive() && Date.now() - t0 < thinkSec() * 1000;) await sleep(100);
-                    if (!alive()) return;
-                }
-                if (player.rep < 0) player.rep = 0;
                 for (; player.rep < itemRepeat(player.list[player.idx]); player.rep++) {
                     updatePlayerView();
                     recordPlay(player.list[player.idx].id);
@@ -3414,14 +3371,10 @@ ${ENRICH_RULES}
             } else if (item) {
                 updatePlayerFam();
                 $('psTitle').textContent = (player.playing ? '▶️ 播放中' : '⏸ 已暫停') + (playSettings.order === 'random' ? '　🔀 隨機' : '');
-                if (psHide && player.shownId !== item.id && player.rep >= 0) {   // v2.33.0 藏字：只聽，按「看答案」才顯示這一句
+                if (psHide && player.shownId !== item.id) {   // v2.33.0 藏字：只聽，按「看答案」才顯示這一句
                     $('psWord').textContent = '';
                     $('psText').innerHTML = `<div class="ps-hidden"><span>🎧 藏字中，先聽聽看</span><button onclick="psReveal()"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-eye"/></svg> 看答案</button></div>`;
                     $('psCn').textContent = '';
-                } else if (player.rep < 0) {   // v2.54.0 想一想階段：先不顯示英文
-                    $('psWord').textContent = item.word;
-                    $('psText').textContent = '🧠 想一想英文怎麼說…';
-                    $('psCn').textContent = item.cn;
                 } else {
                     $('psWord').textContent = item.word;
                     $('psText').textContent = item.en;
@@ -3430,7 +3383,7 @@ ${ENRICH_RULES}
                 $('psBar').style.transform = 'scaleX(' + (parseFloat(`${(player.idx / total) * 100}%`) / 100) + ')';
                 $('psMeta').textContent = `第 ${player.idx + 1} / ${total} 句 ▾　${dayLabel(item.day)}`;
                 const rr = itemRepeat(item);
-                $('psRep').textContent = (player.rep < 0 ? '🧠 回想中' : `第 ${Math.min(player.rep + 1, rr)} / ${rr} 次` + (playSettings.drill && player.rep > 0 ? '・跟著唸' : '')) + (lvActive() ? `　🎚️ ${famText(item.fam)}` : '');
+                $('psRep').textContent = `第 ${Math.min(player.rep + 1, rr)} / ${rr} 次` + (lvActive() ? `　🎚️ ${famText(item.fam)}` : '');
             }
             updateMediaSession();
         }
@@ -3743,7 +3696,7 @@ ${ENRICH_RULES}
             return out.buffer;
         }
         // 串成一整段：每句念 N 次，每念完一次都停頓設定的句子間隔
-        function buildPlaylistAudio(list, clips, cnClips = {}) {
+        function buildPlaylistAudio(list, clips) {
             const rate = clips[list[0].id].rate;
             const parts = [], segments = [];
             let samples = 0;
@@ -3752,13 +3705,6 @@ ${ENRICH_RULES}
             gap(0.3);
             list.forEach((item, idx) => {
                 const pcm = resamplePCM(clips[item.id].pcm, clips[item.id].rate, rate);
-                const cc = drillCn(item) && cnClips[item.id];
-                if (cc) {   // v2.54.0 中文提示＋想一想的停頓（不算播放次數）
-                    const start = samples / rate;
-                    add(resamplePCM(cc.pcm, cc.rate, rate));
-                    gap(thinkSec());
-                    segments.push({ idx, rep: -1, cn: true, start, end: samples / rate });
-                }
                 for (let r = 0, rep = itemRepeat(item); r < rep; r++) {
                     const start = samples / rate;
                     add(pcm);
@@ -3823,7 +3769,7 @@ ${ENRICH_RULES}
             const segNo = segs.indexOf(seg);
             if (segNo !== player.lastSeg && !aiAudio.paused) {   // 每念一次（含重複）記錄一次
                 player.lastSeg = segNo;
-                const item = player.list[seg.idx]; if (item && !seg.cn) recordPlay(item.id);
+                const item = player.list[seg.idx]; if (item) recordPlay(item.id);
             }
             if (seg.idx !== player.idx || seg.rep !== player.rep) {
                 const changed = seg.idx !== player.idx;
@@ -3852,8 +3798,7 @@ ${ENRICH_RULES}
         async function aiPrepareAndPlay() {
             const token = ++player.token;
             const spec = voiceSpec();
-            const list = player.list, clips = {}, failed = [], cnClips = {}, cspec = playSettings.drill ? cnSpec() : null;
-            let cnFail = 0;
+            const list = player.list, clips = {}, failed = [];
             let reason = null, done = 0;
             const $ = id => document.getElementById(id);
             const showProgress = () => {
@@ -3870,7 +3815,7 @@ ${ENRICH_RULES}
             const worker = async () => {
                 while (next < list.length && !reason) {
                     const item = list[next++];
-                    try { clips[item.id] = await getClip(item.en, spec); if (drillCn(item) && cspec) { try { cnClips[item.id] = await getClip(item.cn, cspec); } catch (e) { cnFail++; } } }
+                    try { clips[item.id] = await getClip(item.en, spec); }
                     catch (e) { failed.push(item); const k = classifyError(e); if (k === 'key' || k === 'offline') reason = k === 'key' ? '金鑰有問題：' + e.message : '目前沒有網路'; else if (!reason && failed.length >= 3 && !Object.keys(clips).length) reason = e.message; }
                     done++;
                     if (token !== player.token || !player.open) return;
@@ -3891,9 +3836,7 @@ ${ENRICH_RULES}
 
             aiReleaseAudio();
             player.list = ready;
-            player.cnClips = cnClips;
-            if (playSettings.drill && (!cspec || cnFail)) showToast(cspec ? `有 ${cnFail} 句的中文提示無法產生，這些句子只播英文` : '要用 AI 語音念中文提示需要 Gemini 或 Free.ai 金鑰，這次只播英文', 3500);
-            const built = buildPlaylistAudio(ready, clips, cnClips);
+            const built = buildPlaylistAudio(ready, clips);
             player.aiUrl = built.url; player.segments = built.segments; player.lastSeg = -1;
             const a = aiEnsureAudio();
             a.src = built.url;
@@ -8345,49 +8288,6 @@ ${PT_JSON_SPEC}${ptStyleNote()}`);
                 .map(x => ({ id: newId(), text: `🤖 ${exText(x)}`, checked: false, createdAt: now, ...(x.meta || {}) }));
             sub.grandtasks = add.concat(sub.grandtasks || []);
             return pat;
-        }
-
-        // ---- v2.54.0 解構十二句（Tim Ferriss《The 4-Hour Chef》的 Deconstruction Dozen＋加分句）＋為中文母語者補的延伸句 ----
-        // 每一句是一個骨架句型，說明欄寫中文母語者常犯的錯，下面的例句是同一骨架的變形，可直接用口說回想或「中→想→英→跟讀」練習
-        const DECON_SETS = [
-            ['The apple is red. 蘋果是紅的', '中文說「蘋果很紅」不需要「是」，英文形容詞前面一定要有 be 動詞（is／are）。也別漏掉 the／a。', ["This apple isn't red. (這顆蘋果不是紅的。)", 'The sky was gray this morning. (今天早上天空是灰色的。)']],
-            ["It is John's apple. 那是約翰的蘋果", '中文都說「的」，英文要分 \'s（John\'s）、所有格代名詞（mine、his、hers）和 of。', ['The apple is his. (那顆蘋果是他的。)', 'Is this your phone or mine? (這是你的手機還是我的？)']],
-            ['I give John the apple. 我把蘋果給約翰', '雙受詞：give／send／show／tell＋人＋東西。explain、say 不能這樣用，不能說 explain me the rule，要說 explain the rule to me。', ['Can you send me the file? (你可以把檔案寄給我嗎？)', 'She showed us her new apartment. (她帶我們看她的新公寓。)']],
-            ['We give him the apple. 我們把蘋果給他', '當受詞要用 me／him／her／us／them，不能用 I／he／she／we／they。', ['They told us the news. (他們告訴我們這個消息。)', "I'll buy her a coffee. (我會請她喝杯咖啡。)"]],
-            ['He gives it to John. 他把它給約翰', '第三人稱單數（he／she／it）的現在式動詞要加 -s。東西是 it／them 時說 give it to 人，不說 give John it。', ['She sends it to her boss every Friday. (她每週五把它寄給她老闆。)', "He doesn't lend it to anyone. (他不把它借給任何人。)"]],
-            ['She gives it to him. 她把它給他', '中文「他／她」念起來一樣，口說時 he／she、him／her 要即時分清楚。', ['He passed it to her. (他把它傳給她。)', 'She gave them to him yesterday. (她昨天把那些給了他。)']],
-            ['Is the apple red? 蘋果是紅的嗎？', '中文加「嗎」語序不變；英文要把 is／are／can 或 do／does 移到主詞前面。', ['Are you ready? (你準備好了嗎？)', 'Does he usually give it to John? (他通常把它給約翰嗎？)']],
-            ['The apples are red. 這些蘋果是紅的', '複數名詞加 -s，動詞也要跟著改成 are。中文沒有單複數，最容易漏掉。', ['My shoes are wet. (我的鞋子濕了。)', 'These two reports are due today. (這兩份報告今天要交。)']],
-            ['I must give it to him. 我必須把它給他', 'must／can／should／will 後面接原形動詞：不加 to，也不加 -s（不說 must to give、she musts）。', ['She should call him tonight. (她今晚應該打給他。)', 'You must not tell anyone. (你絕對不可以告訴任何人。)']],
-            ['I want to give it to her. 我想把它給她', 'want／need／try／plan 後面要加 to，和 must 正好相反。', ['He needs to finish it today. (他今天需要把它完成。)', "I'm trying to save money. (我正在努力存錢。)"]],
-            ["I'm going to know tomorrow. 我明天就會知道", '中文用「會、要」表示未來，英文要用 be going to 或 will；只加 tomorrow 不夠，動詞也要表示未來。', ["She's going to move next month. (她下個月要搬家。)", "I'll let you know tomorrow. (我明天告訴你。)"]],
-            ["I can't eat the apple. 我不能吃那顆蘋果", '否定要靠助動詞：can\'t、don\'t、doesn\'t、didn\'t，不能只在動詞前面加 not。', ["He doesn't eat apples. (他不吃蘋果。)", "I didn't eat breakfast today. (我今天沒吃早餐。)"]],
-            ['I have eaten the apple. 我已經把蘋果吃掉了', '（加分句）中文的「了、過」不等於英文時態：和現在有關用 have＋過去分詞；說出過去的時間點就用過去式。', ['Have you ever been to Japan? (你去過日本嗎？)', 'I ate it an hour ago. (我一小時前吃的。)']],
-            ['I ate the apple yesterday. 我昨天吃了那顆蘋果', '（延伸）有 yesterday、last week、ago 這類過去時間，動詞就要改過去式。', ['We watched a movie last night. (我們昨晚看了一部電影。)', 'She went home early. (她提早回家了。)']],
-            ['I am eating an apple. 我正在吃一顆蘋果', '（延伸）「正在」用 be＋V-ing；母音開頭的名詞用 an（an apple、an umbrella）。', ["He's talking on the phone right now. (他現在正在講電話。)", "I'm looking for an umbrella. (我在找一把傘。)"]],
-            ['The apple was eaten by John. 蘋果被約翰吃掉了', '（延伸）被動＝be＋過去分詞。中文常常不說「被」，英文還是要用被動。', ['The meeting was canceled. (會議取消了。)', 'This bridge was built in 1990. (這座橋是 1990 年蓋的。)']],
-            ['The apple that John gave me is red. 約翰給我的那顆蘋果是紅的', '（延伸）中文修飾語放在名詞前面（約翰給我的），英文放在後面，用 that／who 接起來。', ['The man who called you is my uncle. (打電話給你的那個人是我叔叔。)', 'The book that I bought yesterday is great. (我昨天買的那本書很好看。)']],
-            ['If I had an apple, I would give it to you. 如果我有蘋果，我就會給你', '（延伸）和事實相反的假設：If＋過去式，主句用 would＋原形。可能發生的事則用現在式＋will。', ['If I were you, I would take the job. (如果我是你，我會接下這份工作。)', "If it rains tomorrow, we'll stay home. (如果明天下雨，我們就待在家。)"]],
-            ['Why did you give him the apple? 你為什麼把蘋果給他？', '（延伸）疑問詞後面要接 do／does／did，動詞改回原形（不說 Why you gave…）。', ['Where does she work? (她在哪裡工作？)', 'What did he say? (他說了什麼？)']],
-            ['There are two apples on the table. 桌上有兩顆蘋果', '（延伸）「某個地方有東西」用 there is／there are，不要說成 The table has…。', ["There's a café near my office. (我公司附近有一家咖啡店。)", 'Is there any milk left? (還有剩牛奶嗎？)']],
-            ['This apple is redder than that one. 這顆蘋果比那顆紅', '（延伸）比較用 -er 或 more＋than，兩個不能一起用（不說 more redder）。', ['My new phone is lighter than my old one. (我的新手機比舊的輕。)', 'This plan is more expensive than we expected. (這個方案比我們預期的貴。)']],
-            ["I don't have any apples. 我一顆蘋果都沒有", '（延伸）否定句和疑問句用 any；可數名詞要用複數（apples）。', ["We don't have any plans this weekend. (我們這週末沒有任何計畫。)", 'Do you have any questions? (你有任何問題嗎？)']]
-        ];
-        function addDeconTopic() {
-            closeMenu();
-            const old = tasks.find(t => t.deconTopic);
-            if (old) { showToast('「🍎 解構十二句」主題已經在筆記裡了'); old.collapsed = false; saveData(); return; }
-            if (!confirm('要加入「🍎 解構十二句」主題嗎？\n\n共 22 個骨架句型（Ferriss 的 12 句＋1 句加分句，再加 9 句延伸），每個附中文母語者常犯的錯和 3 句例句。\n\n建議用口說回想，或播放設定的「中→想→英→跟讀」練習。')) return;
-            const now = Date.now();
-            const t = { id: newId(), text: '🍎 解構十二句（骨架句型）', deconTopic: true, checked: false, collapsed: false, createdAt: now, subtasks: [] };
-            DECON_SETS.forEach(([title, note, more]) => {
-                const m = title.match(/^(.*?[.?!])\s+(.+)$/), en = m ? m[1] : title, zh = m ? m[2] : '';
-                t.subtasks.push({ id: newId(), text: title, definition: note, pattern: true, showDef: true, checked: false, collapsed: true, createdAt: now,
-                    grandtasks: [`${en} (${zh})`, ...more].map(x => ({ id: newId(), text: x, checked: false, createdAt: now })) });
-            });
-            tasks.unshift(t);
-            saveData();
-            showToast('✅ 已加入「🍎 解構十二句」（22 個句型、66 句例句）', 3500);
         }
         const isPatternTopic = topicId => { const t = findMain(topicId); return !!(t && t.patternTopic); };
 
