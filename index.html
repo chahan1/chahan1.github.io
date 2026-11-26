@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.57.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.58.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -1284,7 +1284,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.57.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.58.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1852,7 +1852,16 @@
                 <div class="ks-input"><input type="password" id="ks_gemfree2" placeholder="AIza…（另一個 Google 帳號）" autocomplete="off" spellcheck="false" oninput="saveKey('gemfree2')">
                     <button class="ks-eye" onclick="toggleKeyVisible('gemfree2')"><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-eye"/></svg></button><button class="ks-test" onclick="testProvider('gemfree2')">測試</button></div>
                 <div class="ks-st" id="ks_gemfree2_st"></div>
-                <div class="ks-tier-note">Gemini 會依序使用：免費金鑰 1 → 免費金鑰 2 → 付費金鑰。免費金鑰的額度用完（每分鐘或每天的次數上限）會自動換下一把；標準模式下免費金鑰只用 Flash，不會改用較差的 Flash-Lite。兩把免費金鑰要來自不同 Google 帳號（或不同專案），額度才會加倍。每日額度在台灣時間約下午 4 點重置。注意：Google 免費方案的內容可能被用來改進 Google 的產品。</div>
+                <div class="ks-tier">Gemini 使用順序：
+                    <select id="ks_gemorder" onchange="setGemOrder(this.value)">
+                        <option value="free">免費優先（免費 1 → 免費 2 → 付費）</option>
+                        <option value="free2">免費 2 優先（免費 2 → 免費 1 → 付費）</option>
+                        <option value="paid">付費優先（付費 → 免費 1 → 免費 2）</option>
+                        <option value="freeonly">只用免費（不花錢，額度用完就停）</option>
+                        <option value="paidonly">只用付費（最穩定）</option>
+                    </select>
+                </div>
+                <div class="ks-tier-note">免費金鑰的額度用完（每分鐘或每天的次數上限）或沒有回應，會自動換順序中的下一把；每日額度在台灣時間約下午 3～4 點重置。標準模式下免費金鑰只用 Flash，不會改用較差的 Flash-Lite。兩把免費金鑰要來自不同 Google 帳號（或不同專案），額度才會加倍。注意：Google 免費方案的內容可能被用來改進 Google 的產品。</div>
             </div>
 
             <div class="ks-row">
@@ -5305,14 +5314,19 @@ review_sentence 的規則（非常重要）：
         const GEM_COOL = 'eng_gemCool';   // { 金鑰代號: 暫停到幾點 }
         let gemForce = null;              // 測試單一金鑰時使用
         const gemCoolMap = () => { try { return JSON.parse(localStorage.getItem(GEM_COOL)) || {}; } catch (e) { return {}; } };
+        // v2.58.0 使用順序可切換
+        const GEM_ORDER_KEY = 'eng_gemOrder';
+        const GEM_ORDERS = { free: ['gemfree1', 'gemfree2', 'gemini'], free2: ['gemfree2', 'gemfree1', 'gemini'], paid: ['gemini', 'gemfree1', 'gemfree2'], freeonly: ['gemfree1', 'gemfree2'], paidonly: ['gemini'] };
+        const gemOrder = () => { const v = localStorage.getItem(GEM_ORDER_KEY); return GEM_ORDERS[v] ? v : 'free'; };
+        function setGemOrder(v) { localStorage.setItem(GEM_ORDER_KEY, GEM_ORDERS[v] ? v : 'free'); showToast('✅ 已改成：' + document.querySelector(`#ks_gemorder option[value="${v}"]`).textContent, 2500); }
         function geminiKeyList() {
             if (gemForce) return [{ p: gemForce, label: '', free: gemForce !== 'gemini', key: getKey(gemForce) }].filter(x => x.key);
             const cool = gemCoolMap(), now = Date.now();
-            const all = GEM_SLOTS.map(x => Object.assign({ key: getKey(x.p) }, x)).filter(x => x.key);
+            const all = GEM_ORDERS[gemOrder()].map(p => GEM_SLOTS.find(x => x.p === p)).map(x => Object.assign({ key: getKey(x.p) }, x)).filter(x => x.key);
             const ok = all.filter(x => !(cool[x.p] > now));
             return ok.length ? ok : all;   // 全部都在暫停中就照順序再試一次
         }
-        const hasGemini = () => GEM_SLOTS.some(x => getKey(x.p));
+        const hasGemini = () => GEM_ORDERS[gemOrder()].some(p => getKey(p));
         // v2.56.3 免費金鑰不降級：標準模式只用 Flash（不改用 Flash-Lite），額度一用完就換下一把，最後由付費金鑰用 Flash 回答
         const gemModelsFor = slot => slot && slot.free && geminiTier() === 'standard' ? geminiModels().filter(m => !/lite/.test(m)) : geminiModels();
         const provAvail = p => p === 'gemini' ? hasGemini() : !!getKey(p);
@@ -5522,6 +5536,7 @@ review_sentence 的規則（非常重要）：
                 document.getElementById('ks_' + p + '_st').className = 'ks-st';
             });
             document.getElementById('ks_tier').value = geminiTier();
+            document.getElementById('ks_gemorder').value = gemOrder();
             document.getElementById('keyModal').style.display = 'flex';
         }
         function closeKeyModal() {
