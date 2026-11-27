@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.59.2 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.59.3 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -1284,7 +1284,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.59.2</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.59.3</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -5152,7 +5152,8 @@ ${ENRICH_RULES}
         function pickReviewPatterns(currentWord, n = 3) {
             const cur = (currentWord || '').toLowerCase();
             const pool = [];
-            tasks.forEach(t => t.subtasks.forEach(s => {
+            // v2.59.3 只從「🧩 句型練習」主題挑句型（不含解構十二句等其他主題裡的句型）
+            tasks.filter(t => t.patternTopic).forEach(t => t.subtasks.forEach(s => {
                 if (!s.pattern) return;
                 const en = patternEn(s); if (!en || en.toLowerCase() === cur) return;
                 // v2.59.1 英文部分太短（例如「S + V ……只是遲早的事」只剩 S + V）就連中文一起給 AI，另附一句例句當參考
