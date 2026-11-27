@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.58.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.59.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -1284,7 +1284,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.58.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.59.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1774,8 +1774,15 @@
         </div>
         <div class="rp-tiles" id="rpTiles"></div>
         <div class="rp-card"><div class="rp-card-title">聽力熟悉度分布 <a class="tool-link" style="float:right" onclick="closeReport(); openRating()"><svg class="hi hi-star" viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-star"/></svg> 去評分</a></div><div id="rpFam"></div></div>
-        <div class="rp-card"><div class="rp-card-title">最近 14 天・播放次數</div><div id="rpChartP"></div></div>
-        <div class="rp-card"><div class="rp-card-title">最近 14 天・克漏字題數</div><div id="rpChartQ"></div></div>
+        <div class="seg" id="rpRange" style="margin-top:calc(10px * var(--z))">
+            <button data-v="14" onclick="setRpRange(14)">14 天</button>
+            <button data-v="30" onclick="setRpRange(30)">30 天</button>
+            <button data-v="90" onclick="setRpRange(90)">90 天</button>
+            <button data-v="365" onclick="setRpRange(365)">1 年</button>
+            <button data-v="0" onclick="setRpRange(0)">全部</button>
+        </div>
+        <div class="rp-card"><div class="rp-card-title"><span class="rp-range-t">最近 14 天</span>・播放次數</div><div id="rpChartP"></div></div>
+        <div class="rp-card"><div class="rp-card-title"><span class="rp-range-t">最近 14 天</span>・克漏字題數</div><div id="rpChartQ"></div></div>
         <div class="rp-card">
             <div class="rp-card-title">例句清單（前 20 句）</div>
             <div class="seg" id="rpSort">
@@ -4909,8 +4916,7 @@ ${ENRICH_RULES}
             const k = dayKey(Date.now());
             daily[k] = daily[k] || { p: 0, q: 0, r: 0 };
             daily[k][field] = (daily[k][field] || 0) + n;
-            const keys = Object.keys(daily).sort();
-            while (keys.length > 120) delete daily[keys.shift()];
+            // v2.59.0 每日紀錄不再只留 120 天，全部保留（一天約 30 字元，十年約 100 KB）
             try { localStorage.setItem(DAILY_KEY, JSON.stringify(daily)); } catch (e) {}
             if (typeof syncPushDailySoon === 'function') syncPushDailySoon();
         }
@@ -5009,6 +5015,12 @@ ${ENRICH_RULES}
             document.getElementById('rpTiles').innerHTML =
                 (() => { const v = vocabStats(); return tile('不同單字', `約 ${v.words}`, `變化形合併計算・不含 the、to 等功能字約 ${v.content} 個・條目 ${v.entries} 個${v.patterns ? `、句型 ${v.patterns} 個` : ''}`); })() +
                 tile('例句總數', total, never ? `${never} 句還沒聽過` : '每句都聽過了') +
+                (() => {   // v2.59.0 最近 30 天 AI 新例句中，有套用已學句型的比例
+                    const since = Date.now() - 30 * 86400000;
+                    const fresh = tasks.flatMap(t => t.subtasks.filter(s => !s.pattern).flatMap(s => s.grandtasks)).filter(g => (g.createdAt || 0) >= since && (g.aiModel || /^🤖/.test(g.text || '')));
+                    const withPat = fresh.filter(g => (g.reviewWords || []).some(w => String(w).startsWith('句型 '))).length;
+                    return tile('例句套用句型', fresh.length ? `${Math.round(withPat / fresh.length * 100)}%` : '—', fresh.length ? `最近 30 天 AI 新例句 ${fresh.length} 句中 ${withPat} 句` : '最近 30 天沒有 AI 新例句');
+                })() +
                 tile('已熟記', done, total ? `佔 ${Math.round(done / total * 100)}%` : '—') +
                 tile('總播放次數', plays, `今天 ${today.p || 0} 次`) +
                 tile('克漏字正確率', czT ? `${Math.round(czR / czT * 100)}%` : '—', czT ? `共 ${czT} 題・今天 ${today.q || 0} 題` : '還沒練習過') +
@@ -5026,23 +5038,55 @@ ${ENRICH_RULES}
             renderReportList();
         }
 
-        // 最近 14 天的長條圖（每張圖只有一個數列）
-        function renderBars(elId, field, unit, src = daily) {
+        // v2.59.0 長條圖可以選範圍：14／30 天每天一根；90 天每週一根；1 年、全部每月一根
+        let rpRange = 14;
+        try { const v = Number(localStorage.getItem('eng_rpRange')); if ([14, 30, 90, 365, 0].includes(v)) rpRange = v; } catch (e) {}
+        function setRpRange(v) { rpRange = v; try { localStorage.setItem('eng_rpRange', String(v)); } catch (e) {} renderReport(); }
+        function rpBuckets(src) {
+            const day0 = new Date(); day0.setHours(12, 0, 0, 0);
+            const keys = Object.keys(src).sort();
+            let span = rpRange;
+            if (!span) {   // 全部：從第一筆紀錄開始
+                const first = keys.find(k => Object.values(src[k] || {}).some(v => v > 0));
+                span = first ? Math.max(14, Math.round((day0 - new Date(first + 'T12:00:00')) / 86400000) + 1) : 14;
+            }
+            const mode = span <= 31 ? 'day' : span <= 120 ? 'week' : 'month';
             const days = [];
-            for (let i = 13; i >= 0; i--) { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - i); days.push(d); }
-            const vals = days.map(d => (src[dayKey(d.getTime())] || {})[field] || 0);
-            const max = Math.max(...vals), el = document.getElementById(elId);
-            if (!max) { el.innerHTML = `<div class="rp-empty">最近 14 天還沒有紀錄</div>`; return; }
-            const maxIdx = vals.lastIndexOf(max);
-            el.innerHTML = `<div class="rp-bars">` + vals.map((v, i) => {
-                const d = days[i], isToday = i === 13;
-                const label = isToday ? '今天' : (i % 2 === 1 ? `${d.getDate()}` : '');
-                const showVal = v > 0 && (i === maxIdx || isToday);
-                return `<div class="rp-col" title="${d.getMonth() + 1}/${d.getDate()}：${v} ${unit}" onclick="this.classList.toggle('show')">
+            for (let i = span - 1; i >= 0; i--) { const d = new Date(day0); d.setDate(d.getDate() - i); days.push(d); }
+            const out = [];
+            days.forEach((d, idx) => {
+                const key = mode === 'day' ? dayKey(d.getTime()) : mode === 'week' ? `w${Math.floor((days.length - 1 - idx) / 7)}` : `${d.getFullYear()}-${d.getMonth()}`;   // 週：從今天往回每 7 天一組
+                let b = out[out.length - 1];
+                if (!b || b.key !== key) { b = { key, from: d, to: d, vals: {} }; out.push(b); }
+                b.to = d;
+                const v = src[dayKey(d.getTime())] || {};
+                for (const f in v) b.vals[f] = (b.vals[f] || 0) + (Number(v[f]) || 0);
+            });
+            return { mode, span, buckets: out };
+        }
+        function renderBars(elId, field, unit, src = daily) {
+            const { mode, span, buckets } = rpBuckets(src);
+            const rangeText = rpRange ? `最近 ${rpRange === 365 ? '1 年' : rpRange + ' 天'}` : `全部（${span} 天）`;
+            document.querySelectorAll('.rp-range-t').forEach(e => e.textContent = rangeText);
+            document.querySelectorAll('#rpRange button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === rpRange));
+            const vals = buckets.map(b => b.vals[field] || 0);
+            const max = Math.max(...vals), el = document.getElementById(elId), sum = vals.reduce((a, v) => a + v, 0);
+            if (!max) { el.innerHTML = `<div class="rp-empty">${rangeText}還沒有紀錄</div>`; return; }
+            const maxIdx = vals.lastIndexOf(max), n = buckets.length, step = Math.ceil(n / 7);
+            const md = d => `${d.getMonth() + 1}/${d.getDate()}`;
+            const per = mode === 'day' ? '每天' : mode === 'week' ? '每週' : '每月';
+            el.innerHTML = `<div class="rp-bars">` + buckets.map((b, i) => {
+                const v = vals[i], isLast = i === n - 1;
+                const label = mode === 'day' ? (isLast ? '今天' : ((n - 1 - i) % step === 0 ? `${b.from.getDate()}` : ''))
+                    : mode === 'week' ? ((n - 1 - i) % step === 0 ? md(b.from) : '')
+                    : ((n - 1 - i) % step === 0 ? `${b.from.getMonth() + 1}月` : '');
+                const tip = mode === 'day' ? md(b.from) : mode === 'week' ? `${md(b.from)}～${md(b.to)}` : `${b.from.getFullYear()}/${b.from.getMonth() + 1}`;
+                const showVal = v > 0 && (i === maxIdx || isLast);
+                return `<div class="rp-col" title="${tip}：${v} ${unit}" onclick="this.classList.toggle('show')">
                     <div class="rp-val ${showVal ? 'always' : ''}">${v}</div>
                     <div class="rp-bar ${field === 'q' ? 'q' : ''}" style="height:${v ? Math.max(3, v / max * 100) : 0}%"></div>
-                    <div class="rp-x ${isToday ? 'today' : ''}">${label}</div></div>`;
-            }).join('') + `</div>`;
+                    <div class="rp-x ${isLast && mode === 'day' ? 'today' : ''}">${label}</div></div>`;
+            }).join('') + `</div><div class="rp-empty" style="padding-top:calc(6px * var(--z))">${per}一根・合計 ${sum} ${unit}・平均每天 ${(sum / span).toFixed(1)} ${unit}</div>`;
         }
 
         function renderReportList() {
@@ -5123,7 +5167,7 @@ ${ENRICH_RULES}
                 pool.push({ w, score: (topicId && t.id === topicId ? -100 : 0) + (s.checked ? 1000 : 0) + plays * 3 + (last && Date.now() - last < 86400000 ? 20 : 0) + Math.random() * 15 });
             }));
             const out = pool.sort((a, b) => a.score - b.score).slice(0, n).map(x => x.w);
-            out.patterns = curSub && curSub.pattern ? [] : pickReviewPatterns(currentWord, 3);   // 替句型本身造句時不再混入別的句型
+            out.patterns = curSub && curSub.pattern ? [] : pickReviewPatterns(currentWord, 6);   // v2.59.0 候選句型 3 → 6 個，比較容易找到適合這個字的   // 替句型本身造句時不再混入別的句型
             return out;
         }
         // 請 AI「另外」試寫一句含已學單字的複習句；不自然就留空（主例句永遠只針對目前的單字）
@@ -5131,7 +5175,7 @@ ${ENRICH_RULES}
             if (!rvHas(words)) return '';
             const pats = words.patterns || [];
             return `\n\n【選擇性的複習句】另外請「嘗試」寫一句 review_sentence：同樣要使用 "${word}"，並在自然的前提下加入複習內容：
-${pats.length ? `- 已學句型（可挑 1 個最合適的套用）：${pats.map(p => `"${p}"`).join('、')}\n` : ''}${words.length ? `- 已學單字／片語（可挑 1～2 個最搭配的）：${words.join(', ')}\n` : ''}- 至少用到其中一項（1 個句型或 1～2 個單字），能自然地同時用上句型和單字更好，但絕不勉強。
+${pats.length ? `- 【優先】已學句型：請先從下面挑 1 個最適合 "${word}" 的詞性與語意、套進去最自然的句型來造句：${pats.map(p => `"${p}"`).join('、')}\n` : ''}${words.length ? `- ${pats.length ? '可以順便加入 0～1 個' : '可挑 1～2 個最搭配的'}已學單字／片語：${words.join(', ')}\n` : ''}${pats.length ? `- 只有在這些句型都無法自然套用時，才改成只用 1～2 個已學單字。\n` : ''}- 至少用到其中一項，但絕不勉強；自然度永遠優先。
 review_sentence 的規則（非常重要）：
 - 必須像英語母語人士在真實生活或工作中會說的一句話，情境單一、語意合理、邏輯通順。
 - 絕對不可以為了放進單字而拼湊不相關的內容，也不要一句話塞進兩件不相干的事。
@@ -5198,7 +5242,7 @@ review_sentence 的規則（非常重要）：
                 reason = r.reason || reason;
                 if (round === 2) break;
                 if (r.corrected && hasTarget(r.corrected, word)) {
-                    cand = { sentence: r.corrected, reviewWords: wordsIn(r.corrected, cand.reviewWords) }; producer = checker;
+                    cand = { sentence: r.corrected, reviewWords: [...wordsIn(r.corrected, cand.reviewWords.filter(w => !w.startsWith('句型 '))), ...cand.reviewWords.filter(w => w.startsWith('句型 '))] }; producer = checker;
                 } else {
                     const re = await regenerateSentence(target, cand.sentence, reason, st).catch(() => null);
                     if (!re || !hasTarget(re.sentence, word)) break;
