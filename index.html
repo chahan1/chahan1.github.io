@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.59.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.59.1 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -1284,7 +1284,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.59.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.59.1</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -5019,7 +5019,10 @@ ${ENRICH_RULES}
                     const since = Date.now() - 30 * 86400000;
                     const fresh = tasks.flatMap(t => t.subtasks.filter(s => !s.pattern).flatMap(s => s.grandtasks)).filter(g => (g.createdAt || 0) >= since && (g.aiModel || /^🤖/.test(g.text || '')));
                     const withPat = fresh.filter(g => (g.reviewWords || []).some(w => String(w).startsWith('句型 '))).length;
-                    return tile('例句套用句型', fresh.length ? `${Math.round(withPat / fresh.length * 100)}%` : '—', fresh.length ? `最近 30 天 AI 新例句 ${fresh.length} 句中 ${withPat} 句` : '最近 30 天沒有 AI 新例句');
+                    const lg = rvLog(), sum = k => lg.reduce((a, x) => a + (x[k] || 0), 0);
+                    const off = aiStyle.mixReview !== true && aiStylePattern.mixReview !== true;
+                    const diag = off ? '・⚠️ 「搭配已學句型與單字」沒有開啟' : lg.length ? `・近 ${lg.length} 次：AI 寫了複習句 ${sum('rv')}、套句型 ${sum('pc')}、比對成功 ${sum('pd')}、自然度通過 ${sum('nat')}、採用句型 ${sum('pt')}` : '';
+                    return tile('例句套用句型', fresh.length ? `${Math.round(withPat / fresh.length * 100)}%` : '—', (fresh.length ? `最近 30 天 AI 新例句 ${fresh.length} 句中 ${withPat} 句` : '最近 30 天沒有 AI 新例句') + diag);
                 })() +
                 tile('已熟記', done, total ? `佔 ${Math.round(done / total * 100)}%` : '—') +
                 tile('總播放次數', plays, `今天 ${today.p || 0} 次`) +
@@ -5141,16 +5144,25 @@ ${ENRICH_RULES}
         // v2.37.0：同時挑出「每日句型」裡學過的句型（較少練習、較新的優先），附在回傳陣列的 .patterns 上
         const rvHas = rv => !!(rv && (rv.length || (rv.patterns && rv.patterns.length)));
         const patternEn = s => (s.text || '').replace(/[\u3400-\u9fff\uff00-\uffef（）【】「」、，。…].*$/, '').trim();
+        // 句型裡真正要出現的關鍵字（去掉中文、V-ing、sb、sth、+、代名詞等）
+        const patKeys = p => String(p).replace(/[\u3400-\u9fff\uff00-\uffef（）【】「」、，。].*$/, '').toLowerCase()
+            .replace(/\b(v-?ing|v-?ed|v\d?|n|adj|adv|sb|sth|someone|something|somebody|noun|verb|clause|s\+v|to\s+v|one's|oneself)\b|[+…\.\/()\[\]]/g, ' ')
+            .split(/\s+/).filter(w => w.length >= 2 && !STOP_WORDS.has(w));
         function pickReviewPatterns(currentWord, n = 3) {
             const cur = (currentWord || '').toLowerCase();
             const pool = [];
             tasks.forEach(t => t.subtasks.forEach(s => {
                 if (!s.pattern) return;
-                const p = patternEn(s); if (!p || p.toLowerCase() === cur) return;
+                const en = patternEn(s); if (!en || en.toLowerCase() === cur) return;
+                // v2.59.1 英文部分太短（例如「S + V ……只是遲早的事」只剩 S + V）就連中文一起給 AI，另附一句例句當參考
+                const p = patKeys(en).length ? en : String(s.text || '').trim();
+                const ex = (s.grandtasks.map(g => cleanForSpeech(String(g.text || '').replace(/^🤖\s*/, ''))).find(x => x && x.split(' ').length >= 4) || '').slice(0, 120);
                 const plays = s.grandtasks.reduce((a, g) => a + (g.playCount || 0), 0);
-                pool.push({ p, score: plays * 2 - (Date.now() - (s.createdAt || 0) < 7 * 86400000 ? 10 : 0) + Math.random() * 12 });
+                pool.push({ p, ex, score: plays * 2 - (Date.now() - (s.createdAt || 0) < 7 * 86400000 ? 10 : 0) + Math.random() * 12 });
             }));
-            return pool.sort((a, b) => a.score - b.score).slice(0, n).map(x => x.p);
+            const top = pool.sort((a, b) => a.score - b.score).slice(0, n);
+            const out = top.map(x => x.p); out.examples = top.map(x => x.ex);
+            return out;
         }
         function pickReviewWords(currentWord, n = 5, topicId = null) {
             if (styleFor(topicId).mixReview !== true) return [];
@@ -5167,7 +5179,8 @@ ${ENRICH_RULES}
                 pool.push({ w, score: (topicId && t.id === topicId ? -100 : 0) + (s.checked ? 1000 : 0) + plays * 3 + (last && Date.now() - last < 86400000 ? 20 : 0) + Math.random() * 15 });
             }));
             const out = pool.sort((a, b) => a.score - b.score).slice(0, n).map(x => x.w);
-            out.patterns = curSub && curSub.pattern ? [] : pickReviewPatterns(currentWord, 6);   // v2.59.0 候選句型 3 → 6 個，比較容易找到適合這個字的   // 替句型本身造句時不再混入別的句型
+            const pp = curSub && curSub.pattern ? [] : pickReviewPatterns(currentWord, 6);
+            out.patterns = pp; out.patternEx = pp.examples || [];   // v2.59.0 候選句型 3 → 6 個，比較容易找到適合這個字的   // 替句型本身造句時不再混入別的句型
             return out;
         }
         // 請 AI「另外」試寫一句含已學單字的複習句；不自然就留空（主例句永遠只針對目前的單字）
@@ -5175,12 +5188,12 @@ ${ENRICH_RULES}
             if (!rvHas(words)) return '';
             const pats = words.patterns || [];
             return `\n\n【選擇性的複習句】另外請「嘗試」寫一句 review_sentence：同樣要使用 "${word}"，並在自然的前提下加入複習內容：
-${pats.length ? `- 【優先】已學句型：請先從下面挑 1 個最適合 "${word}" 的詞性與語意、套進去最自然的句型來造句：${pats.map(p => `"${p}"`).join('、')}\n` : ''}${words.length ? `- ${pats.length ? '可以順便加入 0～1 個' : '可挑 1～2 個最搭配的'}已學單字／片語：${words.join(', ')}\n` : ''}${pats.length ? `- 只有在這些句型都無法自然套用時，才改成只用 1～2 個已學單字。\n` : ''}- 至少用到其中一項，但絕不勉強；自然度永遠優先。
+${pats.length ? `- 【優先】已學句型：請先從下面挑 1 個最適合 "${word}" 的詞性與語意、套進去最自然的句型來造句（人稱、時態可以依句子調整）：\n${pats.map((p, i) => `  P${i + 1}："${p}"${(words.patternEx || [])[i] ? `（例：${words.patternEx[i]}）` : ''}`).join('\n')}\n` : ''}${words.length ? `- ${pats.length ? '可以順便加入 0～1 個' : '可挑 1～2 個最搭配的'}已學單字／片語：${words.join(', ')}\n` : ''}${pats.length ? `- 只有在這些句型都無法自然套用時，才改成只用 1～2 個已學單字。\n` : ''}- 至少用到其中一項，但絕不勉強；自然度永遠優先。
 review_sentence 的規則（非常重要）：
 - 必須像英語母語人士在真實生活或工作中會說的一句話，情境單一、語意合理、邏輯通順。
 - 絕對不可以為了放進單字而拼湊不相關的內容，也不要一句話塞進兩件不相干的事。
 - 只要有一點點不自然，就把 review_sentence 和 review_word 都留空字串 ""（留空完全沒關係）。
-- 格式同 sentence（英文句子＋括號內繁體中文翻譯）。review_word 填實際用到的已學單字（多個用逗號分開，沒用就留空），review_pattern 填實際套用的句型（沒用就留空）。
+- 格式同 sentence（英文句子＋括號內繁體中文翻譯）。review_word 填實際用到的已學單字（多個用逗號分開，沒用就留空），review_pattern 填實際套用的句型編號（例如 "P2"，沒用就留空）。
 注意：sentence 只針對 "${word}"，不要加入上面的已學單字。`;
         }
         // 檢查句子中真的出現了哪些字（容許詞形變化）
@@ -5205,6 +5218,10 @@ review_sentence 的規則（非常重要）：
             } catch (e) { return false; }   // 無法確認時，寧可不用
         }
         // 決定最後採用哪一句：複習句要同時通過「格式檢查」與「自然度審核」，否則用一般例句
+        // v2.59.1 記錄最近 40 次複習句的結果，報表顯示卡在哪一關
+        const RV_LOG = 'eng_rvLog';
+        const rvLog = () => { try { return JSON.parse(localStorage.getItem(RV_LOG)) || []; } catch (e) { return []; } };
+        function rvLogAdd(x) { const a = rvLog(); a.push(Object.assign({ t: Date.now() }, x)); try { localStorage.setItem(RV_LOG, JSON.stringify(a.slice(-40))); } catch (e) {} }
         async function chooseSentence(result, word, rvWords, gen = result.__engine, st = aiStyle) {
             const base = String(result.sentence || '').trim();
             const rs = String(result.review_sentence || '').trim();
@@ -5213,14 +5230,18 @@ review_sentence 的規則（非常重要）：
             if (rs && rvHas(rvWords)) {
                 const used = wordsIn(rs, rvWords);
                 // 句型：AI 說有用到，而且句型裡的關鍵字（去掉 V-ing、sb、sth、+ 等代號）真的出現在句子裡
+                // v2.59.1 AI 回傳句型編號（P1～P6）；關鍵字出現 6 成以上就算有用（人稱、時態可能被調整），句型沒有英文關鍵字時相信 AI 的回報
                 const pats = rvWords.patterns || [], claimed = String(result.review_pattern || '').trim().toLowerCase();
-                const patKeys = p => p.toLowerCase().replace(/\b(v-?ing|v-?ed|v\d?|n|adj|adv|sb|sth|someone|something|noun|verb|clause|s\+v|to\s+v)\b|[+…\.\/()\[\]]/g, ' ').split(/\s+/).filter(w => w.length >= 2 && !STOP_WORDS.has(w));
-                const usedPat = pats.find(p => (claimed && (p.toLowerCase().includes(claimed) || claimed.includes(p.toLowerCase()))) && wordsIn(rs, patKeys(p)).length === patKeys(p).length)
+                const pm = claimed.match(/p\s*(\d+)/), claimedPat = (pm && pats[Number(pm[1]) - 1]) || (claimed ? pats.find(p => p.toLowerCase().includes(claimed) || claimed.includes(p.toLowerCase())) : null);
+                const hitOk = (p, ratio) => { const k = patKeys(p); return !k.length || wordsIn(rs, k).length >= Math.ceil(k.length * ratio); };
+                const usedPat = (claimedPat && hitOk(claimedPat, 0.6) ? claimedPat : null)
                     || pats.find(p => patKeys(p).length && wordsIn(rs, patKeys(p)).length === patKeys(p).length);
                 const len = cleanForSpeech(rs).split(/\s+/).length;
-                if ((used.length >= 1 || usedPat) && used.length <= 2 && hasTarget(rs, word) && len <= 28 && await checkNatural(rs, gen))
-                    pick = { sentence: rs, reviewWords: usedPat ? [...used, `句型 ${usedPat}`] : used };
-            }
+                const shapeOk = (used.length >= 1 || usedPat) && used.length <= 2 && hasTarget(rs, word) && len <= 28;
+                const nat = shapeOk ? await checkNatural(rs, gen) : null;
+                if (shapeOk && nat) pick = { sentence: rs, reviewWords: usedPat ? [...used, `句型 ${usedPat}`] : used };
+                rvLogAdd({ rv: 1, pc: claimedPat ? 1 : 0, pd: usedPat ? 1 : 0, shape: shapeOk ? 1 : 0, nat: nat ? 1 : 0, ok: pick !== fallback ? 1 : 0, pt: pick !== fallback && usedPat ? 1 : 0 });
+            } else if (rvHas(rvWords)) rvLogAdd({ rv: 0, pc: 0, pd: 0, shape: 0, nat: 0, ok: 0, pt: 0 });
             return await proofPick(pick, word, gen, st);
         }
         // ---- 交叉檢查：產生例句的模型不能自己檢查自己 ----
