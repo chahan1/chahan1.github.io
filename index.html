@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.60.0 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.61.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -473,7 +473,7 @@
         .subtask-container { margin-left: calc(12px * var(--z)); border-left: 1.5px solid var(--c-dcefe2); padding-left: 1px; min-height: calc(2px * var(--z)); }
         .grandtask-container { margin-left: calc(14px * var(--z)); border-left: 1.5px dotted var(--c-d3e9da); padding-left: 0; min-height: 0; }
         body.hide-ex .grandtask-container { display: none !important; }
-        .subtask-item { background: var(--c-ffffff); }
+        .subtask-item { background: var(--c-ffffff); content-visibility: auto; contain-intrinsic-size: auto 180px; }   /* v2.61.0 畫面外的單字先不排版，捲到才畫 */
         .subtask-item + .subtask-item { border-top: 1px solid var(--line); }
         .collapsed { display: none !important; }
 
@@ -1287,7 +1287,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.60.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.61.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -2262,10 +2262,14 @@
                 if (last < v.length) frag.appendChild(document.createTextNode(v.slice(last)));
                 p.replaceChild(frag, t);
             }
+            // v2.61.0：筆記清單在產生 HTML 時就先換好圖示，不必等畫面出來再逐字掃描（大量單字時明顯變快）
+            const svgStr = name => `<svg class="hi ${CLS[name] || ''}" viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-${name}"/></svg>`;
+            window.hiConvertHtml = html => html.replace(/>([^<]+)</g, (m, t) => '>' + t.replace(RE, (x, k) => svgStr(MAP[k])) + '<');
             function walk(root) {
                 if (root.nodeType === 3) { fixText(root); return; }
-                if (root.nodeType !== 1 || SKIP.has(root.nodeName)) return;
-                const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+                if (root.nodeType !== 1 || SKIP.has(root.nodeName) || root.dataset.hi) return;
+                const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+                    { acceptNode: n => n.nodeType === 1 ? (n.dataset && n.dataset.hi ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_SKIP) : NodeFilter.FILTER_ACCEPT });
                 const list = []; let n;
                 while ((n = w.nextNode())) list.push(n);
                 list.forEach(fixText);
@@ -3469,6 +3473,7 @@ ${ENRICH_RULES}
             document.querySelectorAll('.grandtask-row.playing').forEach(r => r.classList.remove('playing'));
             if (!player.open || player.finished) return;
             const item = player.list[player.idx]; if (!item) return;
+            if (scroll) flushRender();
             const row = document.querySelector(`.grandtask-row[data-id="${item.id}"]`);
             if (row) { row.classList.add('playing'); if (scroll && row.offsetParent && document.visibilityState === 'visible') row.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
         }
@@ -6234,6 +6239,7 @@ issues 最多 4 項；如果全部正確，issues 給空陣列，並給進階建
                       : r.type === 'ex' ? `.grandtask-row[data-id="${r.g.id}"]`
                       : `.subtask-item[data-id="${r.sub.id}"]`;
             requestAnimationFrame(() => {
+                flushRender();
                 const el = document.querySelector(sel); if (!el) return;
                 const target = r.type === 'topic' ? el.querySelector('.task-row') : r.type === 'ex' ? el : el.querySelector('.subtask-row');
                 target.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -7453,6 +7459,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
         function toggleEditMode() {
             isEditMode = !isEditMode; const item = document.getElementById('itemEditMode');
             document.body.classList.toggle('edit-mode', isEditMode);
+            renderTasks();   // v2.61.0：編輯／刪除／搬移按鈕只在修改模式才產生（平常畫面少很多元素，比較快）
             item.innerHTML = isEditMode ? '<i>✅</i><span>完成修改</span>' : '<i>✏️</i><span>開啟修改模式</span>';
             closeMenu();
             showToast(isEditMode ? '✏️ 修改模式：每一列會出現編輯與刪除按鈕' : '已關閉修改模式', 2000);
@@ -7469,8 +7476,10 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
         }
 
         function toggleSubtasks(id) {   // v2.39.7：只有主題可以收合（移除沒有用到的「收合單字」）
-            const t = findMain(id); if (t) t.collapsed = !t.collapsed;
-            saveData();
+            const t = findMain(id); if (!t) return;
+            t.collapsed = !t.collapsed;
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); } catch (e) {}   // 收合狀態只存在這台裝置，不需要同步或整頁重畫
+            rerenderCard(t);
         }
 
 
@@ -7881,39 +7890,20 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
         }
 
         // --- 6. 拖曳後同步資料 ---
+        // 拖曳主題排序後，依畫面上的順序重排（v2.61.0 起只有主題可以拖曳；收合的主題沒有產生單字，所以不從畫面讀單字）
         function syncDataFromDOM() {
-            const allSubs = new Map(), allGrands = new Map();
-            tasks.forEach(t => t.subtasks.forEach(s => { allSubs.set(s.id, s); s.grandtasks.forEach(g => allGrands.set(g.id, g)); }));
-
-            const newTasks = [];
-            document.querySelectorAll('#taskList > .task-card').forEach(card => {
-                const oldMain = findMain(parseInt(card.dataset.id));
-                if (!oldMain) return;
-                const subtasks = [];
-                // 【修正】原本「例句容器」不在單字列裡面，拖曳任何項目後所有例句都會消失
-                card.querySelectorAll(':scope > .subtask-container > .subtask-item').forEach(subItem => {
-                    const oldSub = allSubs.get(parseInt(subItem.dataset.id));
-                    if (!oldSub) return;
-                    const grandtasks = [];
-                    subItem.querySelectorAll(':scope > .grandtask-container > .grandtask-row').forEach(gRow => {
-                        const g = allGrands.get(parseInt(gRow.dataset.id));
-                        if (g) grandtasks.push(g);
-                    });
-                    oldSub.grandtasks = grandtasks;
-                    subtasks.push(oldSub);
-                });
-                oldMain.subtasks = subtasks;
-                newTasks.push(oldMain);
-            });
-            tasks = newTasks;
-            // 等 Sortable 完成收尾再重新繪製
-            setTimeout(saveData, 0);
+            flushRender();
+            const order = [...document.querySelectorAll('#taskList > .task-card')].map(c => findMain(parseInt(c.dataset.id))).filter(Boolean);
+            const rest = tasks.filter(t => !order.includes(t));
+            tasks = order.concat(rest);
+            setTimeout(saveData, 0);   // 等 Sortable 完成收尾再重新繪製
         }
 
         // --- 7. 新增 / 編輯 / 刪除 ---
 
         // 浮動「＋」按鈕：預設加到目前畫面上正在看的主題
         function currentTopicId() {
+            flushRender();
             const cards = [...document.querySelectorAll('#taskList .task-card')].filter(c => c.offsetParent !== null);
             if (!cards.length) return null;
             const line = window.innerHeight * 0.35;
@@ -7954,6 +7944,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
         function addFromPicker(id) { closeAddPicker(); lastAddTopic = id; addSubTask(id, { scroll: true }); }
         function flashSub(subId) {
             requestAnimationFrame(() => {
+                flushRender();
                 const el = document.querySelector(`.subtask-item[data-id="${subId}"] .subtask-row`); if (!el) return;
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
@@ -8362,6 +8353,7 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
                 tasks.unshift(t); saveData();
                 showToast('💬 已建立「實用短句」主題\n在這裡新增的短句，AI 只補中文解釋和兩句例句', 3500);
             } else if (t.collapsed) { t.collapsed = false; saveData(); }
+            flushRender();
             const card = document.querySelector(`.task-card[data-id="${t.id}"]`);
             if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
             addSubTask(t.id);
@@ -8540,7 +8532,19 @@ ${PT_JSON_SPEC}${ptStyleNote()}`);
             return safe.replace(/(\([^()]*[一-鿿][^()]*\)|（[^（）]*）|[一-鿿][^\n]*)/g, '<span class="cn-text">$1</span>');
         }
 
-        function renderTasks() {
+        // v2.61.0 開啟 App 時分批畫：先畫前面幾個主題（第一個畫面馬上可以用），其餘在接下來幾格畫面補上
+        let renderPending = null;
+        function flushRender() {
+            if (!renderPending) return;
+            const { list, container } = renderPending; renderPending = null;
+            const frag = document.createDocumentFragment();
+            list.forEach(t => frag.appendChild(buildCard(t)));
+            container.appendChild(frag);
+            if (player.open) highlightPlaying(false);
+        }
+        const cardWeight = t => 1 + (t.collapsed ? 0 : t.subtasks.reduce((n, s) => n + 1 + s.grandtasks.length, 0));
+        function renderTasks(opts = {}) {
+            renderPending = null;
             sortableInstances.forEach(instance => { try { instance.destroy(); } catch (e) {} });
             sortableInstances = [];
             const container = document.getElementById('taskList'); container.innerHTML = '';
@@ -8549,7 +8553,28 @@ ${PT_JSON_SPEC}${ptStyleNote()}`);
                 container.innerHTML = '<div class="empty-hint">還沒有筆記<br>請按右上角 ⋮ →「📁 新增主題」開始吧！</div>';
             }
 
-            tasks.forEach(task => {
+            const frag = document.createDocumentFragment();
+            let i = 0;
+            if (opts.progressive) { for (let w = 0; i < tasks.length && w < 300; i++) { w += cardWeight(tasks[i]); frag.appendChild(buildCard(tasks[i])); } }
+            else for (; i < tasks.length; i++) frag.appendChild(buildCard(tasks[i]));
+            container.appendChild(frag);
+            if (i < tasks.length) {
+                const st = renderPending = { list: tasks.slice(i), container };
+                const step = () => {
+                    if (renderPending !== st) return;
+                    const f = document.createDocumentFragment();
+                    for (let w = 0; st.list.length && w < 400;) { const t = st.list.shift(); w += cardWeight(t); f.appendChild(buildCard(t)); }
+                    container.appendChild(f);
+                    if (st.list.length) setTimeout(step, 16); else { renderPending = null; if (player.open) highlightPlaying(false); }
+                };
+                setTimeout(step, 50);
+            }
+            initSortable();
+            if (player.open) highlightPlaying(false);
+        }
+
+        // v2.61.0：一個主題一張卡片；收合的主題不產生單字與例句（展開時才產生），大幅加快開啟與重畫
+        function buildCard(task) {
                 const card = document.createElement('div');
                 card.className = 'task-card' + (task.checked ? ' completed-card' : '');
                 card.dataset.id = task.id;
@@ -8564,31 +8589,30 @@ ${PT_JSON_SPEC}${ptStyleNote()}`);
                             ${formatTextWithCn(task.text)} ${getTimeBadgeHtml(task)}
                         </div>
                         <div class="row-actions">
-                            <button class="action-btn btn-edit" onclick="editTask(${task.id}, 'main')">${ICON.edit}</button>
-                            <button class="action-btn btn-delete" onclick="deleteTask(${task.id}, 'main')">${ICON.trash}</button>
+                            ${isEditMode ? `<button class="action-btn btn-edit" onclick="editTask(${task.id}, 'main')">${ICON.edit}</button>` : ''}
+                            ${isEditMode ? `<button class="action-btn btn-delete" onclick="deleteTask(${task.id}, 'main')">${ICON.trash}</button>` : ''}
                             <button class="action-btn btn-add-sub" title="新增單字" onclick="addSubTask(${task.id})">${ICON.plus}</button>
                         </div>
                     </div>
                     <div class="subtask-container ${task.collapsed ? 'collapsed' : ''}">
                 `;
                 
-                task.subtasks.forEach(sub => {
+                (task.collapsed ? [] : task.subtasks).forEach(sub => {
                     const loadingTag = sub.isLoading ? `<span class="ai-loading">🤖 查詢中...</span>`
                                      : sub.genEx ? `<span class="ai-loading">🤖 產生例句中...</span>`
                                      : sub.pendingAI ? `<span class="pending-tag" title="上線後自動補齊">待補齊</span>` : '';
                     html += `
                         <div class="subtask-item ${sub.checked ? 'completed-sub' : ''}" data-id="${sub.id}">
                         <div class="task-row subtask-row">
-                            <div class="drag-handle sub-handle">☰</div>
                             <input type="checkbox" ${sub.checked ? 'checked' : ''} onchange="toggleCheck(${sub.id}, 'sub', ${task.id})">
                             <div class="task-text sub-task-text ${sub.checked ? 'completed' : ''}" onclick="editTask(${sub.id}, 'sub', ${task.id})">
                                 ${formatTextWithCn(sub.text)}${cefrBadge(sub, task.id)} ${loadingTag} ${getTimeBadgeHtml(sub)}
                             </div>
                             <div class="row-actions">
                                 <button class="icon-btn speak" title="朗讀" data-speak="${escapeAttr(sub.text)}" onclick="speakText(this.dataset.speak)">${ICON.speak}</button>
-                                <button class="action-btn btn-edit" onclick="editTask(${sub.id}, 'sub', ${task.id})">${ICON.edit}</button>
-                                <button class="action-btn btn-delete" onclick="deleteTask(${sub.id}, 'sub', ${task.id})">${ICON.trash}</button>
-                                <button class="action-btn btn-move" title="搬到其他主題" aria-label="搬到其他主題" onclick="openMoveOne(${sub.id}, ${task.id})">${ICON.move}</button>
+                                ${isEditMode ? `<button class="action-btn btn-edit" onclick="editTask(${sub.id}, 'sub', ${task.id})">${ICON.edit}</button>` : ''}
+                                ${isEditMode ? `<button class="action-btn btn-delete" onclick="deleteTask(${sub.id}, 'sub', ${task.id})">${ICON.trash}</button>` : ''}
+                                ${isEditMode ? `<button class="action-btn btn-move" title="搬到其他主題" aria-label="搬到其他主題" onclick="openMoveOne(${sub.id}, ${task.id})">${ICON.move}</button>` : ''}
                                 <button class="action-btn btn-add-sub small" title="新增例句" onclick="addGrandTask(${task.id}, ${sub.id})">${ICON.plus}</button>
                             </div>
                         </div>
@@ -8604,15 +8628,14 @@ ${PT_JSON_SPEC}${ptStyleNote()}`);
                     sub.grandtasks.forEach(grand => {
                         html += `
                             <div class="task-row grandtask-row ${grand.checked ? 'completed-grand' : ''}" data-id="${grand.id}">
-                                <div class="drag-handle grand-handle">☰</div>
                                 <input type="checkbox" ${grand.checked ? 'checked' : ''} onchange="toggleCheck(${grand.id}, 'grand', ${sub.id}, ${task.id})">
                                 <div class="task-text grand-task-text ${grand.checked ? 'completed' : ''}" onclick="editTask(${grand.id}, 'grand', ${sub.id}, ${task.id})">
                                     ${formatTextWithCn(grand.text)}<span class="st-badges">${statBadgeHtml(grand)}</span>${grand.unverified && grand.unverified === proofKey(grand.text) ? `<span class="uv-badge" title="沒有通過 AI 交叉檢查" onclick="event.stopPropagation(); uvInfo(${task.id}, ${sub.id}, ${grand.id})">⚠️ 待確認</span>` : ''} ${getTimeBadgeHtml(grand)}
                                 </div>
                                 <div class="row-actions">
                                     <button class="icon-btn speak" title="朗讀" data-speak="${escapeAttr(grand.text)}" onclick="speakText(this.dataset.speak, ${grand.id})">${ICON.speak}</button>
-                                    <button class="action-btn btn-edit" onclick="editTask(${grand.id}, 'grand', ${sub.id}, ${task.id})">${ICON.edit}</button>
-                                    <button class="action-btn btn-delete" onclick="deleteTask(${grand.id}, 'grand', ${sub.id}, ${task.id})">${ICON.trash}</button>
+                                    ${isEditMode ? `<button class="action-btn btn-edit" onclick="editTask(${grand.id}, 'grand', ${sub.id}, ${task.id})">${ICON.edit}</button>` : ''}
+                                    ${isEditMode ? `<button class="action-btn btn-delete" onclick="deleteTask(${grand.id}, 'grand', ${sub.id}, ${task.id})">${ICON.trash}</button>` : ''}
                                 </div>
                             </div>
                         `;
@@ -8620,9 +8643,16 @@ ${PT_JSON_SPEC}${ptStyleNote()}`);
                     html += `</div></div>`; // 關閉 grandtask-container 與 subtask-item
                 });
                 
-                html += `</div>`; card.innerHTML = html; container.appendChild(card);
-            });
-            initSortable();
+                html += `</div>`;
+                if (window.hiConvertHtml) { card.innerHTML = hiConvertHtml(html); card.dataset.hi = '1'; } else card.innerHTML = html;
+                return card;
+        }
+        // 只重畫一個主題（展開／收合時用，不必整頁重畫）
+        function rerenderCard(task) {
+            flushRender();
+            const old = document.querySelector(`#taskList > .task-card[data-id="${task.id}"]`);
+            if (!old) { renderTasks(); return; }
+            old.replaceWith(buildCard(task));
             if (player.open) highlightPlaying(false);
         }
 
@@ -8631,18 +8661,11 @@ ${PT_JSON_SPEC}${ptStyleNote()}`);
             try {
                 const mainList = document.getElementById('taskList');
                 sortableInstances.push(new Sortable(mainList, { animation: 150, handle: '.main-handle', draggable: '.task-card', onEnd: syncDataFromDOM }));
-                document.querySelectorAll('.subtask-container').forEach(c => sortableInstances.push(new Sortable(c, {
-                    group: 'shared-subtasks', animation: 150, handle: '.sub-handle', draggable: '.subtask-item',
-                    fallbackOnBody: true, swapThreshold: 0.65, onEnd: syncDataFromDOM
-                })));
-                document.querySelectorAll('.grandtask-container').forEach(c => sortableInstances.push(new Sortable(c, {
-                    group: 'shared-grandtasks', animation: 150, handle: '.grand-handle', draggable: '.grandtask-row',
-                    fallbackOnBody: true, swapThreshold: 0.65, onEnd: syncDataFromDOM
-                })));
+                // v2.61.0：單字與例句不再用拖曳換位置（改用修改模式的搬移按鈕），只保留主題排序
             } catch (e) { console.error("拖曳功能初始化失敗:", e); }
         }
 
-        initViewToggles(); initHideExCnBtn(); initTimeBtn(); initToggleBtn(); renderTasks(); checkBackupReminder();
+        initViewToggles(); initHideExCnBtn(); initTimeBtn(); initToggleBtn(); renderTasks({ progressive: true }); checkBackupReminder();
         setTimeout(() => processPendingAI(), 2000);   // 開啟 App 時若有網路，自動補齊
         localStorage.removeItem('eng_drive');
         updateUndoProof();          // 舊版「Google Drive 自動備份」設定已移除
