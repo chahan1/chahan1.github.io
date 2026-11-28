@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <title>英語學習筆記本 v2.59.3 - 語音與 AI 升級版</title>
+    <title>英語學習筆記本 v2.60.0 - 語音與 AI 升級版</title>
     <script>try{var z=parseFloat(localStorage.getItem("eng_zoom"));if(z>=0.8&&z<=1.6)document.documentElement.style.setProperty("--z",z)}catch(e){}try{var t=localStorage.getItem("eng_theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <script src="sortable.min.js"></script>
     <script src="native.js"></script>
@@ -518,8 +518,11 @@
         .btn-add-sub.small svg.ic { width: calc(12px * var(--z)); height: calc(12px * var(--z)); }
         .btn-delete { color: var(--c-e06055); }
 
-        .btn-edit, .btn-delete { display: none !important; }
-        body.edit-mode .btn-edit, body.edit-mode .btn-delete { display: flex !important; }
+        .btn-edit, .btn-delete, .btn-move { display: none !important; }
+        body.edit-mode .btn-edit, body.edit-mode .btn-delete, body.edit-mode .btn-move { display: flex !important; }
+        .btn-move { color: var(--green); }
+        .mo-cur { color: var(--muted); cursor: default; }
+        .mo-new { color: var(--green); font-weight: 600; }
         body.hide-completed .completed-card, body.hide-completed .completed-sub, body.hide-completed .completed-grand { display: none !important; }
 
         .time-badge { display: none; font-size: calc(9.5px * var(--z)); color: var(--muted); font-weight: 400; margin-top: 1px; white-space: nowrap; }
@@ -1284,7 +1287,7 @@
 
     <div class="sticky-top-bar">
         <div class="header-container">
-            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.59.3</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
+            <h2><img src="icon-192.png" alt="" onerror="this.remove()">英語學習筆記本</h2><span class="version-tag">v2.60.0</span><span class="sync-badge" id="syncBadge" onclick="openSyncModal()"></span>
             <div class="menu-wrapper">
                 <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -1301,6 +1304,7 @@
                     <div class="dropdown-item" onclick="addMainTaskPrompt()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-folder"/></svg></i><span>新增主題</span></div>
                     <div class="dropdown-item" id="itemEditMode" onclick="toggleEditMode()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-pencil"/></svg></i><span>開啟修改模式</span></div>
                     <div class="dropdown-item" onclick="openMoveModal()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-folder"/></svg></i><span>批次搬移單字</span></div>
+                    <div class="dropdown-item" onclick="openPhraseArea()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-speech"/></svg></i><span>實用短句區</span></div>
                     <div class="dropdown-item" onclick="openPatternModal()"><i><svg class="hi " viewBox="0 0 24 24" aria-hidden="true"><use href="#hi-ai"/></svg></i><span>每日句型</span></div>
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-label">學習與複習</div>
@@ -1577,6 +1581,15 @@
             <select id="mvTarget" class="mv-select"></select>
             <label class="mv-opt"><input type="checkbox" id="mvDelEmpty" checked> 搬完後刪除變成空的主題</label>
             <button class="btn-primary pm-start" id="mvGo" onclick="doBatchMove()">搬移</button>
+        </div>
+    </div>
+
+    <!-- v2.60.0 單一單字搬到其他主題 -->
+    <div id="moveOneModal" class="modal-overlay" onclick="if(event.target===this) closeMoveOne()">
+        <div class="modal-content tp-modal">
+            <div class="pm-title"><h3>📦 搬到其他主題</h3><button class="pm-close" onclick="closeMoveOne()">×</button></div>
+            <div class="pm-hint" id="moWhat"></div>
+            <div class="tp-list" id="moList"></div>
         </div>
     </div>
 
@@ -2276,7 +2289,8 @@
             book:  '<svg aria-hidden="true" class="ic" viewBox="0 0 24 24"><path d="M3 5.5C5.5 4 8.5 4 12 6c3.5-2 6.5-2 9-.5V19c-2.5-1.5-5.5-1.5-9 .5-3.5-2-6.5-2-9-.5V5.5z"/><path d="M12 6v13.5"/></svg>',
             plus:  '<svg aria-hidden="true" class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
             edit:  '<svg aria-hidden="true" class="ic" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>',
-            trash: '<svg aria-hidden="true" class="ic" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>'
+            trash: '<svg aria-hidden="true" class="ic" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>',
+            move:  '<svg aria-hidden="true" class="ic" viewBox="0 0 24 24"><path d="M3 6h6l2 2h10v11H3z"/><path d="M9 13.5h7M13.5 10.5l3 3-3 3"/></svg>'
         };
         const STORAGE_KEY = 'english_notebook_v1.8';
         const API_KEY_STORAGE = 'user_gemini_api_key';
@@ -5686,6 +5700,7 @@ review_sentence 的規則（非常重要）：
             } catch (e) { showToast('重新產生失敗：' + e.message, 4000); }
         }
         function cefrBadge(sub, taskId) {
+            if (sub.phrase) return '';   // v2.60.0 實用短句不標難易度
             const lv = CEFR.includes(sub.cefr) ? sub.cefr : '';
             const u = USAGE[sub.usage];
             const sw = sub.spellWarn && sub.spellWarn === sub.text ? `<span class="uv-badge" title="維基詞典查無此字" onclick="event.stopPropagation(); spellInfo(${taskId}, ${sub.id})">⚠️ 拼字？</span>` : '';
@@ -6505,7 +6520,7 @@ ${ETYM_RULE}`, { temperature: 0.2 });
             if (['formal', 'rare'].includes(sub.usage) && !Array.isArray(sub.common) && Array.isArray(r.common) && sub.usage === r.usage) { sub.common = r.common; if (r.common.length) n++; }
             return n;
         }
-        const enrichable = s => !s.isLoading && !s.pendingAI && clozeTarget(s.text);
+        const enrichable = s => !s.phrase && !s.isLoading && !s.pendingAI && clozeTarget(s.text);
         const needsDefinition = s => enrichable(s) && (!s.definition || !s.definition.trim() || BAD_DEFS().includes(s.definition.trim()));
         const needsSynonyms = s => enrichable(s) && !(Array.isArray(s.synonyms) && s.synonyms.length) && !s.noSynonyms;
         const needsUsage = s => enrichable(s) && (!USAGE[s.usage] || !Array.isArray(s.collocations) || (['formal', 'rare'].includes(s.usage) && !Array.isArray(s.common)));
@@ -7951,6 +7966,7 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             if (!task) return;
 
             let text = "";
+            const addTitle = task.phraseTopic ? '新增實用短句' : '新增單字／片語';
             // 離線時語音辨識無法使用，直接改用鍵盤
             if (SpeechRecognition && navigator.onLine && confirm("要使用語音輸入單字嗎？\n(按『取消』改用鍵盤輸入)")) {
                 showVoiceStatus("🎤 請說出英文單字...");
@@ -7958,13 +7974,13 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
                     text = await listenOnceEnglish();
                     voiceStatus.style.display = 'none';
                     // 讓使用者確認/修改辨識結果
-                    text = await uiPrompt('新增單字／片語', text, { sub: task.text, hint: '語音辨識結果，可修改後按確定', icon: 'hi-mic' });
+                    text = await uiPrompt(addTitle, text, { sub: task.text, hint: '語音辨識結果，可修改後按確定', icon: 'hi-mic' });
                 } catch(e) {
                     voiceStatus.style.display = 'none';
-                    text = await uiPrompt('新增單字／片語', '', { sub: task.text, hint: '語音辨識失敗，請直接輸入' });
+                    text = await uiPrompt(addTitle, '', { sub: task.text, hint: '語音辨識失敗，請直接輸入' });
                 }
             } else {
-                text = await uiPrompt('新增單字／片語', '', { sub: task.text });
+                text = await uiPrompt(addTitle, '', { sub: task.text, ...(task.phraseTopic ? { hint: '輸入實用短句（例如 No wonder. / Fair enough.），AI 會補上中文解釋和兩句例句' } : {}) });
             }
 
             if (!text || !text.trim()) return;
@@ -7994,6 +8010,17 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
             const s0 = findSubAnywhere(subId); if (!s0) return;
             const text = s0.text;
             let result = null, failKind = null;
+            // v2.60.0：加在「實用短句」主題裡的，只補中文解釋和兩句例句
+            if (isPhraseTopic(topicId) || s0.phrase) {
+                let d = null;
+                try { d = await fetchPhraseEntry(cleanForSpeech(text) || text); } catch (e) { failKind = e.kind || classifyError(e); }
+                const sp = findSubAnywhere(subId); if (!sp) return;
+                sp.isLoading = false;
+                if (d) { applyPhraseData(sp, d); }
+                else if (failKind === 'offline' || failKind === 'quota') { sp.pendingAI = true; sp.definition = PENDING_DEF_TEXT; showToast("⏳ 暫時無法連線 AI，已排入待補齊\n稍後會自動重試"); }
+                else sp.definition = MANUAL_DEF_TEXT;
+                saveData(); return;
+            }
             // v2.37.1：加在「句型練習」主題裡的，改用句型格式（和每日句型一樣的說明與例句）
             if (isPatternTopic(topicId) || s0.pattern) {
                 let d = null;
@@ -8089,7 +8116,11 @@ ${items.map((x, i) => `#${i + 1} ${x.text}`).join('\n')}
                     target.isLoading = true; target.definition = target.definition === PENDING_DEF_TEXT ? LOADING_TEXT : target.definition;
                     saveData();
                     try {
-                        if (isPatternTopic(topicId) || target.pattern) {
+                        if (isPhraseTopic(topicId) || target.phrase) {
+                            const d = await fetchPhraseEntry(cleanForSpeech(target.text) || target.text);
+                            const sub = findSubAnywhere(id);
+                            if (sub) { sub.isLoading = false; applyPhraseData(sub, d); saveData(); }
+                        } else if (isPatternTopic(topicId) || target.pattern) {
                             const d = await fetchPatternEntry(cleanForSpeech(target.text) || target.text);
                             const sub = findSubAnywhere(id);
                             if (sub) { sub.isLoading = false; applyPatternData(sub, d); saveData(); }
@@ -8288,6 +8319,86 @@ ${existing.length ? existing.map((e, i) => `${i + 1}. ${e}`).join('\n') : '（�
             showToast(`📦 已把 ${moved.length} 個單字搬到「${target.text}」${removed ? `\n並刪除 ${removed} 個空的主題` : ''}`, 3500);
         }
 
+        // ================= v2.60.0 單一單字搬到其他主題（修改模式） =================
+        let moveOneSel = null;
+        function openMoveOne(subId, fromId) {
+            const s = findSub(fromId, subId); if (!s) return;
+            moveOneSel = { subId, fromId };
+            document.getElementById('moWhat').innerHTML = `把「<b>${escapeHtml(s.text)}</b>」（連同 ${s.grandtasks.length} 句例句與練習紀錄）搬到：`;
+            document.getElementById('moList').innerHTML = tasks.map(t => t.id === fromId
+                ? `<div class="tp-row mo-cur"><span>${topicLabel(t)}</span><small>目前所在</small></div>`
+                : `<div class="tp-row" onclick="doMoveOne(${t.id})"><span>${topicLabel(t)}</span><small>${t.subtasks.length} 個</small></div>`).join('')
+                + `<div class="tp-row mo-new" onclick="moveOneToNew()"><span>＋ 新增主題並搬過去</span></div>`;
+            document.getElementById('moveOneModal').style.display = 'flex';
+        }
+        function closeMoveOne() { document.getElementById('moveOneModal').style.display = 'none'; }
+        function doMoveOne(tid) {
+            const sel = moveOneSel; closeMoveOne(); if (!sel) return;
+            const src = findMain(sel.fromId), target = findMain(tid); if (!src || !target || src === target) return;
+            const i = src.subtasks.findIndex(s => s.id === sel.subId); if (i < 0) return;
+            const [s] = src.subtasks.splice(i, 1);
+            target.subtasks.unshift(s);   // 放在目標主題最上面，方便找到
+            moveOneSel = null;
+            saveData();
+            showToast(`📦 已把「${cleanForSpeech(s.text) || s.text}」搬到「${target.text}」${src.subtasks.length ? '' : `\n「${src.text}」已經沒有單字了`}`, 3000);
+        }
+        async function moveOneToNew() {
+            const sel = moveOneSel; closeMoveOne(); if (!sel) return;
+            const name = await uiPrompt('新增主題', '', { hint: '輸入新主題名稱，單字會搬到這裡', icon: 'hi-folder' });
+            if (!name || !name.trim()) return;
+            const t = { id: newId(), text: name.trim(), checked: false, collapsed: false, createdAt: Date.now(), subtasks: [] };
+            tasks.unshift(t); moveOneSel = sel; doMoveOne(t.id);
+        }
+
+        // ================= v2.60.0 實用短句區 =================
+        // 「💬 實用短句」主題裡新增的項目：保留原本的說法，只補中文解釋與兩句例句（不加同義字、搭配、字源、難易度）
+        const phTopic = () => tasks.find(t => t.phraseTopic);
+        const isPhraseTopic = topicId => { const t = findMain(topicId); return !!(t && t.phraseTopic); };
+        function openPhraseArea() {
+            closeMenu();
+            let t = phTopic();
+            if (!t) {
+                t = { id: newId(), text: '💬 實用短句', phraseTopic: true, checked: false, collapsed: false, createdAt: Date.now(), subtasks: [] };
+                tasks.unshift(t); saveData();
+                showToast('💬 已建立「實用短句」主題\n在這裡新增的短句，AI 只補中文解釋和兩句例句', 3500);
+            } else if (t.collapsed) { t.collapsed = false; saveData(); }
+            const card = document.querySelector(`.task-card[data-id="${t.id}"]`);
+            if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            addSubTask(t.id);
+        }
+        async function fetchPhraseEntry(input) {
+            const d = await aiJSON(`You are an English teacher for a Taiwanese adult learner (native Mandarin, level about ${aiStyle.level === 'upper' ? 'B2' : 'B1'}) who wants to SPEAK natural everyday English.
+The learner saved this useful short English expression / sentence: "${input}"
+Keep the learner's wording (only fix clear spelling or grammar mistakes). Do NOT turn it into a pattern with placeholders.
+Return ONLY JSON:
+{"phrase": "the expression in English",
+ "zh": "Traditional Chinese (Taiwan usage) explanation: what it means and when people say it, 1-2 short sentences, under 50 characters",
+ "examples": [{"en": "a natural example sentence that uses the expression", "zh": "Traditional Chinese translation"}, {"en": "a second example in a different situation", "zh": "Traditional Chinese translation"}]}
+Both examples must contain the expression itself and follow this style (written in Chinese): ${styleInstruction(aiStyle)}`);
+            const ph = String(d.phrase || '').trim();
+            if (!ph || !Array.isArray(d.examples) || !d.examples.length) throw new Error('AI 回傳的格式不完整');
+            const gen = d.__engine;
+            const list = d.examples.filter(x => x && String(x.en || '').trim()).slice(0, 2);
+            d.examples = await Promise.all(list.map(async x => {
+                const s = `${String(x.en).trim()}${x.zh ? ` (${String(x.zh).trim()})` : ''}`;
+                const r = await proofPick({ sentence: s, reviewWords: [] }, ph, gen, aiStyle);
+                return { text: r.sentence, meta: sentMeta(r, r.sentence) };
+            }));
+            return d;
+        }
+        function applyPhraseData(sub, d) {
+            const now = Date.now();
+            sub.text = String(d.phrase).trim();
+            sub.definition = String(d.zh || '').trim() || MANUAL_DEF_TEXT;
+            sub.phrase = true; sub.showDef = true;
+            if (d.__engine && d.__engine.name) sub.aiModel = d.__engine.name;
+            ['synonyms', 'collocations', 'common', 'etym', 'etymSrc', 'etymV', 'cefr', 'usage', 'pendingAI', 'spellWarn', 'pattern'].forEach(k => delete sub[k]);
+            const exist = new Set((sub.grandtasks || []).map(g => cleanForSpeech(g.text).toLowerCase()));
+            const add = d.examples.filter(x => x && x.text && !exist.has(cleanForSpeech(x.text).toLowerCase())).slice(0, 2)
+                .map(x => ({ id: newId(), text: `🤖 ${String(x.text).trim()}`, checked: false, createdAt: now, ...(x.meta || {}) }));
+            sub.grandtasks = add.concat(sub.grandtasks || []);
+        }
+
         // ================= v2.36.0 每日句型 =================
         const PT_KEY = 'eng_dailyPattern';
         let ptCfg = (() => { try { return JSON.parse(localStorage.getItem(PT_KEY)) || {}; } catch (e) { return {}; } })();
@@ -8477,6 +8588,7 @@ ${PT_JSON_SPEC}${ptStyleNote()}`);
                                 <button class="icon-btn speak" title="朗讀" data-speak="${escapeAttr(sub.text)}" onclick="speakText(this.dataset.speak)">${ICON.speak}</button>
                                 <button class="action-btn btn-edit" onclick="editTask(${sub.id}, 'sub', ${task.id})">${ICON.edit}</button>
                                 <button class="action-btn btn-delete" onclick="deleteTask(${sub.id}, 'sub', ${task.id})">${ICON.trash}</button>
+                                <button class="action-btn btn-move" title="搬到其他主題" aria-label="搬到其他主題" onclick="openMoveOne(${sub.id}, ${task.id})">${ICON.move}</button>
                                 <button class="action-btn btn-add-sub small" title="新增例句" onclick="addGrandTask(${task.id}, ${sub.id})">${ICON.plus}</button>
                             </div>
                         </div>
